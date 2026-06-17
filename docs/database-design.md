@@ -77,7 +77,7 @@ erDiagram
 | vehicle_name | VARCHAR(100) | NULL | 同行ありの場合の使用車両 |
 | dispatch_needed | BOOLEAN | NULL | 出庫要否 |
 | note | TEXT | NULL | 備考。受付、搬入口、現地連絡先などをまとめる |
-| display_color | VARCHAR(30) | NULL | 一覧表示用の色。自動割当または任意設定 |
+| display_color | VARCHAR(30) | NULL | 一覧表示用の色。MVPでは1日内の案件順で5色程度から自動割当 |
 | created_at | TIMESTAMP | NOT NULL | 作成日時 |
 | updated_at | TIMESTAMP | NOT NULL | 更新日時 |
 
@@ -151,7 +151,7 @@ MVPではキャンセル済みステータスを持たない。
 
 - 自動保存の具体方式
 - 依頼キャンセル時にデータを削除するか、非表示として保持するか
-- 色分けのルール
+- 日内の案件順で割り当てた色を固定保存するか、表示時に再計算するか
 - 車両を自由入力にするか、将来的にマスタ化するか
 - 依頼者名を将来的にログインや社員マスタと紐づけるか
 - ログインや変更履歴をどのタイミングで導入するか
