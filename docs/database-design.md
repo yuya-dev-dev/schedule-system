@@ -70,7 +70,7 @@ erDiagram
 | requester_name | VARCHAR(100) | NULL | 依頼者名。MVPでは自由入力 |
 | work_type | VARCHAR(30) | NULL | INSTALL, COLLECT, EXCHANGE, DELIVERY |
 | request_detail | TEXT | NULL | 依頼内容。機種、台数、内容物などをまとめて記入する |
-| address | VARCHAR(500) | NULL | 作業先住所。サンプルでは架空住所のみ使用 |
+| address | VARCHAR(500) | NULL | 現場住所。サンプルでは架空住所のみ使用 |
 | desired_arrival_time | TIME | NULL | 現場到着希望時間 |
 | companion_type | VARCHAR(30) | NULL | SOLO, WITH_COMPANION |
 | meeting_place | VARCHAR(300) | NULL | 同行ありの場合の集合場所 |
@@ -100,15 +100,14 @@ erDiagram
 - 終了時間
 - 作業種別
 - 依頼内容
-- 住所
+- 現場住所
 - 現場到着希望時間
-- 一人作業 / 同行あり
 
 条件付き必須:
 
-- 同行ありの場合、集合場所を必須にする
-- 同行ありの場合、出発時間を必須にする
-- 同行ありの場合、使用車両を必須にする
+- 同行ありチェックを付けた場合、集合場所を必須にする
+- 同行ありチェックを付けた場合、出発時間を必須にする
+- 同行ありチェックを付けた場合、使用車両を必須にする
 
 ## 時間範囲の制約
 
