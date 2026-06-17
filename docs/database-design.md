@@ -41,6 +41,7 @@ erDiagram
 
 - `REQUEST_DISPLAY_CELLS` は物理テーブルではなく、画面表示時に展開される概念として扱う。
 - 実DBでは、案件の `work_date`、`start_time`、`end_time` をもとに30分セルへ展開する。
+- 入力済みセルをクリックした場合は、展開されたセルから元の `schedule_requests.id` を特定し、既存案件の入力・編集フォームを開く。
 
 ## テーブル一覧
 
@@ -63,7 +64,7 @@ erDiagram
 | カラム | 型 | 制約 | 説明 |
 | --- | --- | --- | --- |
 | id | BIGINT | PK | 案件ID |
-| work_date | DATE | NOT NULL | 作業日。スケジュール一覧でクリックした日付 |
+| work_date | DATE | NOT NULL | 作業日。新規入力時はクリックした空白セルの日付 |
 | start_time | TIME | NULL | 開始時間 |
 | end_time | TIME | NULL | 終了時間 |
 | requester_name | VARCHAR(100) | NULL | 依頼者名。MVPでは自由入力 |
