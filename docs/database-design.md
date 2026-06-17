@@ -66,7 +66,7 @@ erDiagram
 | work_date | DATE | NOT NULL | 作業日。スケジュール一覧でクリックした日付 |
 | start_time | TIME | NULL | 開始時間 |
 | end_time | TIME | NULL | 終了時間 |
-| requester_name | VARCHAR(100) | NULL | 依頼者名 |
+| requester_name | VARCHAR(100) | NULL | 依頼者名。MVPでは自由入力 |
 | work_type | VARCHAR(30) | NULL | INSTALL, COLLECT, EXCHANGE, DELIVERY |
 | request_detail | TEXT | NULL | 依頼内容。機種、台数、内容物などをまとめて記入する |
 | address | VARCHAR(500) | NULL | 作業先住所。サンプルでは架空住所のみ使用 |
@@ -153,4 +153,5 @@ MVPではキャンセル済みステータスを持たない。
 - 依頼キャンセル時にデータを削除するか、非表示として保持するか
 - 色分けのルール
 - 車両を自由入力にするか、将来的にマスタ化するか
+- 依頼者名を将来的にログインや社員マスタと紐づけるか
 - ログインや変更履歴をどのタイミングで導入するか
