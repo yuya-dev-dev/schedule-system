@@ -21,7 +21,7 @@ erDiagram
         string work_type
         text request_detail
         string address
-        time desired_arrival_time
+        string desired_arrival_time
         string companion_type
         string meeting_place
         time departure_time
@@ -71,7 +71,7 @@ erDiagram
 | work_type | VARCHAR(30) | NULL | INSTALL, COLLECT, EXCHANGE, DELIVERY |
 | request_detail | TEXT | NULL | 依頼内容。機種、台数、内容物などをまとめて記入する |
 | address | VARCHAR(500) | NULL | 現場住所。サンプルでは架空住所のみ使用 |
-| desired_arrival_time | TIME | NULL | 現場到着希望時間 |
+| desired_arrival_time | VARCHAR(100) | NULL | 現場到着希望時間。`10:00`、`午前中`、`13時頃`、`時間指定なし` などを自由入力 |
 | companion_type | VARCHAR(30) | NULL | SOLO, WITH_COMPANION |
 | meeting_place | VARCHAR(300) | NULL | 同行ありの場合の集合場所 |
 | departure_time | TIME | NULL | 同行ありの場合の出発時間 |
@@ -102,6 +102,11 @@ erDiagram
 - 依頼内容
 - 現場住所
 - 現場到着希望時間
+
+補足:
+
+- 現場到着希望時間は開始時間・終了時間とは異なり、厳密な時刻型にはしない。
+- 顧客との約束が `午前中`、`13時頃`、`なるべく早め` のような表現になることがあるため、自由入力の文字列として扱う。
 
 条件付き必須:
 
