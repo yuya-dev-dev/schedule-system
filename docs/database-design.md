@@ -2,190 +2,161 @@
 
 ## 設計方針
 
-MVPでは、案件を中心に、日時、担当者、車両、持参物、ステータスを管理する。Excelの1セルにまとめられていた情報を、検索・更新しやすいデータ構造に分ける。
+MVPでは、ログイン、ユーザー識別、権限管理、ステータス管理を行わない。現行Excelに近い軽い運用を優先し、案件情報を1件単位で保存する。
 
-初期実装ではRDBを前提とし、Java / Spring Bootから扱いやすいテーブル設計にする。DB製品は後続工程で決定するが、開発初期はH2、本番想定はPostgreSQLまたはMySQLを候補とする。
+Excelの1セルにまとめられていた情報を、検索・表示・重複チェックしやすいデータ構造に分ける。DB製品は後続工程で決定するが、開発初期はH2、本番想定はPostgreSQLまたはMySQLを候補とする。
 
 ## 概念モデル
 
 ```mermaid
 erDiagram
-    USERS ||--o{ JOB_CASES : creates
-    USERS ||--o{ JOB_ASSIGNMENTS : assigned
-    JOB_CASES ||--o{ JOB_ASSIGNMENTS : has
-    JOB_CASES ||--o{ JOB_ITEMS : has
-    JOB_CASES ||--o{ JOB_NOTES : has
-    JOB_CASES ||--o{ STATUS_HISTORIES : records
-    VEHICLES ||--o{ JOB_CASES : used_by
+    SCHEDULE_REQUESTS ||--o{ REQUEST_DISPLAY_CELLS : expands_to
 
-    USERS {
+    SCHEDULE_REQUESTS {
         bigint id PK
-        string display_name
-        string email
-        string password_hash
-        string role
-        boolean active
-    }
-
-    JOB_CASES {
-        bigint id PK
-        string title
-        string work_type
         date work_date
-        datetime start_at
-        datetime end_at
-        string status
-        bigint vehicle_id FK
-        bigint created_by FK
+        time start_time
+        time end_time
+        string requester_name
+        string work_type
+        text request_detail
+        string address
+        string desired_arrival_time
+        string companion_type
+        string meeting_place
+        time departure_time
+        string vehicle_name
+        boolean dispatch_needed
+        text note
     }
 
-    JOB_ASSIGNMENTS {
-        bigint id PK
-        bigint job_case_id FK
-        bigint user_id FK
-        string assignment_type
-    }
-
-    VEHICLES {
-        bigint id PK
-        string name
-        boolean active
+    REQUEST_DISPLAY_CELLS {
+        date work_date
+        time cell_start_time
+        bigint schedule_request_id
     }
 ```
+
+補足:
+
+- `REQUEST_DISPLAY_CELLS` は物理テーブルではなく、画面表示時に展開される概念として扱う。
+- 実DBでは、案件の `work_date`、`start_time`、`end_time` をもとに30分セルへ展開する。
+- 入力済みセルをクリックした場合は、展開されたセルから元の `schedule_requests.id` を特定し、既存案件の入力・編集フォームを開く。
 
 ## テーブル一覧
 
 | テーブル | 目的 | MVP |
 | --- | --- | --- |
-| users | ログインユーザーと権限を管理する | 対象 |
-| vehicles | 使用車両を管理する | 対象 |
-| job_cases | 案件の基本情報と日時を管理する | 対象 |
-| job_assignments | 案件と担当者の関連を管理する | 対象 |
-| job_items | 持参物、設置物、回収物を管理する | 対象 |
-| job_notes | 注意事項や補足メモを管理する | 対象 |
-| status_histories | ステータス変更履歴を管理する | 簡易版 |
-| audit_logs | 変更履歴を詳細に管理する | 将来拡張 |
-| attachments | 写真や資料を管理する | 将来拡張 |
+| schedule_requests | 案件の日時と詳細情報を管理する | 対象 |
 
-## users
+将来拡張で検討するテーブル:
 
-| カラム | 型 | 制約 | 説明 |
-| --- | --- | --- | --- |
-| id | BIGINT | PK | ユーザーID |
-| display_name | VARCHAR(100) | NOT NULL | 画面表示名 |
-| email | VARCHAR(255) | NOT NULL, UNIQUE | ログインID |
-| password_hash | VARCHAR(255) | NOT NULL | パスワードハッシュ |
-| role | VARCHAR(30) | NOT NULL | ADMIN, STAFF, WORKER |
-| active | BOOLEAN | NOT NULL | 有効状態 |
-| created_at | TIMESTAMP | NOT NULL | 作成日時 |
-| updated_at | TIMESTAMP | NOT NULL | 更新日時 |
+| テーブル | 目的 |
+| --- | --- |
+| users | ログインや権限管理を導入する場合に利用者を管理する |
+| vehicles | 車両マスタを導入する場合に車両を管理する |
+| audit_logs | 変更履歴を詳細に管理する |
+| attachments | 写真や資料を管理する |
+| notifications | 通知履歴を管理する |
 
-## vehicles
-
-| カラム | 型 | 制約 | 説明 |
-| --- | --- | --- | --- |
-| id | BIGINT | PK | 車両ID |
-| name | VARCHAR(100) | NOT NULL | 車両表示名 |
-| note | VARCHAR(500) | NULL | 備考 |
-| active | BOOLEAN | NOT NULL | 利用可能状態 |
-| created_at | TIMESTAMP | NOT NULL | 作成日時 |
-| updated_at | TIMESTAMP | NOT NULL | 更新日時 |
-
-車両名は実在のナンバーではなく、サンプルでは「車両A」「車両B」のような架空表現にする。
-
-## job_cases
+## schedule_requests
 
 | カラム | 型 | 制約 | 説明 |
 | --- | --- | --- | --- |
 | id | BIGINT | PK | 案件ID |
-| title | VARCHAR(200) | NOT NULL | 案件名 |
-| work_type | VARCHAR(50) | NOT NULL | 設置、配送、回収、点検など |
-| customer_name | VARCHAR(200) | NOT NULL | 顧客名。サンプルでは架空名のみ使用 |
-| location_name | VARCHAR(200) | NULL | 作業場所名 |
-| address | VARCHAR(500) | NULL | 作業先住所。サンプルでは架空住所のみ使用 |
-| work_date | DATE | NOT NULL | 作業日 |
-| start_at | TIMESTAMP | NOT NULL | 開始予定日時 |
-| end_at | TIMESTAMP | NOT NULL | 終了予定日時 |
-| meeting_time | TIMESTAMP | NULL | 集合予定日時 |
-| meeting_place | VARCHAR(300) | NULL | 集合場所 |
-| vehicle_id | BIGINT | FK, NULL | 使用車両 |
-| status | VARCHAR(30) | NOT NULL | DRAFT, SCHEDULED, CONFIRMED, IN_PROGRESS, DONE, CANCELED |
-| created_by | BIGINT | FK | 登録者 |
-| updated_by | BIGINT | FK | 最終更新者 |
+| work_date | DATE | NOT NULL | 作業日。新規入力時はクリックした空白セルの日付 |
+| start_time | TIME | NULL | 開始時間 |
+| end_time | TIME | NULL | 終了時間 |
+| requester_name | VARCHAR(100) | NULL | 依頼者名。MVPでは自由入力 |
+| work_type | VARCHAR(30) | NULL | INSTALL, COLLECT, EXCHANGE, DELIVERY |
+| request_detail | TEXT | NULL | 依頼内容。機種、台数、内容物などをまとめて記入する |
+| address | VARCHAR(500) | NULL | 現場住所。サンプルでは架空住所のみ使用 |
+| desired_arrival_time | VARCHAR(100) | NULL | 現場到着希望時間。`10:00`、`午前中`、`13時頃`、`時間指定なし` などを自由入力 |
+| companion_type | VARCHAR(30) | NULL | SOLO, WITH_COMPANION |
+| meeting_place | VARCHAR(300) | NULL | 同行ありの場合の集合場所 |
+| departure_time | TIME | NULL | 同行ありの場合の出発時間 |
+| vehicle_name | VARCHAR(100) | NULL | 同行ありの場合の使用車両 |
+| dispatch_needed | BOOLEAN | NULL | 出庫要否 |
+| note | TEXT | NULL | 備考。受付、搬入口、現地担当者への連絡、注意事項などをまとめる |
 | created_at | TIMESTAMP | NOT NULL | 作成日時 |
 | updated_at | TIMESTAMP | NOT NULL | 更新日時 |
 
-## job_assignments
+## 一覧反映条件
 
-| カラム | 型 | 制約 | 説明 |
-| --- | --- | --- | --- |
-| id | BIGINT | PK | 割当ID |
-| job_case_id | BIGINT | FK, NOT NULL | 案件ID |
-| user_id | BIGINT | FK, NOT NULL | ユーザーID |
-| assignment_type | VARCHAR(30) | NOT NULL | MAIN, SUPPORT |
-| created_at | TIMESTAMP | NOT NULL | 作成日時 |
+スケジュール一覧へ案件を表示する条件:
 
-同一案件に主担当は1名以上、同行者は0名以上設定できる。
+- `requester_name` が入力されている
+- `start_time` が入力されている
+- `end_time` が入力されている
 
-## job_items
+この3項目のいずれかが未入力の場合、スケジュール一覧には表示しない。
 
-| カラム | 型 | 制約 | 説明 |
-| --- | --- | --- | --- |
-| id | BIGINT | PK | 明細ID |
-| job_case_id | BIGINT | FK, NOT NULL | 案件ID |
-| item_type | VARCHAR(30) | NOT NULL | BRING, INSTALL, COLLECT |
-| name | VARCHAR(200) | NOT NULL | 品目名 |
-| quantity | INTEGER | NULL | 数量 |
-| note | VARCHAR(500) | NULL | 備考 |
-| created_at | TIMESTAMP | NOT NULL | 作成日時 |
+## 必須チェック
 
-## job_notes
+フォーム上の必須項目:
 
-| カラム | 型 | 制約 | 説明 |
-| --- | --- | --- | --- |
-| id | BIGINT | PK | メモID |
-| job_case_id | BIGINT | FK, NOT NULL | 案件ID |
-| note_type | VARCHAR(30) | NOT NULL | INTERNAL, WORKER, CUSTOMER |
-| body | TEXT | NOT NULL | メモ本文 |
-| created_by | BIGINT | FK | 作成者 |
-| created_at | TIMESTAMP | NOT NULL | 作成日時 |
+- 依頼者名
+- 開始時間
+- 終了時間
+- 作業種別
+- 依頼内容
+- 現場住所
+- 現場到着希望時間
 
-## status_histories
+補足:
 
-| カラム | 型 | 制約 | 説明 |
-| --- | --- | --- | --- |
-| id | BIGINT | PK | 履歴ID |
-| job_case_id | BIGINT | FK, NOT NULL | 案件ID |
-| from_status | VARCHAR(30) | NULL | 変更前ステータス |
-| to_status | VARCHAR(30) | NOT NULL | 変更後ステータス |
-| changed_by | BIGINT | FK | 変更者 |
-| changed_at | TIMESTAMP | NOT NULL | 変更日時 |
-| reason | VARCHAR(500) | NULL | 変更理由 |
+- 現場到着希望時間は開始時間・終了時間とは異なり、厳密な時刻型にはしない。
+- 顧客との約束が `午前中`、`13時頃`、`なるべく早め` のような表現になることがあるため、自由入力の文字列として扱う。
 
-## 主な制約
+条件付き必須:
 
-- 案件の終了日時は開始日時より後であること
-- 案件には1名以上の主担当を設定すること
-- キャンセル済み案件は編集可能だが、完了扱いにはしない
-- 車両が無効化されても、過去案件との関連は残すこと
-- 削除は物理削除よりも無効化またはステータス変更を優先すること
+- 同行ありチェックを付けた場合、集合場所を必須にする
+- 同行ありチェックを付けた場合、出発時間を必須にする
+- 同行ありチェックを付けた場合、使用車両を必須にする
+
+## 時間範囲の制約
+
+- 終了時間は開始時間より後であること
+- 時間は30分単位で扱う
+- スケジュール表の表示時間帯は8:30-17:30固定とする
+- 開始時間・終了時間は8:30-17:30内のみ許可する
+- 同じ作業日の既存案件と時間範囲が重なる場合、入力を無効にする
+- 必須詳細項目が未入力で `＊未入力` 表示になっている案件も、重複チェック上は通常の案件として扱う
+- 重複時は `その時間はすでに埋まっています` のような注意表示を出す
+
+重複例:
+
+| 既存案件 | 新規入力 | 判定 |
+| --- | --- | --- |
+| 9:00-11:00 | 10:00-12:00 | 重複 |
+| 9:00-11:00 | 11:00-12:00 | 重複なし |
+| 13:00-14:00 | 12:00-13:00 | 重複なし |
+
+## キャンセル方針
+
+MVPではキャンセル済みステータスを持たない。
+
+依頼キャンセル時は案件レコードを物理削除する。削除後は、該当時間帯のセルを未入力扱いに戻す。
+
+変更履歴や復元が必要になった場合は、将来拡張でキャンセル履歴や監査ログを検討する。
 
 ## 初期サンプルデータ方針
 
 サンプルデータは全て架空情報で作成する。
 
+ポートフォリオで画面の動きを説明しやすくするため、1日あたり3件程度の案件を基本とし、設置、回収、交換、配達の作業種別を一通り含める。
+
+現場住所は、名古屋市、豊田市、岡崎市、一宮市など愛知県内の市に限定する。ただし、番地、建物名、顧客名、担当者名は実在情報を使わず、架空表現にする。
+
 | 種別 | 例 |
 | --- | --- |
-| 顧客名 | サンプル株式会社、テスト商事 |
-| 担当者名 | 社員A、担当者B |
-| 住所 | 東京都サンプル区1-2-3 |
+| 依頼者名 | 社員A、社員B |
+| 住所 | 愛知県名古屋市サンプル区1-2-3、愛知県豊田市サンプル町4-5 |
 | 車両 | 車両A、車両B |
-| 品目 | コーヒーサーバー一式、ウォーターサーバー本体 |
+| 依頼内容 | コーヒーサーバー一式の設置、ウォーターサーバー本体の回収、既存機器の交換、備品の配達 |
 
 ## 今後の検討事項
 
-- 住所を構造化するか、当面は自由入力にするか
-- 作業場所と顧客を別テーブル化するタイミング
-- 品目マスタを導入するタイミング
-- 変更履歴をどの粒度まで残すか
-- 通知機能を追加する場合のイベント設計
+- 車両を自由入力にするか、将来的にマスタ化するか
+- 依頼者名を将来的にログインや社員マスタと紐づけるか
+- ログインや変更履歴をどのタイミングで導入するか
