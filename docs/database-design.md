@@ -77,7 +77,7 @@ erDiagram
 | departure_time | TIME | NULL | 同行ありの場合の出発時間 |
 | vehicle_name | VARCHAR(100) | NULL | 同行ありの場合の使用車両 |
 | dispatch_needed | BOOLEAN | NULL | 出庫要否 |
-| note | TEXT | NULL | 備考。受付、搬入口、現地連絡先などをまとめる |
+| note | TEXT | NULL | 備考。受付、搬入口、現地担当者への連絡、注意事項などをまとめる |
 | created_at | TIMESTAMP | NOT NULL | 作成日時 |
 | updated_at | TIMESTAMP | NOT NULL | 更新日時 |
 
