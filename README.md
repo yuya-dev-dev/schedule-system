@@ -41,7 +41,10 @@
 
 ## ドキュメント
 
+ヒアリング中の最新判断は、まず要件ヒアリング議事録を優先して確認します。正式な要件定義書には、ヒアリングが一巡した後に反映します。
+
 - [要件定義](docs/requirements.md)
+- [要件ヒアリング議事録](docs/requirements-interview.md)
 - [業務フロー](docs/business-flow.md)
 - [画面一覧](docs/screen-list.md)
 - [データベース設計](docs/database-design.md)
