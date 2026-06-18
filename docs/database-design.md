@@ -77,7 +77,7 @@ erDiagram
 | start_time | TIME | NULL | 開始時間 |
 | end_time | TIME | NULL | 終了時間 |
 | requester_name | VARCHAR(100) | NULL | 依頼者名。MVPでは自由入力 |
-| work_type | VARCHAR(30) | NULL | INSTALL, COLLECT, EXCHANGE, DELIVERY |
+| work_type | VARCHAR(30) | NULL | INSTALL, COLLECT, EXCHANGE, DELIVERY, RECEIVING, PRODUCT_MANAGEMENT |
 | request_detail | TEXT | NULL | 依頼内容。機種、台数、内容物などをまとめて記入する |
 | address | VARCHAR(500) | NULL | 現場住所。サンプルでは架空住所のみ使用 |
 | desired_arrival_time | VARCHAR(100) | NULL | 現場到着希望時間。`10:00`、`午前中`、`13時頃`、`時間指定なし` などを自由入力 |
@@ -89,6 +89,11 @@ erDiagram
 | note | TEXT | NULL | 備考。受付、搬入口、現地担当者への連絡、注意事項などをまとめる |
 | created_at | TIMESTAMP | NOT NULL | 作成日時 |
 | updated_at | TIMESTAMP | NOT NULL | 更新日時 |
+
+補足:
+
+- 入庫、商品管理も `schedule_requests` に保存し、定例データとして自動生成しない。
+- 入庫、商品管理でも `requester_name`、`start_time`、`end_time` を入力し、通常案件と同じ一覧反映条件と重複チェックを適用する。
 
 ## schedule_date_overrides
 
@@ -182,7 +187,7 @@ MVPではキャンセル済みステータスを持たない。
 
 サンプルデータは全て架空情報で作成する。
 
-ポートフォリオで画面の動きを説明しやすくするため、1日あたり3件程度の案件を基本とし、設置、回収、交換、配達の作業種別を一通り含める。
+ポートフォリオで画面の動きを説明しやすくするため、1日あたり3件程度の案件を基本にし、設置、回収、交換、配達、入庫、商品管理の作業種別を一通り含める。
 
 現場住所は、名古屋市、豊田市、岡崎市、一宮市など愛知県内の市に限定する。ただし、番地、建物名、顧客名、担当者名は実在情報を使わず、架空表現にする。
 
