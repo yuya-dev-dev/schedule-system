@@ -2,7 +2,7 @@
 
 ## 設計方針
 
-MVPでは、ログイン、ユーザー識別、権限管理、案件の業務ステータス管理を行わない。現行Excelに近い軽い運用を優先し、案件情報を1件単位で保存する。通常の水曜日・金曜日は年月から算出する。休み設定と日本の祝日取得はMVP後に追加する。
+ログイン、ユーザー識別、権限管理、案件の業務ステータス管理は行わない。現行Excelに近い軽い運用を優先し、案件情報を1件単位で保存する。一覧反映可否を管理する技術状態としてのみ `DRAFT` と `PUBLISHED` を持つ。通常の水曜日・金曜日は年月から算出し、休み設定と日本の祝日取得はMVP後に追加する。
 
 Excelの1セルにまとめられていた情報を、検索・表示・重複チェックしやすいデータ構造に分ける。DB製品は後続工程で決定するが、開発初期はH2、本番想定はPostgreSQLまたはMySQLを候補とする。
 
@@ -28,6 +28,9 @@ erDiagram
         string vehicle_name
         string dispatch_status
         text note
+        string entry_state
+        string draft_reason
+        string draft_error_detail
         bigint version
     }
 
@@ -55,7 +58,6 @@ erDiagram
 
 | テーブル | 目的 |
 | --- | --- |
-| users | ログインや権限管理を導入する場合に利用者を管理する |
 | vehicles | 車両マスタを導入する場合に車両を管理する |
 | audit_logs | 変更履歴を詳細に管理する |
 | attachments | 写真や資料を管理する |
@@ -71,17 +73,20 @@ erDiagram
 | work_date | DATE | NOT NULL | 作業日。新規入力時はクリックした空白セルの日付 |
 | start_time | TIME | NULL | 開始時間 |
 | end_time | TIME | NULL | 終了時間 |
-| requester_name | VARCHAR(100) | NULL | 依頼者名。MVPでは自由入力 |
+| requester_name | VARCHAR(100) | NULL | 依頼者名。自由入力。入庫、商品管理では任意 |
 | work_type | VARCHAR(30) | NULL | INSTALL, COLLECT, EXCHANGE, DELIVERY, RECEIVING, PRODUCT_MANAGEMENT |
 | request_detail | TEXT | NULL | 依頼内容。機種、台数、内容物などをまとめて記入する |
 | address | VARCHAR(500) | NULL | 現場住所。サンプルでは架空住所のみ使用 |
-| desired_arrival_time | VARCHAR(100) | NULL | 現場到着希望時間。`10:00`、`午前中`、`13時頃`、`時間指定なし` などを自由入力 |
+| desired_arrival_time | VARCHAR(100) | NULL | 顧客先到着希望時間。`10:00`、`午前中`、`午後かつ17時まで`、`時間指定なし` などを自由入力 |
 | companion_required | BOOLEAN | NOT NULL, DEFAULT FALSE | 同行ありチェック |
 | meeting_place | VARCHAR(300) | NULL | 同行ありの場合の集合場所 |
 | departure_time | TIME | NULL | 同行ありの場合の出発時間 |
-| vehicle_name | VARCHAR(100) | NULL | 同行ありの場合の使用車両 |
+| vehicle_name | VARCHAR(100) | NULL | 同行ありの場合の任意の使用車両指定 |
 | dispatch_status | VARCHAR(30) | NOT NULL, DEFAULT `UNANSWERED` | UNANSWERED, REQUIRED, DISPATCHED |
 | note | TEXT | NULL | 備考。受付、搬入口、現地担当者への連絡、注意事項などをまとめる |
+| entry_state | VARCHAR(20) | NOT NULL, DEFAULT `DRAFT` | DRAFT, PUBLISHED。一覧反映可否を表す技術状態 |
+| draft_reason | VARCHAR(30) | NULL | INCOMPLETE, TIME_CONFLICT。PUBLISHEDではNULL |
+| draft_error_detail | VARCHAR(500) | NULL | 不足項目や直近の競合時間帯など、下書き一覧へ表示する理由。PUBLISHEDではNULL |
 | version | BIGINT | NOT NULL, DEFAULT 0 | 同一案件の同時更新を検知する楽観ロック用バージョン |
 | created_at | TIMESTAMP | NOT NULL | 作成日時 |
 | updated_at | TIMESTAMP | NOT NULL | 更新日時 |
@@ -89,20 +94,23 @@ erDiagram
 補足:
 
 - 入庫、商品管理も `schedule_requests` に保存し、定例データとして自動生成しない。
-- 入庫、商品管理でも `requester_name`、`start_time`、`end_time` を入力し、通常案件と同じ一覧反映条件と重複チェックを適用する。
-- 入庫、商品管理では `requester_name`、`start_time`、`end_time`、`work_type` だけを必須とし、その他のNULLを未入力警告の対象にしない。
+- 入庫、商品管理では `requester_name` を任意とし、`start_time`、`end_time`、`work_type` がそろった時点で重複チェックを行う。
+- 入庫、商品管理では `start_time`、`end_time`、`work_type` だけを必須とし、その他のNULLを未入力警告の対象にしない。
 - `companion_required` をFALSEへ変更した場合は、`meeting_place`、`departure_time`、`vehicle_name` をNULLへ戻す。
+- 通常作業から入庫・商品管理へ変更する際は画面で確認し、承認後に依頼内容、現場住所、顧客先到着希望時間、同行関連値、備考をNULLへ戻し、出庫状態を `UNANSWERED` へ戻す。依頼者名は任意項目として保持する。
 - 一覧へ反映済みの通常案件はMVPでは自動削除せず、無期限に保持する。作業日を過ぎた下書きは例外とする。
 
 ## 下書きの扱い
 
 - 最初の入力値を保存した時点で `schedule_requests` を作成する。入力がないままフォームを離れた場合はレコードを作成しない。
 - 文字入力項目は前後の空白を除去し、空文字だけの場合はNULLへ正規化する。
-- `requester_name`、`start_time`、`end_time` のいずれかがNULLのレコードを下書きとして扱う。
-- 下書き専用の業務ステータス列は持たず、3項目の充足状況から判定する。
-- 下書き一覧は `work_date`、入力済みの `requester_name`、`updated_at` を表示する。
+- 新規レコードは `entry_state = DRAFT` で作成する。
+- `work_type` が入庫、商品管理以外または未入力の場合は `requester_name`、`start_time`、`end_time`、入庫、商品管理の場合は `start_time`、`end_time`、`work_type` がそろい、時間重複がなければ `PUBLISHED` へ変更する。作業種別未入力の通常作業は `＊未入力` の対象とする。
+- 一覧反映条件の不足時は `draft_reason = INCOMPLETE`、時間重複時は `draft_reason = TIME_CONFLICT` とする。
+- `draft_error_detail` には不足項目または直近の競合時間帯を保存し、下書き一覧へ理由を表示する。
+- 下書き一覧は `work_date`、入力済みの `requester_name`、`updated_at`、`draft_reason`、`draft_error_detail` を表示する。
 - 下書き一覧は `work_date` が日本時間の現在日付以降である全月の下書きを対象とし、`updated_at` の降順で取得する。
-- 下書きは時間枠を確保しない。3項目がそろう保存処理で重複を再確認する。
+- `DRAFT` は時間枠を確保しない。一覧反映条件がそろう保存処理で重複を再確認する。
 - 重複時はレコードを下書きのまま保持し、入力値を失わない。
 - 利用者が下書き削除を確認した場合は物理削除する。
 - 下書き一覧を取得するトランザクションの先頭で、`work_date` が日本時間の現在日付より前である下書きを物理削除する。
@@ -111,7 +119,7 @@ erDiagram
 ## 同時登録方針
 
 - 重複確認と保存を一体の処理として行い、同じ時間帯では先にコミットした案件を採用する。
-- 後続処理は保存せず、競合した日付と時間帯を含むエラーを返す。
+- 後続処理は `PUBLISHED` への変更を行わず、入力値を `DRAFT` として保持し、競合した日付と時間帯を含むエラーを返す。
 - 同一案件の同時編集は `version` により検知し、古い画面からの上書きを拒否する。
 - 同一案件の同時編集を拒否した場合も、利用者が入力した画面上の値は保持し、最新情報の再読込を促す。
 - 具体的なトランザクション分離レベルとロック方式は、採用DBを決定する技術設計時に確定する。
@@ -120,6 +128,7 @@ erDiagram
 
 - 月間一覧取得と重複確認のため、`schedule_requests(work_date, start_time, end_time)` に複合インデックスを設定する。
 - `dispatch_status` は `UNANSWERED`、`REQUIRED`、`DISPATCHED` だけを許可する。
+- `entry_state` は `DRAFT`、`PUBLISHED`、`draft_reason` はNULL、`INCOMPLETE`、`TIME_CONFLICT` だけを許可する。
 - 時刻範囲、30分単位、作業種別、同行条件はService層で検証し、採用DBで無理なく表現できる制約はDBにも追加する。
 - `created_at`、`updated_at`、`version` はアプリケーションから一貫して更新する。
 
@@ -163,17 +172,17 @@ erDiagram
 
 - コピーは既存レコードの更新ではなく、新しい `schedule_requests.id` を持つ新規案件として扱う。
 - `work_date` はコピー先として選択した日付を使う。
-- `id`、`work_date`、`created_at`、`updated_at` を除くフォーム入力値をコピーする。
+- フォーム入力値だけをコピーし、`id`、`work_date`、`entry_state`、`draft_reason`、`draft_error_detail`、`version`、`created_at`、`updated_at` はコピーしない。コピー先は `DRAFT` から検証する。
 - コピー元の案件レコードは変更、削除しない。
 - コピーした開始時間・終了時間がコピー先の既存案件と重なる場合、新規レコードを保存しない。
 - 重複時もコピー値は画面上に残し、開始時間・終了時間を修正できるようにする。
 
-## 過去月の変更制限
+## 過去日の変更制限
 
-- アプリケーションが日本時間 `Asia/Tokyo` で取得した現在日付を基準に、`work_date` の年月が現在年月より前の場合は過去月として扱う。
-- 過去月の一覧と案件詳細は取得できるが、新規作成、更新、物理削除を拒否する。
-- 画面上の無効化だけに依存せず、Service層でも過去月への変更を検証する。
-- 現在月内の経過日は編集可能とする。
+- アプリケーションが日本時間 `Asia/Tokyo` で取得した現在日付を基準に、`work_date` が現在日付より前の場合は過去日として扱う。
+- 過去日の一覧と案件詳細は取得できるが、新規作成、更新、物理削除を拒否する。
+- 画面上の無効化だけに依存せず、Service層でも過去日への変更を検証する。
+- 今日以降の日付は編集可能とする。
 - データルール上は未来月の登録上限を設けない。ただし、初期MVPの画面から移動できる未来月は翌月までとする。
 - MVPでは、未来日でも水曜日・金曜日であることを検証する。休み・祝日の検証は各機能の追加時に実装する。
 
@@ -181,17 +190,16 @@ erDiagram
 
 スケジュール一覧へ案件を表示する条件:
 
-- `requester_name` が入力されている
-- `start_time` が入力されている
-- `end_time` が入力されている
+- `entry_state = PUBLISHED` である
+- `work_type` が入庫、商品管理以外または未入力の場合は `requester_name`、`start_time`、`end_time` が入力されている
+- 入庫、商品管理では `start_time`、`end_time`、`work_type` が入力されている。`requester_name` は任意
 
-この3項目のいずれかが未入力の場合、スケジュール一覧には表示しない。
+一覧反映条件を満たさない場合、または時間重複がある場合は `entry_state = DRAFT` とし、一覧には表示しない。
 
 ## 必須チェック
 
 全作業種別で必須:
 
-- 依頼者名
 - 開始時間
 - 終了時間
 - 作業種別
@@ -200,19 +208,20 @@ erDiagram
 
 - 依頼内容
 - 現場住所
-- 現場到着希望時間
+- 依頼者名
+- 顧客先到着希望時間
 
 補足:
 
-- 現場到着希望時間は開始時間・終了時間とは異なり、厳密な時刻型にはしない。
-- 顧客との約束が `午前中`、`13時頃`、`なるべく早め` のような表現になることがあるため、自由入力の文字列として扱う。
+- 顧客先到着希望時間は開始時間・終了時間とは異なり、厳密な時刻型にはしない。
+- 顧客との約束が `午前中`、`午後かつ17時まで`、`なるべく早め` のような表現になることがあるため、自由入力の文字列として扱う。
 
 設置、回収、交換、配達で条件付き必須:
 
 - 同行ありチェックを付けた場合、集合場所を必須にする
 - 同行ありチェックを付けた場合、出発時間を必須にする
-- 同行ありチェックを付けた場合、使用車両を必須にする
-- 同行ありチェックが付いていない場合、集合場所、出発時間、使用車両は未設定として扱う
+- 同行ありチェックを付けた場合、使用車両の指定を任意入力できる
+- 同行ありチェックが付いていない場合、集合場所、出発時間、使用車両の指定は未設定として扱う
 
 入庫、商品管理では、上記の通常作業向け必須項目と条件付き必須項目がNULLでも、`＊未入力` やフォーム上部の不足警告を表示しない。
 
@@ -223,6 +232,9 @@ erDiagram
 - スケジュール表の表示時間帯は8:30-17:30固定とする
 - 開始時間・終了時間は8:30-17:30内のみ許可する
 - 同じ作業日の既存案件と時間範囲が重なる場合、入力を無効にする
+- 時間範囲は開始時刻を含み終了時刻を含まない半開区間として判定し、既存案件が12:00-14:00の場合は14:00開始を重複としない
+- 新規入力が重複した場合は `DRAFT` として入力値、`TIME_CONFLICT`、競合時間帯を保持する
+- 既存案件の時間変更が重複した場合は変更を保存せず、元の `PUBLISHED` レコードと時間枠を維持する
 - 必須詳細項目が未入力で `＊未入力` 表示になっている案件も、重複チェック上は通常の案件として扱う
 - 重複時は `その時間はすでに埋まっています` のような注意表示を出す
 
@@ -238,7 +250,7 @@ erDiagram
 
 MVPではキャンセル済みステータスを持たない。
 
-依頼キャンセル時は案件レコードを物理削除する。削除後は、該当時間帯のセルを未入力扱いに戻す。
+`PUBLISHED` の依頼キャンセル時は二重確認後に案件レコードを物理削除する。削除後は、該当時間帯のセルを未入力扱いに戻す。`DRAFT` は確認1回で物理削除する。
 
 変更履歴や復元が必要になった場合は、将来拡張でキャンセル履歴や監査ログを検討する。
 
@@ -261,5 +273,5 @@ MVPではキャンセル済みステータスを持たない。
 
 - 外部祝日カレンダーの取得元と同期頻度
 - 車両を自由入力にするか、将来的にマスタ化するか
-- 依頼者名を将来的にログインや社員マスタと紐づけるか
-- ログインや変更履歴をどのタイミングで導入するか
+- 変更履歴をどのタイミングで導入するか
+- 生成AIを導入する場合のローカル実行環境、モデル、確認付き操作方式。会社承認なしに実データを外部送信しない
