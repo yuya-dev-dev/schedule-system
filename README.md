@@ -47,15 +47,42 @@
 
 ## 技術方針
 
-初期段階では技術を増やしすぎず、以下を中心に検討します。
+フェーズ1では、次の構成を採用します。
 
-- Java
-- Spring Boot
-- RDB
-- HTMLテンプレートまたはシンプルなフロントエンド
-- JUnitを中心とした自動テスト
+- Java 21 LTS
+- Spring Boot 3.5.15
+- Thymeleafと必要最小限のJavaScript
+- Spring Data JPA / Hibernate
+- Flyway
+- H2（ローカル開発）
+- PostgreSQL（本番想定・競合テスト）
+- JUnit 5 / Testcontainers
+- Maven Wrapper
 
-詳細な技術選定は、要件整理と画面・DB設計の初期案を固めた後に決定します。
+詳しい選定理由と同時実行方式は、[技術選定・検証記録](docs/technical-decisions.md)に記載しています。
+
+## ローカル開発
+
+必要なもの:
+
+- Java 21
+- Docker Desktop（PostgreSQL結合テストを実行する場合）
+
+Windowsでアプリを起動する:
+
+```powershell
+.\mvnw.cmd spring-boot:run
+```
+
+ブラウザで `http://localhost:8080` を開く。フェーズ1では画面をまだ実装していないため、起動とDB接続の確認が中心となる。
+
+全テストを実行する:
+
+```powershell
+.\mvnw.cmd test
+```
+
+全テストではTestcontainersがPostgreSQLを一時起動するため、Docker Desktopを先に起動する。H2のローカルデータは `data/` に保存され、Gitの管理対象には含めない。
 
 ## ドキュメント
 
@@ -66,6 +93,7 @@
 - [業務フロー](docs/business-flow.md)
 - [画面一覧](docs/screen-list.md)
 - [データベース設計](docs/database-design.md)
+- [技術選定・検証記録](docs/technical-decisions.md)
 - [開発ロードマップ](docs/development-roadmap.md)
 - [テスト方針](docs/test-policy.md)
 
