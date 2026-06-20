@@ -244,6 +244,45 @@ class ScheduleVerticalSliceTest {
 	}
 
 	@Test
+	void rendersCompanionBeforeDetailsAndMakesAddressOptionalForCompanion() throws Exception {
+		MvcResult result = mockMvc.perform(get("/requests/new").param("date", "2026-06-24"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("現場住所もしくは会社名")))
+				.andReturn();
+		String html = result.getResponse().getContentAsString();
+
+		assertThat(html.indexOf("id=\"companion-toggle\""))
+				.isBetween(html.indexOf("name=\"requesterName\""), html.indexOf("name=\"requestDetail\""));
+
+		MvcResult companionResult = mockMvc.perform(post("/requests/autosave")
+					.param("workDate", "2026-06-24")
+					.param("startTime", "13:00")
+					.param("endTime", "14:00")
+					.param("workType", "INSTALL")
+					.param("requesterName", "社員A")
+					.param("requestDetail", "架空の設置作業")
+					.param("desiredArrivalTime", "午後ならいつでも")
+					.param("companionRequired", "true")
+					.param("meetingPlace", "名古屋支店")
+					.param("departureTime", "12:00"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.missingFields").isEmpty())
+				.andReturn();
+		Long companionId = new com.fasterxml.jackson.databind.ObjectMapper()
+				.readTree(companionResult.getResponse().getContentAsString())
+				.get("requestId").asLong();
+
+		MvcResult companionForm = mockMvc.perform(get("/requests/{id}", companionId))
+				.andExpect(status().isOk())
+				.andReturn();
+		String companionHtml = companionForm.getResponse().getContentAsString();
+		assertThat(tagWithAttribute(companionHtml, "span", "id", "address-required"))
+				.contains("hidden");
+		assertThat(tagWithAttribute(companionHtml, "input", "name", "address"))
+				.doesNotContain("required");
+	}
+
+	@Test
 	void autosavesDetailsAndReturnsTheSameRequestIdentity() throws Exception {
 		MvcResult first = mockMvc.perform(post("/requests/autosave")
 					.param("workDate", "2026-06-24")

@@ -7,13 +7,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const requesterMarker = document.getElementById("requester-required");
     const normalFields = document.getElementById("normal-work-fields");
     const companion = form.querySelector('input[name="companionRequired"]');
+    const companionToggle = document.getElementById("companion-toggle");
     const companionFields = document.getElementById("companion-fields");
+    const address = document.getElementById("address");
+    const addressMarker = document.getElementById("address-required");
     const status = document.getElementById("save-status");
     const retryButton = document.getElementById("retry-save");
     const errorSummary = document.getElementById("error-summary");
     const idField = document.getElementById("id");
     const versionField = document.getElementById("version");
-    const detailRequiredFields = ["requestDetail", "address", "desiredArrivalTime"]
+    const detailRequiredFields = ["requestDetail", "desiredArrivalTime"]
         .map(id => document.getElementById(id));
     const companionRequiredFields = ["meetingPlace", "departureTime"]
         .map(id => document.getElementById(id));
@@ -48,8 +51,11 @@ document.addEventListener("DOMContentLoaded", () => {
         requester.required = !internal;
         requesterMarker.hidden = internal;
         normalFields.hidden = internal;
+        companionToggle.hidden = internal;
         document.querySelectorAll(".normal-required").forEach(marker => marker.hidden = !normal);
         detailRequiredFields.forEach(field => field.required = normal);
+        address.required = normal && !companion.checked;
+        addressMarker.hidden = !normal || companion.checked;
         companionFields.hidden = !companion.checked || internal;
         companionRequiredFields.forEach(field => field.required = normal && companion.checked);
     };

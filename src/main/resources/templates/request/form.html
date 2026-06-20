@@ -64,6 +64,11 @@
             <small>入庫・商品管理では任意です</small>
         </label>
 
+        <label id="companion-toggle" class="check-field" th:hidden="${form.workType != null and !normalWork}">
+            <input type="checkbox" th:field="*{companionRequired}">
+            <span>同行あり</span>
+        </label>
+
         <section id="normal-work-fields" class="form-section" th:hidden="${form.workType != null and !normalWork}">
             <label class="form-field">
                 <span><span class="normal-required required" th:hidden="${!normalWork}">＊必須</span> 依頼内容</span>
@@ -72,19 +77,17 @@
             </label>
 
             <label class="form-field">
-                <span><span class="normal-required required" th:hidden="${!normalWork}">＊必須</span> 現場住所</span>
-                <input type="text" th:field="*{address}" maxlength="500" placeholder="例：愛知県名古屋市中区○○">
+                <span><span id="address-required" class="required"
+                            th:hidden="${!normalWork or form.companionRequired}">＊必須</span> 現場住所もしくは会社名</span>
+                <input type="text" th:field="*{address}" maxlength="500"
+                       placeholder="例：愛知県名古屋市中区○○、株式会社○○"
+                       th:required="${normalWork and !form.companionRequired}">
             </label>
 
             <label class="form-field">
                 <span><span class="normal-required required" th:hidden="${!normalWork}">＊必須</span> 顧客先到着希望時間</span>
                 <input type="text" th:field="*{desiredArrivalTime}" maxlength="100"
                        placeholder="例：13時頃、午後かつ17時までならいつでも">
-            </label>
-
-            <label class="check-field">
-                <input type="checkbox" th:field="*{companionRequired}">
-                <span>同行あり</span>
             </label>
 
             <div id="companion-fields" class="conditional-fields" th:hidden="${!form.companionRequired}">

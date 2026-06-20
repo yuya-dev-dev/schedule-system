@@ -332,7 +332,7 @@ public class ScheduleRequest {
 		}
 		if (isBlank(requesterName)) missing.add("依頼者名");
 		if (isBlank(requestDetail)) missing.add("依頼内容");
-		if (isBlank(address)) missing.add("現場住所");
+		if (!companionRequired && isBlank(address)) missing.add("現場住所もしくは会社名");
 		if (isBlank(desiredArrivalTime)) missing.add("顧客先到着希望時間");
 		if (companionRequired) {
 			if (isBlank(meetingPlace)) missing.add("集合場所");
