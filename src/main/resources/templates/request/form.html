@@ -14,14 +14,20 @@
 </header>
 
 <main class="form-main">
-    <div th:if="${!#lists.isEmpty(errors)}" class="error-summary" role="alert">
+    <div id="error-summary" th:classappend="${#lists.isEmpty(errors)} ? ' is-hidden'" class="error-summary" role="alert">
         <p th:each="error : ${errors}" th:text="${error}">入力内容を確認してください</p>
     </div>
 
-    <form th:action="@{/requests/save}" th:object="${form}" method="post" class="request-form">
+    <form id="request-form" th:action="@{/requests/save}" th:object="${form}" method="post" class="request-form"
+          data-autosave-url="/requests/autosave" th:data-schedule-url="${scheduleUrl}">
         <input type="hidden" th:field="*{id}">
         <input type="hidden" th:field="*{version}">
         <input type="hidden" th:field="*{workDate}">
+
+        <div class="save-status-row">
+            <div id="save-status" class="save-status" role="status" aria-live="polite">入力内容は自動保存されます</div>
+            <button id="retry-save" type="button" class="retry-save" hidden>再試行</button>
+        </div>
 
         <fieldset class="time-range">
             <legend><span class="required">＊必須</span> 時間範囲</legend>
@@ -58,11 +64,67 @@
             <small>入庫・商品管理では任意です</small>
         </label>
 
+        <section id="normal-work-fields" class="form-section" th:hidden="${form.workType != null and !normalWork}">
+            <label class="form-field">
+                <span><span class="normal-required required" th:hidden="${!normalWork}">＊必須</span> 依頼内容</span>
+                <textarea th:field="*{requestDetail}" rows="5" maxlength="4000"
+                          placeholder="例：コーヒーサーバー2台の設置。必要な機械・備品をまとめて記入してください"></textarea>
+            </label>
+
+            <label class="form-field">
+                <span><span class="normal-required required" th:hidden="${!normalWork}">＊必須</span> 現場住所</span>
+                <input type="text" th:field="*{address}" maxlength="500" placeholder="例：愛知県名古屋市中区○○">
+            </label>
+
+            <label class="form-field">
+                <span><span class="normal-required required" th:hidden="${!normalWork}">＊必須</span> 顧客先到着希望時間</span>
+                <input type="text" th:field="*{desiredArrivalTime}" maxlength="100"
+                       placeholder="例：13時頃、午後かつ17時までならいつでも">
+            </label>
+
+            <label class="check-field">
+                <input type="checkbox" th:field="*{companionRequired}">
+                <span>同行あり</span>
+            </label>
+
+            <div id="companion-fields" class="conditional-fields" th:hidden="${!form.companionRequired}">
+                <label class="form-field">
+                    <span><span class="required">＊必須</span> 集合場所</span>
+                    <input type="text" th:field="*{meetingPlace}" maxlength="300" placeholder="例：名古屋支店">
+                </label>
+                <label class="form-field">
+                    <span><span class="required">＊必須</span> 出発時間</span>
+                    <select th:field="*{departureTime}">
+                        <option value="">選択してください</option>
+                        <option th:each="time : ${startTimeOptions}" th:value="${time}" th:text="${time}">8:30</option>
+                    </select>
+                </label>
+                <label class="form-field">
+                    <span>使用車両の指定</span>
+                    <input type="text" th:field="*{vehicleName}" maxlength="100" placeholder="なければ空欄">
+                </label>
+            </div>
+
+            <label class="form-field">
+                <span>出庫状況</span>
+                <select th:field="*{dispatchStatus}">
+                    <option th:each="status : ${dispatchStatuses}"
+                            th:value="${status}" th:text="${status.displayName}">未回答</option>
+                </select>
+            </label>
+
+            <label class="form-field">
+                <span>備考</span>
+                <small>例: 現地担当者への連絡、注意事項等あれば</small>
+                <textarea th:field="*{note}" rows="4" maxlength="4000"></textarea>
+            </label>
+        </section>
+
         <a th:if="${returnOnly}" th:href="${scheduleUrl}" class="back-submit" title="スケジュール一覧へ戻る">
             <span aria-hidden="true">←</span>
             一覧へ戻る
         </a>
-        <button th:unless="${returnOnly}" type="submit" class="back-submit" title="保存してスケジュール一覧へ戻る">
+        <button th:unless="${returnOnly}" type="submit" formnovalidate class="back-submit" title="保存してスケジュール一覧へ戻る">
             <span aria-hidden="true">←</span>
             一覧へ戻る
         </button>

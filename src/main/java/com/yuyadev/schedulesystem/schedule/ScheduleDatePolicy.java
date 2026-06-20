@@ -27,7 +27,7 @@ public class ScheduleDatePolicy {
 
 	public void requireRegistrable(LocalDate date) {
 		if (!isRegistrable(date)) {
-			throw new IllegalArgumentException("Date is outside the editable schedule range");
+			throw new IllegalArgumentException("対象日は前月・当月・翌月に表示される水曜日または金曜日を指定してください");
 		}
 	}
 

@@ -32,7 +32,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
     font: inherit;
 }
 
@@ -254,6 +255,66 @@ select {
     gap: 24px;
 }
 
+.form-section {
+    display: grid;
+    gap: 24px;
+}
+
+.form-section[hidden],
+.conditional-fields[hidden],
+.is-hidden {
+    display: none;
+}
+
+.conditional-fields {
+    display: grid;
+    gap: 20px;
+    border-left: 4px solid var(--accent);
+    background: #edf6f3;
+    padding: 18px;
+}
+
+.check-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+}
+
+.check-field input {
+    width: 22px;
+    min-height: 22px;
+    margin: 0;
+}
+
+.save-status {
+    min-height: 24px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.save-status-row {
+    display: flex;
+    min-height: 32px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.retry-save {
+    border: 1px solid var(--danger);
+    background: var(--surface);
+    padding: 5px 10px;
+    color: var(--danger);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.save-status.saving { color: #7a5d00; }
+.save-status.saved { color: var(--accent); }
+.save-status.failed { color: var(--danger); }
+
 .time-range {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -288,7 +349,8 @@ select {
 }
 
 input,
-select {
+select,
+textarea {
     width: 100%;
     min-height: 48px;
     border: 1px solid #8795a1;
@@ -299,7 +361,8 @@ select {
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
     border-color: var(--accent);
     outline: 3px solid rgba(23, 107, 91, 0.18);
 }

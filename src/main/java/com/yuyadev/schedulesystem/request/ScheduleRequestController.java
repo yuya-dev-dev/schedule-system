@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.server.ResponseStatusException;
 
 @Controller
@@ -28,18 +30,15 @@ public class ScheduleRequestController {
 			DateTimeFormatter.ofPattern("yyyy年M月d日（E）", Locale.JAPANESE);
 
 	private final ScheduleRequestRepository repository;
-	private final ScheduleRequestPublishingService publishingService;
-	private final ScheduleRequestEditingService editingService;
+	private final ScheduleRequestAutosaveService autosaveService;
 	private final ScheduleDatePolicy datePolicy;
 
 	public ScheduleRequestController(
 			ScheduleRequestRepository repository,
-			ScheduleRequestPublishingService publishingService,
-			ScheduleRequestEditingService editingService,
+			ScheduleRequestAutosaveService autosaveService,
 			ScheduleDatePolicy datePolicy) {
 		this.repository = repository;
-		this.publishingService = publishingService;
-		this.editingService = editingService;
+		this.autosaveService = autosaveService;
 		this.datePolicy = datePolicy;
 	}
 
@@ -60,27 +59,21 @@ public class ScheduleRequestController {
 
 	@PostMapping("/save")
 	public String save(@ModelAttribute("form") ScheduleRequestForm form, Model model) {
-		List<String> errors = validate(form);
-		if (!errors.isEmpty()) {
-			return renderForm(form, errors, model);
+		AutosaveResult result = autosaveService.save(form.getId(), form.getVersion(), form.toInput());
+		if (result.requestId() != null) {
+			form.setId(result.requestId());
+			form.setVersion(result.version());
 		}
-
-		if (form.getId() == null) {
-			PublishResult result = publishingService.publish(form.toCommand());
-			if (result.status() == PublishResult.Status.TIME_CONFLICT) {
-				return renderForm(form, List.of(result.message()), model, true);
-			}
-		} else {
-			EditResult result = editingService.update(form.getId(), form.getVersion(), form.toCommand());
-			if (result.status() != EditResult.Status.UPDATED) {
-				return renderForm(
-						form,
-						List.of(result.message()),
-						model,
-						result.status() == EditResult.Status.TIME_CONFLICT);
-			}
+		if (result.status() != AutosaveResult.Status.SAVED) {
+			return renderForm(form, List.of(result.message()), model, true);
 		}
 		return "redirect:" + scheduleUrl(form.getWorkDate());
+	}
+
+	@PostMapping(value = "/autosave", produces = MediaType.APPLICATION_JSON_VALUE)
+	@ResponseBody
+	public AutosaveResult autosave(@ModelAttribute ScheduleRequestForm form) {
+		return autosaveService.save(form.getId(), form.getVersion(), form.toInput());
 	}
 
 	private String renderForm(
@@ -96,6 +89,7 @@ public class ScheduleRequestController {
 		model.addAttribute("form", form);
 		model.addAttribute("errors", errors);
 		model.addAttribute("workTypes", WorkType.values());
+		model.addAttribute("dispatchStatuses", DispatchStatus.values());
 		model.addAttribute(
 				"startTimeOptions", timeOptions(OPENING_TIME, CLOSING_TIME.minusMinutes(30)));
 		model.addAttribute("endTimeOptions", timeOptions(OPENING_TIME.plusMinutes(30), CLOSING_TIME));
@@ -104,6 +98,8 @@ public class ScheduleRequestController {
 				: form.getWorkDate().format(DATE_TITLE));
 		model.addAttribute("editing", form.getId() != null);
 		model.addAttribute("requesterRequired", requiresRequester(form.getWorkType()));
+		model.addAttribute("normalWork", form.getWorkType() != null
+				&& !ScheduleRequest.isInternalWork(form.getWorkType()));
 		model.addAttribute("returnOnly", returnOnly);
 		model.addAttribute("scheduleUrl", form.getWorkDate() == null
 				? "/schedule"
@@ -116,44 +112,9 @@ public class ScheduleRequestController {
 				+ "-" + String.format("%02d", date.getMonthValue());
 	}
 
-	private List<String> validate(ScheduleRequestForm form) {
-		List<String> errors = new ArrayList<>();
-		if (!datePolicy.isRegistrable(form.getWorkDate())) {
-			errors.add("対象日は前月・当月・翌月に表示される水曜日または金曜日を指定してください");
-		}
-		if (form.getStartTime() == null) {
-			errors.add("開始時間は必須です");
-		}
-		if (form.getEndTime() == null) {
-			errors.add("終了時間は必須です");
-		}
-		if (form.getStartTime() != null && form.getEndTime() != null) {
-			if (!form.getEndTime().isAfter(form.getStartTime())) {
-				errors.add("終了時間は開始時間より後にしてください");
-			}
-			if (form.getStartTime().isBefore(OPENING_TIME)
-					|| form.getEndTime().isAfter(CLOSING_TIME)) {
-				errors.add("時間は8:30から17:30の範囲で入力してください");
-			}
-			if (!isThirtyMinuteSlot(form.getStartTime())
-					|| !isThirtyMinuteSlot(form.getEndTime())) {
-				errors.add("開始時間と終了時間は30分単位で入力してください");
-			}
-		}
-		if (requiresRequester(form.getWorkType())
-				&& (form.getRequesterName() == null || form.getRequesterName().isBlank())) {
-			errors.add("依頼者名は必須です");
-		}
-		return errors;
-	}
-
 	private boolean requiresRequester(WorkType workType) {
 		return workType != WorkType.RECEIVING
 				&& workType != WorkType.PRODUCT_MANAGEMENT;
-	}
-
-	private boolean isThirtyMinuteSlot(LocalTime time) {
-		return time.getMinute() % 30 == 0 && time.getSecond() == 0 && time.getNano() == 0;
 	}
 
 	private List<LocalTime> timeOptions(LocalTime first, LocalTime last) {
