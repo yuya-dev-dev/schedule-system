@@ -34,6 +34,11 @@ public class ScheduleRequest {
 	@Enumerated(EnumType.STRING)
 	private EntryState entryState;
 
+	@Enumerated(EnumType.STRING)
+	private DraftReason draftReason;
+
+	private String draftErrorDetail;
+
 	@Version
 	private long version;
 
@@ -45,13 +50,17 @@ public class ScheduleRequest {
 			LocalTime endTime,
 			String requesterName,
 			WorkType workType,
-			EntryState entryState) {
+			EntryState entryState,
+			DraftReason draftReason,
+			String draftErrorDetail) {
 		this.workDate = Objects.requireNonNull(workDate);
-		this.startTime = Objects.requireNonNull(startTime);
-		this.endTime = Objects.requireNonNull(endTime);
+		this.startTime = startTime;
+		this.endTime = endTime;
 		this.requesterName = requesterName;
-		this.workType = Objects.requireNonNull(workType);
+		this.workType = workType;
 		this.entryState = Objects.requireNonNull(entryState);
+		this.draftReason = draftReason;
+		this.draftErrorDetail = draftErrorDetail;
 	}
 
 	public static ScheduleRequest published(
@@ -71,7 +80,33 @@ public class ScheduleRequest {
 			throw new IllegalArgumentException("Requester name is required for this work type");
 		}
 		return new ScheduleRequest(
-				workDate, startTime, endTime, normalize(requesterName), workType, EntryState.PUBLISHED);
+				workDate,
+				startTime,
+				endTime,
+				normalize(requesterName),
+				workType,
+				EntryState.PUBLISHED,
+				null,
+				null);
+	}
+
+	public static ScheduleRequest draft(
+			LocalDate workDate,
+			LocalTime startTime,
+			LocalTime endTime,
+			String requesterName,
+			WorkType workType,
+			DraftReason draftReason,
+			String draftErrorDetail) {
+		return new ScheduleRequest(
+				workDate,
+				startTime,
+				endTime,
+				normalize(requesterName),
+				workType,
+				EntryState.DRAFT,
+				Objects.requireNonNull(draftReason),
+				draftErrorDetail);
 	}
 
 	private static boolean requiresRequester(WorkType workType) {
@@ -114,6 +149,14 @@ public class ScheduleRequest {
 		return entryState;
 	}
 
+	public DraftReason getDraftReason() {
+		return draftReason;
+	}
+
+	public String getDraftErrorDetail() {
+		return draftErrorDetail;
+	}
+
 	public long getVersion() {
 		return version;
 	}
@@ -123,5 +166,18 @@ public class ScheduleRequest {
 			throw new IllegalArgumentException("Requester name is required for this work type");
 		}
 		this.requesterName = normalize(requesterName);
+	}
+
+	public void publish() {
+		ScheduleRequest.published(workDate, startTime, endTime, requesterName, workType);
+		this.entryState = EntryState.PUBLISHED;
+		this.draftReason = null;
+		this.draftErrorDetail = null;
+	}
+
+	public void markTimeConflict(String detail) {
+		this.entryState = EntryState.DRAFT;
+		this.draftReason = DraftReason.TIME_CONFLICT;
+		this.draftErrorDetail = detail;
 	}
 }
