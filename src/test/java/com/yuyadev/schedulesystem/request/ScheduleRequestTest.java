@@ -57,7 +57,7 @@ class ScheduleRequestTest {
 					"社員A",
 					WorkType.COLLECT))
 				.isInstanceOf(IllegalArgumentException.class)
-				.hasMessageContaining("End time");
+				.hasMessageContaining("終了時間");
 	}
 
 	@Test
@@ -82,7 +82,7 @@ class ScheduleRequestTest {
 					"社員A",
 					WorkType.INSTALL))
 				.isInstanceOf(IllegalArgumentException.class)
-				.hasMessageContaining("30-minute");
+				.hasMessageContaining("30分単位");
 	}
 
 	@Test
@@ -101,5 +101,66 @@ class ScheduleRequestTest {
 		assertThat(request.getEntryState()).isEqualTo(EntryState.PUBLISHED);
 		assertThat(request.getDraftReason()).isNull();
 		assertThat(request.getDraftErrorDetail()).isNull();
+	}
+
+	@Test
+	void reportsRequiredDetailsForNormalWork() {
+		ScheduleRequest request = ScheduleRequest.draft(input(
+				WorkType.INSTALL, "社員A", null, null, null, false, null, null));
+
+		assertThat(request.canAppearOnSchedule()).isTrue();
+		assertThat(request.missingRequiredFields())
+				.containsExactly("依頼内容", "現場住所", "顧客先到着希望時間");
+	}
+
+	@Test
+	void requiresMeetingPlaceAndDepartureTimeOnlyWithCompanion() {
+		ScheduleRequest request = ScheduleRequest.draft(input(
+				WorkType.DELIVERY, "社員A", "備品を配達", "愛知県名古屋市中区", "午後",
+				true, null, null));
+
+		assertThat(request.missingRequiredFields()).containsExactly("集合場所", "出発時間");
+	}
+
+	@Test
+	void clearsCompanionValuesWhenCompanionIsUnchecked() {
+		ScheduleRequest request = ScheduleRequest.draft(input(
+				WorkType.DELIVERY, "社員A", "備品を配達", "愛知県名古屋市中区", "午後",
+				true, "名古屋支店", LocalTime.of(9, 0)));
+
+		request.applyInput(input(
+				WorkType.DELIVERY, "社員A", "備品を配達", "愛知県名古屋市中区", "午後",
+				false, "残してはいけない", LocalTime.of(10, 0)));
+
+		assertThat(request.getMeetingPlace()).isNull();
+		assertThat(request.getDepartureTime()).isNull();
+		assertThat(request.getVehicleName()).isNull();
+	}
+
+	@Test
+	void internalWorkDoesNotRequireNormalDetails() {
+		ScheduleRequest request = ScheduleRequest.draft(input(
+				WorkType.RECEIVING, null, null, null, null, false, null, null));
+
+		assertThat(request.canAppearOnSchedule()).isTrue();
+		assertThat(request.missingRequiredFields()).isEmpty();
+		assertThat(request.getRequestDetail()).isNull();
+		assertThat(request.getNote()).isNull();
+		assertThat(request.getDispatchStatus()).isEqualTo(DispatchStatus.UNANSWERED);
+	}
+
+	private ScheduleRequestInput input(
+			WorkType workType,
+			String requester,
+			String detail,
+			String address,
+			String arrival,
+			boolean companion,
+			String meetingPlace,
+			LocalTime departureTime) {
+		return new ScheduleRequestInput(
+				WORK_DATE, LocalTime.of(9, 0), LocalTime.of(10, 0), workType,
+				requester, detail, address, arrival, companion, meetingPlace,
+				departureTime, "車両A", DispatchStatus.UNANSWERED, "備考");
 	}
 }

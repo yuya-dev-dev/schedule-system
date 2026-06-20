@@ -140,7 +140,7 @@ public class MonthScheduleService {
 				firstCell,
 				request.getRequesterName(),
 				request.getWorkType() == null ? null : request.getWorkType().getDisplayName(),
-				request.getWorkType() == null,
+				request.hasMissingRequiredFields(),
 				colors.get(request.getId()),
 				"/requests/" + request.getId());
 	}

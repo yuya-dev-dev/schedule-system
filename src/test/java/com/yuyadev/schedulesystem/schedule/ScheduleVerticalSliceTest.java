@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.yuyadev.schedulesystem.request.EntryState;
@@ -240,6 +241,56 @@ class ScheduleVerticalSliceTest {
 				.contains("hidden");
 		assertThat(tagWithAttribute(html, "input", "name", "requesterName"))
 				.doesNotContain("required");
+	}
+
+	@Test
+	void autosavesDetailsAndReturnsTheSameRequestIdentity() throws Exception {
+		MvcResult first = mockMvc.perform(post("/requests/autosave")
+					.param("workDate", "2026-06-24")
+					.param("startTime", "13:00")
+					.param("endTime", "14:00")
+					.param("workType", "INSTALL")
+					.param("requesterName", "社員A")
+					.param("requestDetail", "架空の設置作業")
+					.param("address", "愛知県豊田市架空町1-1")
+					.param("desiredArrivalTime", "午後ならいつでも")
+					.param("companionRequired", "true")
+					.param("meetingPlace", "名古屋支店")
+					.param("departureTime", "12:00")
+					.param("vehicleName", "車両A")
+					.param("dispatchStatus", "DISPATCHED")
+					.param("note", "到着時に連絡"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("SAVED"))
+				.andExpect(jsonPath("$.entryState").value("PUBLISHED"))
+				.andExpect(jsonPath("$.missingFields").isEmpty())
+				.andReturn();
+
+		com.fasterxml.jackson.databind.JsonNode json = new com.fasterxml.jackson.databind.ObjectMapper()
+				.readTree(first.getResponse().getContentAsString());
+		Long id = json.get("requestId").asLong();
+		long version = json.get("version").asLong();
+
+		mockMvc.perform(post("/requests/autosave")
+					.param("id", id.toString())
+					.param("version", Long.toString(version))
+					.param("workDate", "2026-06-24")
+					.param("startTime", "13:00")
+					.param("endTime", "14:00")
+					.param("workType", "INSTALL")
+					.param("requesterName", "社員A")
+					.param("requestDetail", "更新後の架空作業")
+					.param("address", "愛知県豊田市架空町1-1")
+					.param("desiredArrivalTime", "午後ならいつでも")
+					.param("dispatchStatus", "UNANSWERED"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.requestId").value(id));
+
+		ScheduleRequest saved = repository.findById(id).orElseThrow();
+		assertThat(saved.getRequestDetail()).isEqualTo("更新後の架空作業");
+		assertThat(saved.isCompanionRequired()).isFalse();
+		assertThat(saved.getMeetingPlace()).isNull();
+		assertThat(repository.count()).isOne();
 	}
 
 	private String tagWithAttribute(
