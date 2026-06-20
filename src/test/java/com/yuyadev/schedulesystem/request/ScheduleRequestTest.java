@@ -110,13 +110,13 @@ class ScheduleRequestTest {
 
 		assertThat(request.canAppearOnSchedule()).isTrue();
 		assertThat(request.missingRequiredFields())
-				.containsExactly("依頼内容", "現場住所", "顧客先到着希望時間");
+				.containsExactly("依頼内容", "現場住所もしくは会社名", "顧客先到着希望時間");
 	}
 
 	@Test
 	void requiresMeetingPlaceAndDepartureTimeOnlyWithCompanion() {
 		ScheduleRequest request = ScheduleRequest.draft(input(
-				WorkType.DELIVERY, "社員A", "備品を配達", "愛知県名古屋市中区", "午後",
+				WorkType.DELIVERY, "社員A", "備品を配達", null, "午後",
 				true, null, null));
 
 		assertThat(request.missingRequiredFields()).containsExactly("集合場所", "出発時間");
