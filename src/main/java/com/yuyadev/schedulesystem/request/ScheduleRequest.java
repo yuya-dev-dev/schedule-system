@@ -326,8 +326,11 @@ public class ScheduleRequest {
 		List<String> missing = new ArrayList<>();
 		if (startTime == null) missing.add("開始時間");
 		if (endTime == null) missing.add("終了時間");
-		if (workType == null) missing.add("作業種別");
-		if (workType == null || isInternalWork(workType)) {
+		if (workType == null) {
+			if (isBlank(requesterName)) missing.add("依頼者名");
+			return List.copyOf(missing);
+		}
+		if (isInternalWork(workType)) {
 			return List.copyOf(missing);
 		}
 		if (isBlank(requesterName)) missing.add("依頼者名");
@@ -342,7 +345,7 @@ public class ScheduleRequest {
 	}
 
 	public boolean hasMissingRequiredFields() {
-		return !missingRequiredFields().isEmpty();
+		return workType == null || !missingRequiredFields().isEmpty();
 	}
 
 	public void publish() {
