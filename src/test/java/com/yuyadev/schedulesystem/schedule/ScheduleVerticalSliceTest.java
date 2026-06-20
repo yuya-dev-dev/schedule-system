@@ -93,7 +93,7 @@ class ScheduleVerticalSliceTest {
 	void keepsInputOnScreenWhenTimeConflicts() throws Exception {
 		createRequest("10:00", "12:00", "社員A");
 
-		mockMvc.perform(post("/requests/save")
+		MvcResult conflictResult = mockMvc.perform(post("/requests/save")
 					.param("workDate", "2026-06-24")
 					.param("startTime", "11:00")
 					.param("endTime", "13:00")
@@ -101,7 +101,16 @@ class ScheduleVerticalSliceTest {
 					.param("requesterName", "社員B"))
 				.andExpect(status().isOk())
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("その時間はすでに埋まっています")))
-				.andExpect(content().string(org.hamcrest.Matchers.containsString("value=\"社員B\"")));
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("value=\"社員B\"")))
+				.andReturn();
+		String html = conflictResult.getResponse().getContentAsString();
+		assertThat(tagWithAttribute(html, "a", "href", "/schedule?month=2026-06"))
+				.contains("back-submit");
+		assertThat(html).doesNotContain("<button type=\"submit\" class=\"back-submit\"");
+
+		mockMvc.perform(get("/schedule").param("month", "2026-06"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("2026年6月 スケジュール")));
 
 		assertThat(repository.countByEntryState(EntryState.PUBLISHED)).isOne();
 		assertThat(repository.countByEntryState(EntryState.DRAFT)).isOne();

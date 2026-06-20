@@ -58,7 +58,11 @@
             <small>入庫・商品管理では任意です</small>
         </label>
 
-        <button type="submit" class="back-submit" title="保存してスケジュール一覧へ戻る">
+        <a th:if="${returnOnly}" th:href="${scheduleUrl}" class="back-submit" title="スケジュール一覧へ戻る">
+            <span aria-hidden="true">←</span>
+            一覧へ戻る
+        </a>
+        <button th:unless="${returnOnly}" type="submit" class="back-submit" title="保存してスケジュール一覧へ戻る">
             <span aria-hidden="true">←</span>
             一覧へ戻る
         </button>
