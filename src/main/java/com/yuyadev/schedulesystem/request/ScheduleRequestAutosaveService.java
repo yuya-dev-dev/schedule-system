@@ -63,6 +63,11 @@ public class ScheduleRequestAutosaveService {
 			if (request.getVersion() != expectedVersion) {
 				return SaveResult.stale(request.getId());
 			}
+			if (request.getEntryState() == EntryState.PUBLISHED
+					&& canAppearOnSchedule(input)
+					&& findConflict(id, input).isPresent()) {
+				return SaveResult.conflict(request.getId());
+			}
 			request.applyInput(input);
 		}
 
@@ -90,6 +95,9 @@ public class ScheduleRequestAutosaveService {
 			if (request.getVersion() != expectedVersion) {
 				return SaveResult.stale(request.getId());
 			}
+			if (request.getEntryState() == EntryState.PUBLISHED) {
+				return SaveResult.conflict(request.getId());
+			}
 			request.applyInput(input);
 		}
 		request.markTimeConflict("既存案件と時間が重複しています");
@@ -108,6 +116,14 @@ public class ScheduleRequestAutosaveService {
 						id, input.workDate(), EntryState.PUBLISHED, input.endTime(), input.startTime());
 	}
 
+	private boolean canAppearOnSchedule(ScheduleRequestInput input) {
+		if (input.startTime() == null || input.endTime() == null) {
+			return false;
+		}
+		return ScheduleRequest.isInternalWork(input.workType())
+				|| (input.requesterName() != null && !input.requesterName().isBlank());
+	}
+
 	private AutosaveResult toAutosaveResult(SaveResult result) {
 		ScheduleRequest request = find(result.requestId());
 		if (result.stale()) {
@@ -121,7 +137,7 @@ public class ScheduleRequestAutosaveService {
 
 	private ScheduleRequest find(Long id) {
 		return repository.findById(id)
-				.orElseThrow(() -> new IllegalArgumentException("保存対象が見つかりません"));
+				.orElseThrow(() -> new IllegalArgumentException("案件は削除されています"));
 	}
 
 	private String conflictDetail(ScheduleRequest request) {

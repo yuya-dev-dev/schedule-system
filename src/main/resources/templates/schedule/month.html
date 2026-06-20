@@ -15,6 +15,31 @@
 </header>
 
 <main>
+    <details class="draft-panel" th:open="${!#lists.isEmpty(drafts)}">
+        <summary>
+            <span>下書き一覧</span>
+            <span class="draft-count" th:text="${#lists.size(drafts)}">0</span>
+        </summary>
+        <p th:if="${#lists.isEmpty(drafts)}" class="draft-empty">保存中の下書きはありません</p>
+        <div th:unless="${#lists.isEmpty(drafts)}" class="draft-list">
+            <article th:each="draft : ${drafts}" class="draft-item">
+                <div class="draft-item-main">
+                    <strong th:text="${draft.workDate + ' ' + draft.requesterName}">2026年6月24日 社員A</strong>
+                    <span class="draft-reason" th:text="${draft.reason}">入力不足</span>
+                    <small th:text="${draft.detail}">開始時間が未入力</small>
+                    <small th:text="${'更新 ' + draft.updatedAt}">更新 6月20日 14:30</small>
+                </div>
+                <div class="draft-actions">
+                    <a th:href="@{/requests/drafts/{id}(id=${draft.id})}">入力を再開</a>
+                    <form th:action="@{/requests/drafts/{id}/delete(id=${draft.id})}" method="post"
+                          onsubmit="return confirm('この下書きを削除しますか？');">
+                        <button type="submit">削除</button>
+                    </form>
+                </div>
+            </article>
+        </div>
+    </details>
+
     <div class="schedule-scroll" aria-label="月間スケジュール">
         <table class="schedule-table">
             <thead>

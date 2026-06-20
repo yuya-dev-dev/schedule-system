@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.yuyadev.schedulesystem.request.EntryState;
+import com.yuyadev.schedulesystem.request.DraftReason;
 import com.yuyadev.schedulesystem.request.ScheduleRequest;
 import com.yuyadev.schedulesystem.request.ScheduleRequestRepository;
 import java.time.Clock;
@@ -53,6 +54,53 @@ class ScheduleVerticalSliceTest {
 	@AfterEach
 	void cleanUp() {
 		repository.deleteAll();
+	}
+
+	@Test
+	void listsResumesAndDeletesAnActiveDraftWhilePurgingPastDrafts() throws Exception {
+		ScheduleRequest active = repository.saveAndFlush(ScheduleRequest.draft(
+				LocalDate.of(2026, 6, 24), null, null, "社員A", null,
+				DraftReason.INCOMPLETE, "入力不足"));
+		ScheduleRequest expired = repository.saveAndFlush(ScheduleRequest.draft(
+				LocalDate.of(2026, 6, 19), null, null, "社員B", null,
+				DraftReason.INCOMPLETE, "入力不足"));
+
+		mockMvc.perform(get("/schedule").param("month", "2026-06"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("下書き一覧")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("2026年6月24日 社員A")))
+				.andExpect(content().string(org.hamcrest.Matchers.not(
+						org.hamcrest.Matchers.containsString("2026年6月19日 社員B"))));
+		assertThat(repository.existsById(expired.getId())).isFalse();
+
+		mockMvc.perform(get("/requests/drafts/{id}", active.getId()))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("下書きを削除")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("開始時間が未入力です")));
+
+		mockMvc.perform(post("/requests/drafts/{id}/delete", active.getId()))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/schedule?month=2026-06"));
+		assertThat(repository.existsById(active.getId())).isFalse();
+	}
+
+	@Test
+	void confirmsAndPhysicallyDeletesPublishedRequest() throws Exception {
+		ScheduleRequest request = repository.saveAndFlush(ScheduleRequest.published(
+				LocalDate.of(2026, 6, 24), LocalTime.of(10, 0), LocalTime.of(11, 0),
+				"社員A", WorkType.INSTALL));
+
+		mockMvc.perform(get("/requests/{id}/cancel", request.getId()))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("依頼キャンセル確認")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("2026年6月24日（水）")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("社員A")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("設置")));
+
+		mockMvc.perform(post("/requests/{id}/cancel", request.getId()))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/schedule?month=2026-06"));
+		assertThat(repository.existsById(request.getId())).isFalse();
 	}
 
 	@Test
