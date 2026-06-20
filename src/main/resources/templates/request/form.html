@@ -69,6 +69,24 @@
             <span>同行あり</span>
         </label>
 
+        <div id="companion-fields" class="conditional-fields" th:hidden="${!form.companionRequired}">
+            <label class="form-field">
+                <span><span class="required">＊必須</span> 集合場所</span>
+                <input type="text" th:field="*{meetingPlace}" maxlength="300" placeholder="例：名古屋支店">
+            </label>
+            <label class="form-field">
+                <span><span class="required">＊必須</span> 出発時間</span>
+                <select th:field="*{departureTime}">
+                    <option value="">選択してください</option>
+                    <option th:each="time : ${startTimeOptions}" th:value="${time}" th:text="${time}">8:30</option>
+                </select>
+            </label>
+            <label class="form-field">
+                <span>使用車両の指定</span>
+                <input type="text" th:field="*{vehicleName}" maxlength="100" placeholder="なければ空欄">
+            </label>
+        </div>
+
         <section id="normal-work-fields" class="form-section" th:hidden="${form.workType != null and !normalWork}">
             <label class="form-field">
                 <span><span class="normal-required required" th:hidden="${!normalWork}">＊必須</span> 依頼内容</span>
@@ -89,24 +107,6 @@
                 <input type="text" th:field="*{desiredArrivalTime}" maxlength="100"
                        placeholder="例：13時頃、午後かつ17時までならいつでも">
             </label>
-
-            <div id="companion-fields" class="conditional-fields" th:hidden="${!form.companionRequired}">
-                <label class="form-field">
-                    <span><span class="required">＊必須</span> 集合場所</span>
-                    <input type="text" th:field="*{meetingPlace}" maxlength="300" placeholder="例：名古屋支店">
-                </label>
-                <label class="form-field">
-                    <span><span class="required">＊必須</span> 出発時間</span>
-                    <select th:field="*{departureTime}">
-                        <option value="">選択してください</option>
-                        <option th:each="time : ${startTimeOptions}" th:value="${time}" th:text="${time}">8:30</option>
-                    </select>
-                </label>
-                <label class="form-field">
-                    <span>使用車両の指定</span>
-                    <input type="text" th:field="*{vehicleName}" maxlength="100" placeholder="なければ空欄">
-                </label>
-            </div>
 
             <label class="form-field">
                 <span>出庫状況</span>
