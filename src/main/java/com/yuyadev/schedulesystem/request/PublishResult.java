@@ -11,7 +11,7 @@ public record PublishResult(Status status, Long requestId, String message) {
 		return new PublishResult(Status.PUBLISHED, requestId, null);
 	}
 
-	public static PublishResult timeConflict() {
-		return new PublishResult(Status.TIME_CONFLICT, null, "その時間はすでに埋まっています");
+	public static PublishResult timeConflict(Long draftId) {
+		return new PublishResult(Status.TIME_CONFLICT, draftId, "その時間はすでに埋まっています");
 	}
 }

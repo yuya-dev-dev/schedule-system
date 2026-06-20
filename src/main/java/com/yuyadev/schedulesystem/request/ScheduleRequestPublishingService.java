@@ -1,6 +1,7 @@
 package com.yuyadev.schedulesystem.request;
 
 import java.sql.SQLException;
+import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -23,18 +24,59 @@ public class ScheduleRequestPublishingService {
 	}
 
 	public PublishResult publish(PublishCommand command) {
+		Optional<ScheduleRequest> conflict = findConflict(command);
+		if (conflict.isPresent()) {
+			return saveConflictDraft(command, conflict.get());
+		}
+
 		try {
-			Long requestId = transactionTemplate.execute(status -> save(command));
+			Long requestId = transactionTemplate.execute(status -> savePublished(command));
 			return PublishResult.published(requestId);
 		} catch (DataIntegrityViolationException exception) {
 			if (hasSqlState(exception, POSTGRES_EXCLUSION_VIOLATION)) {
-				return PublishResult.timeConflict();
+				return saveConflictDraft(command, findConflict(command).orElse(null));
 			}
 			throw exception;
 		}
 	}
 
-	private Long save(PublishCommand command) {
+	public Long saveDraft(PublishCommand command) {
+		return transactionTemplate.execute(status -> {
+			ScheduleRequest draft = ScheduleRequest.draft(
+					command.workDate(),
+					command.startTime(),
+					command.endTime(),
+					command.requesterName(),
+					command.workType(),
+					DraftReason.INCOMPLETE,
+					"入力不足");
+			return repository.saveAndFlush(draft).getId();
+		});
+	}
+
+	public PublishResult publishDraft(Long draftId) {
+		PublishCommand command = transactionTemplate.execute(status -> toCommand(findDraft(draftId)));
+		Optional<ScheduleRequest> conflict = findConflict(command);
+		if (conflict.isPresent()) {
+			return markDraftAsConflict(draftId, conflict.get());
+		}
+
+		try {
+			transactionTemplate.executeWithoutResult(status -> {
+				ScheduleRequest draft = findDraft(draftId);
+				draft.publish();
+				repository.flush();
+			});
+			return PublishResult.published(draftId);
+		} catch (DataIntegrityViolationException exception) {
+			if (hasSqlState(exception, POSTGRES_EXCLUSION_VIOLATION)) {
+				return markDraftAsConflict(draftId, findConflict(command).orElse(null));
+			}
+			throw exception;
+		}
+	}
+
+	private Long savePublished(PublishCommand command) {
 		ScheduleRequest request = ScheduleRequest.published(
 				command.workDate(),
 				command.startTime(),
@@ -42,6 +84,72 @@ public class ScheduleRequestPublishingService {
 				command.requesterName(),
 				command.workType());
 		return repository.saveAndFlush(request).getId();
+	}
+
+	private PublishResult saveConflictDraft(
+			PublishCommand command, ScheduleRequest conflictingRequest) {
+		String detail = conflictDetail(conflictingRequest);
+		Long draftId = transactionTemplate.execute(status -> {
+			ScheduleRequest draft = ScheduleRequest.draft(
+					command.workDate(),
+					command.startTime(),
+					command.endTime(),
+					command.requesterName(),
+					command.workType(),
+					DraftReason.TIME_CONFLICT,
+					detail);
+			return repository.saveAndFlush(draft).getId();
+		});
+		return PublishResult.timeConflict(draftId);
+	}
+
+	private PublishResult markDraftAsConflict(
+			Long draftId, ScheduleRequest conflictingRequest) {
+		String detail = conflictDetail(conflictingRequest);
+		transactionTemplate.executeWithoutResult(status -> {
+			ScheduleRequest draft = findDraft(draftId);
+			draft.markTimeConflict(detail);
+			repository.flush();
+		});
+		return PublishResult.timeConflict(draftId);
+	}
+
+	private Optional<ScheduleRequest> findConflict(PublishCommand command) {
+		if (command.startTime() == null || command.endTime() == null) {
+			return Optional.empty();
+		}
+		return transactionTemplate.execute(status -> repository
+				.findFirstByWorkDateAndEntryStateAndStartTimeLessThanAndEndTimeGreaterThanOrderByStartTime(
+						command.workDate(),
+						EntryState.PUBLISHED,
+						command.endTime(),
+						command.startTime()));
+	}
+
+	private ScheduleRequest findDraft(Long draftId) {
+		ScheduleRequest request = repository
+				.findById(draftId)
+				.orElseThrow(() -> new IllegalArgumentException("Draft not found: " + draftId));
+		if (request.getEntryState() != EntryState.DRAFT) {
+			throw new IllegalStateException("Request is not a draft: " + draftId);
+		}
+		return request;
+	}
+
+	private PublishCommand toCommand(ScheduleRequest request) {
+		return new PublishCommand(
+				request.getWorkDate(),
+				request.getStartTime(),
+				request.getEndTime(),
+				request.getRequesterName(),
+				request.getWorkType());
+	}
+
+	private String conflictDetail(ScheduleRequest request) {
+		if (request == null) {
+			return "既存案件と時間が重複しています";
+		}
+		return "既存案件 " + request.getStartTime() + "-" + request.getEndTime() + " と重複";
 	}
 
 	private boolean hasSqlState(Throwable throwable, String expectedState) {

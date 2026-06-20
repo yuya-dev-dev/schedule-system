@@ -59,4 +59,22 @@ class ScheduleRequestTest {
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("End time");
 	}
+
+	@Test
+	void publishesACompleteDraftAndClearsDraftReason() {
+		ScheduleRequest request = ScheduleRequest.draft(
+				WORK_DATE,
+				LocalTime.of(15, 0),
+				LocalTime.of(16, 0),
+				"社員A",
+				WorkType.EXCHANGE,
+				DraftReason.INCOMPLETE,
+				"入力不足");
+
+		request.publish();
+
+		assertThat(request.getEntryState()).isEqualTo(EntryState.PUBLISHED);
+		assertThat(request.getDraftReason()).isNull();
+		assertThat(request.getDraftErrorDetail()).isNull();
+	}
 }

@@ -77,13 +77,37 @@ class PostgreSqlConcurrencyTest {
 			assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
 			start.countDown();
 
+			List<PublishResult> results = List.of(first.get(), second.get());
 			List<PublishResult.Status> statuses =
-					List.of(first.get().status(), second.get().status());
+					results.stream().map(PublishResult::status).toList();
 
 			assertThat(statuses)
 					.containsExactlyInAnyOrder(
 							PublishResult.Status.PUBLISHED, PublishResult.Status.TIME_CONFLICT);
-			assertThat(repository.count()).isOne();
+			assertThat(results)
+					.filteredOn(result -> result.status() == PublishResult.Status.TIME_CONFLICT)
+					.singleElement()
+					.extracting(PublishResult::requestId)
+					.isNotNull();
+			assertThat(repository.count()).isEqualTo(2);
+			assertThat(repository.countByEntryState(EntryState.PUBLISHED)).isOne();
+			assertThat(repository.countByEntryState(EntryState.DRAFT)).isOne();
+			ScheduleRequest conflictDraft = repository.findAll().stream()
+					.filter(request -> request.getEntryState() == EntryState.DRAFT)
+					.findFirst()
+					.orElseThrow();
+			assertThat(repository.findAll())
+					.extracting(ScheduleRequest::getRequesterName)
+					.containsExactlyInAnyOrder("社員A", "社員B");
+			assertThat(conflictDraft.getDraftReason()).isEqualTo(DraftReason.TIME_CONFLICT);
+			assertThat(conflictDraft.getDraftErrorDetail()).contains("既存案件", "と重複");
+			if (conflictDraft.getRequesterName().equals("社員A")) {
+				assertThat(conflictDraft.getStartTime()).isEqualTo(LocalTime.of(10, 0));
+				assertThat(conflictDraft.getEndTime()).isEqualTo(LocalTime.of(12, 0));
+			} else {
+				assertThat(conflictDraft.getStartTime()).isEqualTo(LocalTime.of(11, 0));
+				assertThat(conflictDraft.getEndTime()).isEqualTo(LocalTime.of(13, 0));
+			}
 		}
 	}
 
