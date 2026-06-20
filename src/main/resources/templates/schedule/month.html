@@ -15,6 +15,9 @@
 </header>
 
 <main>
+    <div th:if="${notice}" class="schedule-notice" role="status" th:text="${notice}">
+        案件はすでに削除されています
+    </div>
     <details class="draft-panel" th:open="${!#lists.isEmpty(drafts)}">
         <summary>
             <span>下書き一覧</span>

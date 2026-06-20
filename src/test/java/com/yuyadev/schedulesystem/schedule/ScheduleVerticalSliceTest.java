@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.yuyadev.schedulesystem.request.EntryState;
@@ -95,12 +96,58 @@ class ScheduleVerticalSliceTest {
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("依頼キャンセル確認")))
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("2026年6月24日（水）")))
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("社員A")))
-				.andExpect(content().string(org.hamcrest.Matchers.containsString("設置")));
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("設置")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"name=\"version\" value=\"" + request.getVersion() + "\"")));
 
-		mockMvc.perform(post("/requests/{id}/cancel", request.getId()))
+		mockMvc.perform(post("/requests/{id}/cancel", request.getId())
+					.param("version", Long.toString(request.getVersion())))
 				.andExpect(status().is3xxRedirection())
 				.andExpect(redirectedUrl("/schedule?month=2026-06"));
 		assertThat(repository.existsById(request.getId())).isFalse();
+	}
+
+	@Test
+	void requiresReconfirmationWhenRequestChangedAfterCancellationPageOpened() throws Exception {
+		ScheduleRequest request = repository.saveAndFlush(ScheduleRequest.published(
+				LocalDate.of(2026, 6, 24), LocalTime.of(10, 0), LocalTime.of(11, 0),
+				"社員A", WorkType.INSTALL));
+		long confirmedVersion = request.getVersion();
+
+		request.changeRequesterName("社員B");
+		repository.saveAndFlush(request);
+
+		mockMvc.perform(post("/requests/{id}/cancel", request.getId())
+					.param("version", Long.toString(confirmedVersion)))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/requests/" + request.getId() + "/cancel"))
+				.andExpect(flash().attribute(
+						"cancelError", "内容が変更されました。最新内容を確認してください"));
+		assertThat(repository.existsById(request.getId())).isTrue();
+
+		mockMvc.perform(get("/requests/{id}/cancel", request.getId())
+					.flashAttr("cancelError", "内容が変更されました。最新内容を確認してください"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("社員B")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"内容が変更されました。最新内容を確認してください")));
+	}
+
+	@Test
+	void redirectsToScheduleWhenRequestWasAlreadyDeleted() throws Exception {
+		ScheduleRequest request = repository.saveAndFlush(ScheduleRequest.published(
+				LocalDate.of(2026, 6, 24), LocalTime.of(10, 0), LocalTime.of(11, 0),
+				"社員A", WorkType.INSTALL));
+		Long id = request.getId();
+		long version = request.getVersion();
+		repository.deleteById(id);
+		repository.flush();
+
+		mockMvc.perform(post("/requests/{id}/cancel", id)
+					.param("version", Long.toString(version)))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/schedule"))
+				.andExpect(flash().attribute("notice", "案件はすでに削除されています"));
 	}
 
 	@Test
@@ -112,7 +159,13 @@ class ScheduleVerticalSliceTest {
 
 		mockMvc.perform(get("/requests/new").param("date", "2026-06-24"))
 				.andExpect(status().isOk())
-				.andExpect(content().string(org.hamcrest.Matchers.containsString("2026年6月24日")));
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("2026年6月24日")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"id=\"destructive-actions\"")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"id=\"draft-delete-form\"")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"id=\"cancel-request-link\"")));
 
 		mockMvc.perform(post("/requests/save")
 					.param("workDate", "2026-06-24")

@@ -133,12 +133,16 @@
         </button>
     </form>
 
-    <div th:if="${editing}" class="destructive-actions">
-        <form th:if="${draft}" th:action="@{/requests/drafts/{id}/delete(id=${form.id})}" method="post"
+    <div id="destructive-actions" class="destructive-actions" th:hidden="${!editing}">
+        <form id="draft-delete-form"
+              th:action="${editing} ? @{/requests/drafts/{id}/delete(id=${form.id})} : '/requests/drafts/0/delete'"
+              method="post" th:hidden="${!draft}"
               onsubmit="return confirm('この下書きを削除しますか？');">
             <button type="submit" class="danger-button">下書きを削除</button>
         </form>
-        <a th:unless="${draft}" th:href="@{/requests/{id}/cancel(id=${form.id})}" class="danger-button">
+        <a id="cancel-request-link"
+           th:href="${editing} ? @{/requests/{id}/cancel(id=${form.id})} : '/requests/0/cancel'"
+           th:hidden="${!editing or draft}" class="danger-button">
             依頼をキャンセル
         </a>
     </div>

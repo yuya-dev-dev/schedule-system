@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.server.ResponseStatusException;
 
 @Controller
@@ -88,9 +89,22 @@ public class ScheduleRequestController {
 	}
 
 	@PostMapping("/{id}/cancel")
-	public String cancel(@PathVariable Long id) {
-		LocalDate workDate = deletionService.cancelPublished(id);
-		return "redirect:" + scheduleUrl(workDate);
+	public String cancel(
+			@PathVariable Long id,
+			@RequestParam long version,
+			RedirectAttributes redirectAttributes) {
+		RequestDeletionService.CancellationResult result =
+				deletionService.cancelPublished(id, version);
+		if (result.status() == RequestDeletionService.CancellationStatus.CHANGED) {
+			redirectAttributes.addFlashAttribute(
+					"cancelError", "内容が変更されました。最新内容を確認してください");
+			return "redirect:/requests/" + id + "/cancel";
+		}
+		if (result.status() == RequestDeletionService.CancellationStatus.NOT_FOUND) {
+			redirectAttributes.addFlashAttribute("notice", "案件はすでに削除されています");
+			return "redirect:/schedule";
+		}
+		return "redirect:" + scheduleUrl(result.workDate());
 	}
 
 	@PostMapping("/save")

@@ -13,6 +13,9 @@
 </header>
 
 <main class="form-main">
+    <div th:if="${cancelError}" class="error-summary" role="alert">
+        <p th:text="${cancelError}">内容が変更されました。最新内容を確認してください</p>
+    </div>
     <section class="cancel-confirmation">
         <p class="cancel-warning">この依頼を削除すると元に戻せません。内容を確認してください。</p>
         <dl>
@@ -23,6 +26,7 @@
         <div class="confirmation-actions">
             <a th:href="@{/requests/{id}(id=${request.id})}" class="back-submit">案件へ戻る</a>
             <form th:action="@{/requests/{id}/cancel(id=${request.id})}" method="post">
+                <input type="hidden" name="version" th:value="${request.version}">
                 <button type="submit" class="danger-button">キャンセルを実行</button>
             </form>
         </div>
