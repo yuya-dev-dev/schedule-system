@@ -114,6 +114,26 @@ class ScheduleRequestTest {
 	}
 
 	@Test
+	void reportsTimeRangeAndRequesterOnAnEmptyForm() {
+		ScheduleRequest request = ScheduleRequest.draft(
+				WORK_DATE, null, null, null, null,
+				DraftReason.INCOMPLETE, "入力不足");
+
+		assertThat(request.missingRequiredFields())
+				.containsExactly("開始時間", "終了時間", "依頼者名");
+		assertThat(request.hasMissingRequiredFields()).isTrue();
+	}
+
+	@Test
+	void keepsIncompleteMarkerWhenOnlyWorkTypeIsMissing() {
+		ScheduleRequest request = ScheduleRequest.published(
+				WORK_DATE, LocalTime.of(9, 0), LocalTime.of(10, 0), "社員A", null);
+
+		assertThat(request.missingRequiredFields()).isEmpty();
+		assertThat(request.hasMissingRequiredFields()).isTrue();
+	}
+
+	@Test
 	void requiresMeetingPlaceAndDepartureTimeOnlyWithCompanion() {
 		ScheduleRequest request = ScheduleRequest.draft(input(
 				WorkType.DELIVERY, "社員A", "備品を配達", null, "午後",

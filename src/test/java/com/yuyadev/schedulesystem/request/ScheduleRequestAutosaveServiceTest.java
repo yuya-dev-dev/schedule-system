@@ -39,7 +39,9 @@ class ScheduleRequestAutosaveServiceTest {
 		assertThat(second.entryState()).isEqualTo(EntryState.PUBLISHED);
 		assertThat(second.requestId()).isEqualTo(first.requestId());
 		assertThat(repository.count()).isOne();
-		assertThat(second.missingFields()).contains("作業種別");
+		assertThat(second.missingFields()).isEmpty();
+		assertThat(repository.findById(second.requestId()).orElseThrow().hasMissingRequiredFields())
+				.isTrue();
 	}
 
 	@Test
