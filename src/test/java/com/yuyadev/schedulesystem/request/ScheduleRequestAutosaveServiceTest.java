@@ -77,6 +77,27 @@ class ScheduleRequestAutosaveServiceTest {
 	}
 
 	@Test
+	void keepsPublishedRequestAndOriginalSlotWhenEditedIntoAConflict() {
+		AutosaveResult first = service.save(
+				null, 0, input("社員A", WorkType.INSTALL, "9:00", "10:00"));
+		AutosaveResult second = service.save(
+				null, 0, input("社員B", WorkType.DELIVERY, "11:00", "12:00"));
+
+		AutosaveResult conflict = service.save(
+				second.requestId(), second.version(),
+				input("社員B", WorkType.DELIVERY, "9:30", "10:30"));
+
+		ScheduleRequest unchanged = repository.findById(second.requestId()).orElseThrow();
+		assertThat(conflict.status()).isEqualTo(AutosaveResult.Status.TIME_CONFLICT);
+		assertThat(unchanged.getEntryState()).isEqualTo(EntryState.PUBLISHED);
+		assertThat(unchanged.getStartTime()).isEqualTo(LocalTime.of(11, 0));
+		assertThat(unchanged.getEndTime()).isEqualTo(LocalTime.of(12, 0));
+		assertThat(repository.countByEntryState(EntryState.DRAFT)).isZero();
+		assertThat(repository.countByEntryState(EntryState.PUBLISHED)).isEqualTo(2);
+		assertThat(first.status()).isEqualTo(AutosaveResult.Status.SAVED);
+	}
+
+	@Test
 	void keepsAnEditedPublishedRequestPublishedWhenThereIsNoConflict() {
 		AutosaveResult created = service.save(
 				null, 0, input("社員A", WorkType.INSTALL, "13:00", "14:00"));

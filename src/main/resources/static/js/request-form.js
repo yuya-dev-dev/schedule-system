@@ -100,7 +100,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         if (result.status === "TIME_CONFLICT") {
             staleState = false;
-            status.textContent = "下書き保存済み（時間重複）";
+            status.textContent = result.entryState === "PUBLISHED"
+                ? "時間重複のため変更されませんでした。元の予定を維持しています"
+                : "下書き保存済み（時間重複）";
             status.className = "save-status failed";
             showErrors([result.message]);
             return true;

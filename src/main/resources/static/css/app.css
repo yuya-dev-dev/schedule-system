@@ -63,6 +63,103 @@ textarea {
     padding-bottom: 66px;
 }
 
+.draft-panel {
+    border-bottom: 1px solid var(--line);
+    background: #f7f9fa;
+}
+
+.draft-panel summary {
+    display: flex;
+    min-height: 52px;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.draft-count {
+    display: inline-grid;
+    min-width: 26px;
+    min-height: 26px;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--danger);
+    color: #ffffff;
+    font-size: 13px;
+}
+
+.draft-list {
+    display: grid;
+    gap: 10px;
+    max-width: 980px;
+    padding: 0 24px 18px;
+}
+
+.draft-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border: 1px solid var(--line);
+    border-left: 4px solid #9b3f35;
+    border-radius: 4px;
+    background: var(--surface);
+    padding: 12px 14px;
+}
+
+.draft-item-main {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+}
+
+.draft-item-main strong,
+.draft-item-main small {
+    overflow-wrap: anywhere;
+}
+
+.draft-item-main small {
+    color: var(--muted);
+}
+
+.draft-reason {
+    color: var(--danger);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.draft-actions,
+.confirmation-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.draft-actions a,
+.draft-actions button {
+    min-height: 40px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--surface);
+    padding: 8px 12px;
+    color: var(--ink);
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.draft-actions button {
+    color: var(--danger);
+}
+
+.draft-empty {
+    margin: 0;
+    padding: 0 24px 16px;
+    color: var(--muted);
+}
+
 .schedule-scroll {
     width: 100%;
     overflow: auto;
@@ -411,6 +508,67 @@ textarea:focus {
     outline: 3px solid rgba(23, 107, 91, 0.25);
 }
 
+.destructive-actions {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+}
+
+.danger-button {
+    display: inline-flex;
+    min-height: 46px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--danger);
+    border-radius: 4px;
+    background: var(--surface);
+    padding: 10px 16px;
+    color: var(--danger);
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.danger-button:hover,
+.danger-button:focus-visible {
+    background: #fff0ee;
+    outline: 3px solid rgba(180, 35, 24, 0.18);
+}
+
+.cancel-confirmation {
+    border-left: 4px solid var(--danger);
+    background: var(--surface);
+    padding: 20px;
+}
+
+.cancel-warning {
+    margin: 0 0 20px;
+    color: var(--danger);
+    font-weight: 700;
+}
+
+.cancel-confirmation dl {
+    display: grid;
+    margin: 0 0 24px;
+}
+
+.cancel-confirmation dl div {
+    display: grid;
+    grid-template-columns: 130px minmax(0, 1fr);
+    gap: 12px;
+    border-bottom: 1px solid var(--line);
+    padding: 12px 0;
+}
+
+.cancel-confirmation dt {
+    color: var(--muted);
+    font-weight: 700;
+}
+
+.cancel-confirmation dd {
+    margin: 0;
+}
+
 @media (max-width: 600px) {
     .page-header,
     .form-header {
@@ -441,6 +599,37 @@ textarea:focus {
 
     .form-main {
         padding: 20px 16px 40px;
+    }
+
+    .draft-panel summary,
+    .draft-list,
+    .draft-empty {
+        padding-right: 16px;
+        padding-left: 16px;
+    }
+
+    .draft-item,
+    .confirmation-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .draft-actions {
+        align-self: stretch;
+    }
+
+    .draft-actions a,
+    .draft-actions form,
+    .draft-actions button,
+    .confirmation-actions a,
+    .confirmation-actions form,
+    .confirmation-actions button {
+        width: 100%;
+    }
+
+    .cancel-confirmation dl div {
+        grid-template-columns: 1fr;
+        gap: 4px;
     }
 
     .time-range {

@@ -27,4 +27,9 @@ public interface ScheduleRequestRepository extends JpaRepository<ScheduleRequest
 
 	List<ScheduleRequest> findByWorkDateBetweenAndEntryStateOrderByWorkDateAscStartTimeAsc(
 			LocalDate startDate, LocalDate endDate, EntryState entryState);
+
+	List<ScheduleRequest> findByEntryStateAndWorkDateGreaterThanEqualOrderByUpdatedAtDesc(
+			EntryState entryState, LocalDate workDate);
+
+	long deleteByEntryStateAndWorkDateBefore(EntryState entryState, LocalDate workDate);
 }

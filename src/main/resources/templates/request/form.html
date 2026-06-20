@@ -132,6 +132,16 @@
             一覧へ戻る
         </button>
     </form>
+
+    <div th:if="${editing}" class="destructive-actions">
+        <form th:if="${draft}" th:action="@{/requests/drafts/{id}/delete(id=${form.id})}" method="post"
+              onsubmit="return confirm('この下書きを削除しますか？');">
+            <button type="submit" class="danger-button">下書きを削除</button>
+        </form>
+        <a th:unless="${draft}" th:href="@{/requests/{id}/cancel(id=${form.id})}" class="danger-button">
+            依頼をキャンセル
+        </a>
+    </div>
 </main>
 </body>
 </html>
