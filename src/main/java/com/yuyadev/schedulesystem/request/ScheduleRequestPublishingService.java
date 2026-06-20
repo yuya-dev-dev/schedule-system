@@ -1,5 +1,6 @@
 package com.yuyadev.schedulesystem.request;
 
+import com.yuyadev.schedulesystem.schedule.ScheduleDatePolicy;
 import java.sql.SQLException;
 import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -15,15 +16,20 @@ public class ScheduleRequestPublishingService {
 
 	private final ScheduleRequestRepository repository;
 	private final TransactionTemplate transactionTemplate;
+	private final ScheduleDatePolicy datePolicy;
 
 	public ScheduleRequestPublishingService(
-			ScheduleRequestRepository repository, PlatformTransactionManager transactionManager) {
+			ScheduleRequestRepository repository,
+			PlatformTransactionManager transactionManager,
+			ScheduleDatePolicy datePolicy) {
 		this.repository = repository;
+		this.datePolicy = datePolicy;
 		this.transactionTemplate = new TransactionTemplate(transactionManager);
 		this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 	}
 
 	public PublishResult publish(PublishCommand command) {
+		datePolicy.requireRegistrable(command.workDate());
 		Optional<ScheduleRequest> conflict = findConflict(command);
 		if (conflict.isPresent()) {
 			return saveConflictDraft(command, conflict.get());
@@ -41,6 +47,7 @@ public class ScheduleRequestPublishingService {
 	}
 
 	public Long saveDraft(PublishCommand command) {
+		datePolicy.requireRegistrable(command.workDate());
 		return transactionTemplate.execute(status -> {
 			ScheduleRequest draft = ScheduleRequest.draft(
 					command.workDate(),
@@ -56,6 +63,7 @@ public class ScheduleRequestPublishingService {
 
 	public PublishResult publishDraft(Long draftId) {
 		PublishCommand command = transactionTemplate.execute(status -> toCommand(findDraft(draftId)));
+		datePolicy.requireRegistrable(command.workDate());
 		Optional<ScheduleRequest> conflict = findConflict(command);
 		if (conflict.isPresent()) {
 			return markDraftAsConflict(draftId, conflict.get());

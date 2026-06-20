@@ -1,0 +1,24 @@
+package com.yuyadev.schedulesystem.schedule;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import org.junit.jupiter.api.Test;
+
+class ScheduleDatePolicyTest {
+
+	private final ScheduleDatePolicy policy = new ScheduleDatePolicy(Clock.fixed(
+			Instant.parse("2026-06-20T03:00:00Z"), ZoneId.of("Asia/Tokyo")));
+
+	@Test
+	void allowsOnlyWednesdayAndFridayInPreviousCurrentAndNextMonth() {
+		assertThat(policy.isRegistrable(LocalDate.of(2026, 5, 1))).isTrue();
+		assertThat(policy.isRegistrable(LocalDate.of(2026, 6, 24))).isTrue();
+		assertThat(policy.isRegistrable(LocalDate.of(2026, 7, 31))).isTrue();
+		assertThat(policy.isRegistrable(LocalDate.of(2026, 8, 5))).isFalse();
+		assertThat(policy.isRegistrable(LocalDate.of(2026, 6, 23))).isFalse();
+	}
+}

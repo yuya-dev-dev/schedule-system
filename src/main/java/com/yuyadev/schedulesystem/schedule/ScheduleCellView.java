@@ -6,5 +6,6 @@ public record ScheduleCellView(
 		boolean firstCell,
 		String requesterName,
 		String workTypeName,
+		boolean incomplete,
 		int colorIndex,
 		String destinationUrl) {}

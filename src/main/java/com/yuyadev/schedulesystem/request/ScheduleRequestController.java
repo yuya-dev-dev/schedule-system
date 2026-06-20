@@ -1,11 +1,12 @@
 package com.yuyadev.schedulesystem.request;
 
-import java.time.DayOfWeek;
+import com.yuyadev.schedulesystem.schedule.ScheduleDatePolicy;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -24,25 +25,29 @@ public class ScheduleRequestController {
 	private static final LocalTime OPENING_TIME = LocalTime.of(8, 30);
 	private static final LocalTime CLOSING_TIME = LocalTime.of(17, 30);
 	private static final DateTimeFormatter DATE_TITLE =
-			DateTimeFormatter.ofPattern("yyyy年M月d日（E）");
+			DateTimeFormatter.ofPattern("yyyy年M月d日（E）", Locale.JAPANESE);
 
 	private final ScheduleRequestRepository repository;
 	private final ScheduleRequestPublishingService publishingService;
 	private final ScheduleRequestEditingService editingService;
+	private final ScheduleDatePolicy datePolicy;
 
 	public ScheduleRequestController(
 			ScheduleRequestRepository repository,
 			ScheduleRequestPublishingService publishingService,
-			ScheduleRequestEditingService editingService) {
+			ScheduleRequestEditingService editingService,
+			ScheduleDatePolicy datePolicy) {
 		this.repository = repository;
 		this.publishingService = publishingService;
 		this.editingService = editingService;
+		this.datePolicy = datePolicy;
 	}
 
 	@GetMapping("/new")
 	public String newRequest(@RequestParam LocalDate date, Model model) {
-		if (!isWorkday(date)) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "水曜日または金曜日を指定してください");
+		if (!datePolicy.isRegistrable(date)) {
+			throw new ResponseStatusException(
+					HttpStatus.BAD_REQUEST, "表示対象月の水曜日または金曜日を指定してください");
 		}
 		return renderForm(ScheduleRequestForm.newFor(date), List.of(), model);
 	}
@@ -80,17 +85,21 @@ public class ScheduleRequestController {
 		model.addAttribute("form", form);
 		model.addAttribute("errors", errors);
 		model.addAttribute("workTypes", WorkType.values());
+		model.addAttribute(
+				"startTimeOptions", timeOptions(OPENING_TIME, CLOSING_TIME.minusMinutes(30)));
+		model.addAttribute("endTimeOptions", timeOptions(OPENING_TIME.plusMinutes(30), CLOSING_TIME));
 		model.addAttribute("dateTitle", form.getWorkDate() == null
 				? "日付未指定"
 				: form.getWorkDate().format(DATE_TITLE));
 		model.addAttribute("editing", form.getId() != null);
+		model.addAttribute("requesterRequired", requiresRequester(form.getWorkType()));
 		return "request/form";
 	}
 
 	private List<String> validate(ScheduleRequestForm form) {
 		List<String> errors = new ArrayList<>();
-		if (form.getWorkDate() == null || !isWorkday(form.getWorkDate())) {
-			errors.add("対象日は水曜日または金曜日を指定してください");
+		if (!datePolicy.isRegistrable(form.getWorkDate())) {
+			errors.add("対象日は前月・当月・翌月に表示される水曜日または金曜日を指定してください");
 		}
 		if (form.getStartTime() == null) {
 			errors.add("開始時間は必須です");
@@ -106,9 +115,10 @@ public class ScheduleRequestController {
 					|| form.getEndTime().isAfter(CLOSING_TIME)) {
 				errors.add("時間は8:30から17:30の範囲で入力してください");
 			}
-		}
-		if (form.getWorkType() == null) {
-			errors.add("作業種別は必須です");
+			if (!isThirtyMinuteSlot(form.getStartTime())
+					|| !isThirtyMinuteSlot(form.getEndTime())) {
+				errors.add("開始時間と終了時間は30分単位で入力してください");
+			}
 		}
 		if (requiresRequester(form.getWorkType())
 				&& (form.getRequesterName() == null || form.getRequesterName().isBlank())) {
@@ -118,14 +128,20 @@ public class ScheduleRequestController {
 	}
 
 	private boolean requiresRequester(WorkType workType) {
-		return workType != null
-				&& workType != WorkType.RECEIVING
+		return workType != WorkType.RECEIVING
 				&& workType != WorkType.PRODUCT_MANAGEMENT;
 	}
 
-	private boolean isWorkday(LocalDate date) {
-		return date != null && (date.getDayOfWeek() == DayOfWeek.WEDNESDAY
-				|| date.getDayOfWeek() == DayOfWeek.FRIDAY);
+	private boolean isThirtyMinuteSlot(LocalTime time) {
+		return time.getMinute() % 30 == 0 && time.getSecond() == 0 && time.getNano() == 0;
+	}
+
+	private List<LocalTime> timeOptions(LocalTime first, LocalTime last) {
+		List<LocalTime> options = new ArrayList<>();
+		for (LocalTime time = first; !time.isAfter(last); time = time.plusMinutes(30)) {
+			options.add(time);
+		}
+		return List.copyOf(options);
 	}
 
 	private ScheduleRequest publishedRequest(Long id) {

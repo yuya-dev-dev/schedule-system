@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${dateTitle + ' 案件入力'}">案件入力</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script defer="defer" th:src="@{/js/request-form.js}"></script>
 </head>
 <body class="form-page">
 <header class="form-header">
@@ -26,18 +27,24 @@
             <legend><span class="required">＊必須</span> 時間範囲</legend>
             <label>
                 <span>開始時間</span>
-                <input type="time" th:field="*{startTime}" min="08:30" max="17:29" required>
+                <select th:field="*{startTime}" required>
+                    <option value="">選択してください</option>
+                    <option th:each="time : ${startTimeOptions}" th:value="${time}" th:text="${time}">8:30</option>
+                </select>
             </label>
             <span class="range-separator" aria-hidden="true">〜</span>
             <label>
                 <span>終了時間</span>
-                <input type="time" th:field="*{endTime}" min="08:31" max="17:30" required>
+                <select th:field="*{endTime}" required>
+                    <option value="">選択してください</option>
+                    <option th:each="time : ${endTimeOptions}" th:value="${time}" th:text="${time}">9:00</option>
+                </select>
             </label>
         </fieldset>
 
         <label class="form-field">
-            <span><span class="required">＊必須</span> 作業種別</span>
-            <select th:field="*{workType}" required>
+            <span>作業種別</span>
+            <select th:field="*{workType}">
                 <option value="">選択してください</option>
                 <option th:each="type : ${workTypes}"
                         th:value="${type}"
@@ -46,9 +53,9 @@
         </label>
 
         <label class="form-field">
-            <span>依頼者名</span>
-            <input type="text" th:field="*{requesterName}" maxlength="100" placeholder="例：山本">
-            <small>設置・回収・交換・配達では必須です</small>
+            <span><span id="requester-required" class="required" th:hidden="${!requesterRequired}">＊必須</span> 依頼者名</span>
+            <input type="text" th:field="*{requesterName}" maxlength="100" placeholder="例：山本" th:required="${requesterRequired}">
+            <small>入庫・商品管理では任意です</small>
         </label>
 
         <button type="submit" class="back-submit" title="保存してスケジュール一覧へ戻る">

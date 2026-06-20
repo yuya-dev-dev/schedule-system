@@ -37,6 +37,7 @@
                         <span th:if="${cell.occupied and cell.firstCell}" class="cell-main">
                             <strong th:text="${#strings.isEmpty(cell.requesterName) ? cell.workTypeName : cell.requesterName}">山本</strong>
                             <small th:if="${!#strings.isEmpty(cell.requesterName)}" th:text="${cell.workTypeName}">設置</small>
+                            <small th:if="${cell.incomplete}" class="incomplete">＊未入力</small>
                         </span>
                         <span th:if="${cell.occupied and !cell.firstCell}" class="continuation" aria-hidden="true">↓</span>
                     </a>
