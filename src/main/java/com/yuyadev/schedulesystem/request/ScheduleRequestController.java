@@ -68,20 +68,31 @@ public class ScheduleRequestController {
 		if (form.getId() == null) {
 			PublishResult result = publishingService.publish(form.toCommand());
 			if (result.status() == PublishResult.Status.TIME_CONFLICT) {
-				return renderForm(form, List.of(result.message()), model);
+				return renderForm(form, List.of(result.message()), model, true);
 			}
 		} else {
 			EditResult result = editingService.update(form.getId(), form.getVersion(), form.toCommand());
 			if (result.status() != EditResult.Status.UPDATED) {
-				return renderForm(form, List.of(result.message()), model);
+				return renderForm(
+						form,
+						List.of(result.message()),
+						model,
+						result.status() == EditResult.Status.TIME_CONFLICT);
 			}
 		}
-		return "redirect:/schedule?month=" + form.getWorkDate().getYear()
-				+ "-" + String.format("%02d", form.getWorkDate().getMonthValue());
+		return "redirect:" + scheduleUrl(form.getWorkDate());
 	}
 
 	private String renderForm(
 			ScheduleRequestForm form, List<String> errors, Model model) {
+		return renderForm(form, errors, model, false);
+	}
+
+	private String renderForm(
+			ScheduleRequestForm form,
+			List<String> errors,
+			Model model,
+			boolean returnOnly) {
 		model.addAttribute("form", form);
 		model.addAttribute("errors", errors);
 		model.addAttribute("workTypes", WorkType.values());
@@ -93,7 +104,16 @@ public class ScheduleRequestController {
 				: form.getWorkDate().format(DATE_TITLE));
 		model.addAttribute("editing", form.getId() != null);
 		model.addAttribute("requesterRequired", requiresRequester(form.getWorkType()));
+		model.addAttribute("returnOnly", returnOnly);
+		model.addAttribute("scheduleUrl", form.getWorkDate() == null
+				? "/schedule"
+				: scheduleUrl(form.getWorkDate()));
 		return "request/form";
+	}
+
+	private String scheduleUrl(LocalDate date) {
+		return "/schedule?month=" + date.getYear()
+				+ "-" + String.format("%02d", date.getMonthValue());
 	}
 
 	private List<String> validate(ScheduleRequestForm form) {
