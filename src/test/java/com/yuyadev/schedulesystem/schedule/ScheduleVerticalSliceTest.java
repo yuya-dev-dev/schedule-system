@@ -253,6 +253,8 @@ class ScheduleVerticalSliceTest {
 
 		assertThat(html.indexOf("id=\"companion-toggle\""))
 				.isBetween(html.indexOf("name=\"requesterName\""), html.indexOf("name=\"requestDetail\""));
+		assertThat(html.indexOf("id=\"companion-fields\""))
+				.isBetween(html.indexOf("id=\"companion-toggle\""), html.indexOf("name=\"requestDetail\""));
 
 		MvcResult companionResult = mockMvc.perform(post("/requests/autosave")
 					.param("workDate", "2026-06-24")
