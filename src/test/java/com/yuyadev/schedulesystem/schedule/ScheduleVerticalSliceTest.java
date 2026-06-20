@@ -28,6 +28,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 
 @SpringBootTest
@@ -129,12 +130,12 @@ class ScheduleVerticalSliceTest {
 	}
 
 	@Test
-	void mapsMinuteLevelRequestsToCellsWithColorsAndContinuationArrows() {
+	void mapsThirtyMinuteRequestsToCellsWithColorsAndContinuationArrows() {
 		LocalDate workDate = LocalDate.of(2026, 6, 24);
 		publishingService.publish(new PublishCommand(
 				workDate, LocalTime.of(10, 0), LocalTime.of(11, 0), "社員A", WorkType.INSTALL));
 		publishingService.publish(new PublishCommand(
-				workDate, LocalTime.of(14, 1), LocalTime.of(15, 0), "社員B", WorkType.DELIVERY));
+				workDate, LocalTime.of(14, 0), LocalTime.of(15, 0), "社員B", WorkType.DELIVERY));
 
 		MonthScheduleView view = monthScheduleService.getMonth("2026-06");
 		int dateIndex = java.util.stream.IntStream.range(0, view.workDates().size())
@@ -150,6 +151,98 @@ class ScheduleVerticalSliceTest {
 		assertThat(secondRequestFirstCell.firstCell()).isTrue();
 		assertThat(secondRequestArrow.firstCell()).isFalse();
 		assertThat(secondRequestArrow.requestId()).isEqualTo(secondRequestFirstCell.requestId());
+	}
+
+	@Test
+	void publishesWithoutWorkTypeAndShowsIncompleteMarker() throws Exception {
+		mockMvc.perform(post("/requests/save")
+					.param("workDate", "2026-06-24")
+					.param("startTime", "10:00")
+					.param("endTime", "11:00")
+					.param("requesterName", "社員A"))
+				.andExpect(status().is3xxRedirection());
+
+		ScheduleRequest saved = repository.findAll().getFirst();
+		assertThat(saved.getWorkType()).isNull();
+		mockMvc.perform(get("/schedule").param("month", "2026-06"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("＊未入力")));
+	}
+
+	@Test
+	void rejectsMinuteLevelTimesWithoutSaving() throws Exception {
+		mockMvc.perform(post("/requests/save")
+					.param("workDate", "2026-06-24")
+					.param("startTime", "14:01")
+					.param("endTime", "15:00")
+					.param("requesterName", "社員A"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("30分単位で入力してください")));
+
+		assertThat(repository.count()).isZero();
+	}
+
+	@Test
+	void rejectsDatesOutsideVisibleMonths() throws Exception {
+		mockMvc.perform(get("/requests/new").param("date", "2026-10-07"))
+				.andExpect(status().isBadRequest());
+
+		mockMvc.perform(post("/requests/save")
+					.param("workDate", "2026-10-07")
+					.param("startTime", "10:00")
+					.param("endTime", "11:00")
+					.param("requesterName", "社員A"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("前月・当月・翌月")));
+
+		assertThat(repository.count()).isZero();
+	}
+
+	@Test
+	void rendersJapaneseWeekdayAndRequesterRequirement() throws Exception {
+		MvcResult result = mockMvc.perform(get("/requests/new").param("date", "2026-06-24"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("2026年6月24日（水）")))
+				.andReturn();
+		String html = result.getResponse().getContentAsString();
+
+		assertThat(tagWithAttribute(html, "span", "id", "requester-required"))
+				.doesNotContain("hidden");
+		assertThat(tagWithAttribute(html, "input", "name", "requesterName"))
+				.contains("required");
+	}
+
+	@Test
+	void requesterIsOptionalForReceiving() throws Exception {
+		publishingService.publish(new PublishCommand(
+				LocalDate.of(2026, 6, 24),
+				LocalTime.of(8, 30),
+				LocalTime.of(9, 0),
+				null,
+				WorkType.RECEIVING));
+		ScheduleRequest saved = repository.findAll().getFirst();
+
+		MvcResult result = mockMvc.perform(get("/requests/{id}", saved.getId()))
+				.andExpect(status().isOk())
+				.andReturn();
+		String html = result.getResponse().getContentAsString();
+
+		assertThat(tagWithAttribute(html, "span", "id", "requester-required"))
+				.contains("hidden");
+		assertThat(tagWithAttribute(html, "input", "name", "requesterName"))
+				.doesNotContain("required");
+	}
+
+	private String tagWithAttribute(
+			String html, String tagName, String attributeName, String attributeValue) {
+		java.util.regex.Matcher matcher = java.util.regex.Pattern
+				.compile("<" + tagName + "[^>]*" + attributeName + "=\\\""
+						+ java.util.regex.Pattern.quote(attributeValue) + "\\\"[^>]*>")
+				.matcher(html);
+		if (!matcher.find()) {
+			throw new AssertionError("Tag not found: " + tagName + "[" + attributeName + "]");
+		}
+		return matcher.group();
 	}
 
 	private void createRequest(String start, String end, String requester) throws Exception {

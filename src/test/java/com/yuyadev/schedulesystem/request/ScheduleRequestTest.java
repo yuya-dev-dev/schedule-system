@@ -61,6 +61,31 @@ class ScheduleRequestTest {
 	}
 
 	@Test
+	void publishesWithoutWorkTypeWhenRequesterAndTimeRangeArePresent() {
+		ScheduleRequest request = ScheduleRequest.published(
+				WORK_DATE,
+				LocalTime.of(10, 0),
+				LocalTime.of(11, 0),
+				"社員A",
+				null);
+
+		assertThat(request.getEntryState()).isEqualTo(EntryState.PUBLISHED);
+		assertThat(request.getWorkType()).isNull();
+	}
+
+	@Test
+	void rejectsTimesOutsideThirtyMinuteSlots() {
+		assertThatThrownBy(() -> ScheduleRequest.published(
+					WORK_DATE,
+					LocalTime.of(14, 1),
+					LocalTime.of(15, 0),
+					"社員A",
+					WorkType.INSTALL))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("30-minute");
+	}
+
+	@Test
 	void publishesACompleteDraftAndClearsDraftReason() {
 		ScheduleRequest request = ScheduleRequest.draft(
 				WORK_DATE,

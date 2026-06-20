@@ -1,5 +1,6 @@
 package com.yuyadev.schedulesystem.request;
 
+import com.yuyadev.schedulesystem.schedule.ScheduleDatePolicy;
 import jakarta.persistence.OptimisticLockException;
 import java.sql.SQLException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -16,15 +17,20 @@ public class ScheduleRequestEditingService {
 
 	private final ScheduleRequestRepository repository;
 	private final TransactionTemplate transactionTemplate;
+	private final ScheduleDatePolicy datePolicy;
 
 	public ScheduleRequestEditingService(
-			ScheduleRequestRepository repository, PlatformTransactionManager transactionManager) {
+			ScheduleRequestRepository repository,
+			PlatformTransactionManager transactionManager,
+			ScheduleDatePolicy datePolicy) {
 		this.repository = repository;
+		this.datePolicy = datePolicy;
 		this.transactionTemplate = new TransactionTemplate(transactionManager);
 		this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 	}
 
 	public EditResult update(Long id, long expectedVersion, PublishCommand command) {
+		datePolicy.requireRegistrable(command.workDate());
 		if (hasConflict(id, command)) {
 			return EditResult.timeConflict();
 		}

@@ -15,6 +15,10 @@ import java.util.Objects;
 @Entity
 @Table(name = "schedule_requests")
 public class ScheduleRequest {
+	private static final LocalTime OPENING_TIME = LocalTime.of(8, 30);
+	private static final LocalTime CLOSING_TIME = LocalTime.of(17, 30);
+	private static final LocalTime LATEST_START_TIME = CLOSING_TIME.minusMinutes(30);
+	private static final LocalTime EARLIEST_END_TIME = OPENING_TIME.plusMinutes(30);
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -72,10 +76,7 @@ public class ScheduleRequest {
 		Objects.requireNonNull(workDate);
 		Objects.requireNonNull(startTime);
 		Objects.requireNonNull(endTime);
-		Objects.requireNonNull(workType);
-		if (!endTime.isAfter(startTime)) {
-			throw new IllegalArgumentException("End time must be after start time");
-		}
+		validatePublishedTime(startTime, endTime);
 		if (requiresRequester(workType) && isBlank(requesterName)) {
 			throw new IllegalArgumentException("Requester name is required for this work type");
 		}
@@ -98,6 +99,7 @@ public class ScheduleRequest {
 			WorkType workType,
 			DraftReason draftReason,
 			String draftErrorDetail) {
+		validateDraftTime(startTime, endTime);
 		return new ScheduleRequest(
 				workDate,
 				startTime,
@@ -119,6 +121,34 @@ public class ScheduleRequest {
 
 	private static String normalize(String value) {
 		return value == null ? null : value.trim();
+	}
+
+	private static void validatePublishedTime(LocalTime startTime, LocalTime endTime) {
+		if (!endTime.isAfter(startTime)) {
+			throw new IllegalArgumentException("End time must be after start time");
+		}
+		if (!isScheduleSlot(startTime) || !isScheduleSlot(endTime)
+				|| startTime.isBefore(OPENING_TIME) || endTime.isAfter(CLOSING_TIME)) {
+			throw new IllegalArgumentException("Time must use 30-minute slots between 08:30 and 17:30");
+		}
+	}
+
+	private static void validateDraftTime(LocalTime startTime, LocalTime endTime) {
+		if (startTime != null && (!isScheduleSlot(startTime)
+				|| startTime.isBefore(OPENING_TIME) || startTime.isAfter(LATEST_START_TIME))) {
+			throw new IllegalArgumentException("Start time must use a valid 30-minute slot");
+		}
+		if (endTime != null && (!isScheduleSlot(endTime)
+				|| endTime.isBefore(EARLIEST_END_TIME) || endTime.isAfter(CLOSING_TIME))) {
+			throw new IllegalArgumentException("End time must use a valid 30-minute slot");
+		}
+		if (startTime != null && endTime != null && !endTime.isAfter(startTime)) {
+			throw new IllegalArgumentException("End time must be after start time");
+		}
+	}
+
+	private static boolean isScheduleSlot(LocalTime time) {
+		return time.getMinute() % 30 == 0 && time.getSecond() == 0 && time.getNano() == 0;
 	}
 
 	public Long getId() {

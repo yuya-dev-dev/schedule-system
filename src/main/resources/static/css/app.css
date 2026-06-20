@@ -183,6 +183,11 @@ select {
     white-space: nowrap;
 }
 
+.cell-main .incomplete {
+    color: var(--danger);
+    font-weight: 700;
+}
+
 .cell-main strong {
     font-size: 15px;
 }

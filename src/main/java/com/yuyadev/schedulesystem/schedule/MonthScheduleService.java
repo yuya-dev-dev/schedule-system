@@ -129,7 +129,7 @@ public class MonthScheduleService {
 					.queryParam("date", date)
 					.build()
 					.toUriString();
-			return new ScheduleCellView(null, false, false, null, null, 0, url);
+			return new ScheduleCellView(null, false, false, null, null, false, 0, url);
 		}
 
 		boolean firstCell = slotStart.equals(OPENING_TIME)
@@ -139,7 +139,8 @@ public class MonthScheduleService {
 				true,
 				firstCell,
 				request.getRequesterName(),
-				request.getWorkType().getDisplayName(),
+				request.getWorkType() == null ? null : request.getWorkType().getDisplayName(),
+				request.getWorkType() == null,
 				colors.get(request.getId()),
 				"/requests/" + request.getId());
 	}
