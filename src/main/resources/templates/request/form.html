@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${dateTitle + ' 案件入力'}">案件入力</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="form-page">
+<header class="form-header">
+    <p class="page-kicker" th:text="${editing ? '案件の確認・編集' : '新しい案件'}">新しい案件</p>
+    <h1 th:text="${dateTitle}">2026年6月19日（金）</h1>
+</header>
+
+<main class="form-main">
+    <div th:if="${!#lists.isEmpty(errors)}" class="error-summary" role="alert">
+        <p th:each="error : ${errors}" th:text="${error}">入力内容を確認してください</p>
+    </div>
+
+    <form th:action="@{/requests/save}" th:object="${form}" method="post" class="request-form">
+        <input type="hidden" th:field="*{id}">
+        <input type="hidden" th:field="*{version}">
+        <input type="hidden" th:field="*{workDate}">
+
+        <fieldset class="time-range">
+            <legend><span class="required">＊必須</span> 時間範囲</legend>
+            <label>
+                <span>開始時間</span>
+                <input type="time" th:field="*{startTime}" min="08:30" max="17:29" required>
+            </label>
+            <span class="range-separator" aria-hidden="true">〜</span>
+            <label>
+                <span>終了時間</span>
+                <input type="time" th:field="*{endTime}" min="08:31" max="17:30" required>
+            </label>
+        </fieldset>
+
+        <label class="form-field">
+            <span><span class="required">＊必須</span> 作業種別</span>
+            <select th:field="*{workType}" required>
+                <option value="">選択してください</option>
+                <option th:each="type : ${workTypes}"
+                        th:value="${type}"
+                        th:text="${type.displayName}">設置</option>
+            </select>
+        </label>
+
+        <label class="form-field">
+            <span>依頼者名</span>
+            <input type="text" th:field="*{requesterName}" maxlength="100" placeholder="例：山本">
+            <small>設置・回収・交換・配達では必須です</small>
+        </label>
+
+        <button type="submit" class="back-submit" title="保存してスケジュール一覧へ戻る">
+            <span aria-hidden="true">←</span>
+            一覧へ戻る
+        </button>
+    </form>
+</main>
+</body>
+</html>

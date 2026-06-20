@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${schedule.title + ' スケジュール'}">スケジュール</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="schedule-page">
+<header class="page-header">
+    <div>
+        <p class="page-kicker">配送・設置案件</p>
+        <h1 th:text="${schedule.title + ' スケジュール'}">2026年6月 スケジュール</h1>
+    </div>
+</header>
+
+<main>
+    <div class="schedule-scroll" aria-label="月間スケジュール">
+        <table class="schedule-table">
+            <thead>
+            <tr>
+                <th class="time-heading" scope="col">時間</th>
+                <th th:each="workDate : ${schedule.workDates}" scope="col">
+                    <span class="date-label" th:text="${workDate.monthDayLabel}">6/3</span>
+                    <span class="weekday-label" th:text="${workDate.weekdayLabel}">水</span>
+                </th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="row : ${schedule.timeRows}">
+                <th class="time-cell" scope="row" th:text="${row.label}">8:30〜9:00</th>
+                <td th:each="cell : ${row.cells}"
+                    th:classappend="${cell.occupied} ? ${' occupied color-' + cell.colorIndex} : ' empty'">
+                    <a class="schedule-cell-link"
+                       th:href="${cell.destinationUrl}"
+                       th:aria-label="${cell.occupied ? '案件を開く' : '新しい案件を入力'}">
+                        <span th:if="${cell.occupied and cell.firstCell}" class="cell-main">
+                            <strong th:text="${#strings.isEmpty(cell.requesterName) ? cell.workTypeName : cell.requesterName}">山本</strong>
+                            <small th:if="${!#strings.isEmpty(cell.requesterName)}" th:text="${cell.workTypeName}">設置</small>
+                        </span>
+                        <span th:if="${cell.occupied and !cell.firstCell}" class="continuation" aria-hidden="true">↓</span>
+                    </a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<nav class="month-tabs" aria-label="月の切り替え">
+    <a th:each="tab : ${schedule.monthTabs}"
+       th:href="@{/schedule(month=${tab.value})}"
+       th:text="${tab.label}"
+       th:classappend="${tab.selected} ? ' active'"
+       th:aria-current="${tab.selected} ? 'page'">2026年6月</a>
+</nav>
+</body>
+</html>
