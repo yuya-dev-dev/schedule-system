@@ -168,6 +168,24 @@ public class ScheduleRequest {
 		this.requesterName = normalize(requesterName);
 	}
 
+	public void updatePublished(
+			LocalDate workDate,
+			LocalTime startTime,
+			LocalTime endTime,
+			String requesterName,
+			WorkType workType) {
+		ScheduleRequest validated = published(
+				workDate, startTime, endTime, requesterName, workType);
+		this.workDate = validated.workDate;
+		this.startTime = validated.startTime;
+		this.endTime = validated.endTime;
+		this.requesterName = validated.requesterName;
+		this.workType = validated.workType;
+		this.entryState = EntryState.PUBLISHED;
+		this.draftReason = null;
+		this.draftErrorDetail = null;
+	}
+
 	public void publish() {
 		ScheduleRequest.published(workDate, startTime, endTime, requesterName, workType);
 		this.entryState = EntryState.PUBLISHED;
