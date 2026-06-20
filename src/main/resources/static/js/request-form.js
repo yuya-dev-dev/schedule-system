@@ -16,6 +16,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const errorSummary = document.getElementById("error-summary");
     const idField = document.getElementById("id");
     const versionField = document.getElementById("version");
+    const destructiveActions = document.getElementById("destructive-actions");
+    const draftDeleteForm = document.getElementById("draft-delete-form");
+    const cancelRequestLink = document.getElementById("cancel-request-link");
     const detailRequiredFields = ["requestDetail", "desiredArrivalTime"]
         .map(id => document.getElementById(id));
     const companionRequiredFields = ["meetingPlace", "departureTime"]
@@ -43,6 +46,16 @@ document.addEventListener("DOMContentLoaded", () => {
             return paragraph;
         }));
         errorSummary.classList.toggle("is-hidden", messages.length === 0);
+    };
+
+    const updateDestructiveActions = (requestId, entryState) => {
+        if (!requestId || !entryState) return;
+        destructiveActions.hidden = false;
+        const draft = entryState === "DRAFT";
+        draftDeleteForm.hidden = !draft;
+        cancelRequestLink.hidden = draft;
+        draftDeleteForm.action = `/requests/drafts/${requestId}/delete`;
+        cancelRequestLink.href = `/requests/${requestId}/cancel`;
     };
 
     const updateDynamicFields = () => {
@@ -88,6 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (savedOnServer && result.requestId !== null) {
             idField.value = result.requestId;
             versionField.value = result.version;
+            updateDestructiveActions(result.requestId, result.entryState);
         }
 
         if (result.status === "SAVED") {

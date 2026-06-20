@@ -547,6 +547,15 @@ textarea:focus {
     font-weight: 700;
 }
 
+.schedule-notice {
+    margin: 16px;
+    border-left: 4px solid var(--accent);
+    background: #eef8f5;
+    padding: 12px 14px;
+    color: #174f43;
+    font-weight: 700;
+}
+
 .cancel-confirmation dl {
     display: grid;
     margin: 0 0 24px;
