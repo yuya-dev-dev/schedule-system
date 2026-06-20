@@ -64,10 +64,29 @@ class ScheduleRequestAutosaveServiceTest {
 				first.requestId(), first.version(), input("社員B", WorkType.INSTALL, "11:00", "12:00"));
 		AutosaveResult stale = service.save(
 				first.requestId(), first.version(), input("社員C", WorkType.INSTALL, "11:00", "12:00"));
+		AutosaveResult retriedWithOldVersion = service.save(
+				first.requestId(), first.version(), input("社員C", WorkType.INSTALL, "11:00", "12:00"));
 
 		assertThat(latest.status()).isEqualTo(AutosaveResult.Status.SAVED);
 		assertThat(stale.status()).isEqualTo(AutosaveResult.Status.STALE);
+		assertThat(retriedWithOldVersion.status()).isEqualTo(AutosaveResult.Status.STALE);
 		assertThat(repository.findById(first.requestId()).orElseThrow().getRequesterName())
+				.isEqualTo("社員B");
+	}
+
+	@Test
+	void keepsAnEditedPublishedRequestPublishedWhenThereIsNoConflict() {
+		AutosaveResult created = service.save(
+				null, 0, input("社員A", WorkType.INSTALL, "13:00", "14:00"));
+
+		AutosaveResult edited = service.save(
+				created.requestId(), created.version(),
+				input("社員B", WorkType.DELIVERY, "13:00", "14:00"));
+
+		assertThat(edited.status()).isEqualTo(AutosaveResult.Status.SAVED);
+		assertThat(edited.entryState()).isEqualTo(EntryState.PUBLISHED);
+		assertThat(repository.countByEntryState(EntryState.DRAFT)).isZero();
+		assertThat(repository.findById(created.requestId()).orElseThrow().getRequesterName())
 				.isEqualTo("社員B");
 	}
 
