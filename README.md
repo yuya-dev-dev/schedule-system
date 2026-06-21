@@ -58,6 +58,7 @@
 - H2（ローカル開発）
 - PostgreSQL（本番想定・競合テスト）
 - JUnit 5 / Testcontainers
+- Playwright for Java（主要ブラウザE2E）
 - Maven Wrapper
 
 詳しい選定理由と同時実行方式は、[技術選定・検証記録](docs/technical-decisions.md)に記載しています。
@@ -68,6 +69,7 @@
 
 - Java 21
 - Docker Desktop（PostgreSQL結合テストを実行する場合）
+- Playwright Chromium（主要ブラウザE2Eを実行する場合）
 
 Windowsでアプリを起動する:
 
@@ -86,13 +88,19 @@ Windowsでアプリを起動する:
 
 フォームの「一覧へ戻る」は、入力内容を保存して対象月の一覧へ戻る操作を兼ねる。入力欄を離れた時点での自動保存と下書き一覧はフェーズ3で追加する。
 
+初回だけPlaywright Chromiumをインストールする:
+
+```powershell
+.\mvnw.cmd '-Dexec.mainClass=com.microsoft.playwright.CLI' '-Dexec.classpathScope=test' '-Dexec.args=install chromium' exec:java
+```
+
 全テストを実行する:
 
 ```powershell
 .\mvnw.cmd test
 ```
 
-全テストではTestcontainersがPostgreSQLを一時起動するため、Docker Desktopを先に起動する。H2のローカルデータは `data/` に保存され、Gitの管理対象には含めない。
+全テストではPlaywrightがChromiumを起動し、TestcontainersがPostgreSQLを一時起動するため、Docker Desktopも先に起動する。H2のローカルデータは `data/` に保存され、Gitの管理対象には含めない。
 
 ## ドキュメント
 

@@ -22,5 +22,13 @@ jobs:
           java-version: "21"
           cache: maven
 
+      - name: Install Playwright Chromium
+        run: >-
+          ./mvnw --batch-mode
+          -Dexec.mainClass=com.microsoft.playwright.CLI
+          -Dexec.classpathScope=test
+          -Dexec.args="install --with-deps chromium"
+          exec:java
+
       - name: Run tests
         run: ./mvnw --batch-mode test
