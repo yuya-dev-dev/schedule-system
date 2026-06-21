@@ -79,6 +79,8 @@ Windowsでアプリを起動する:
 
 ブラウザで `http://localhost:8080` を開く。日本時間の現在月にある水曜日・金曜日が月間一覧に表示され、空白セルから案件を入力できる。
 
+通常起動ではH2ファイルDBを使用し、保存データは `data/schedule-system.mv.db` に保持される。アプリを停止・再起動しても同じファイルから案件を読み込む。`data/` はGitの管理対象外である。
+
 フェーズ2時点で利用できる操作:
 
 - 前月・当月・翌月の月間一覧を切り替える
@@ -100,7 +102,15 @@ Windowsでアプリを起動する:
 .\mvnw.cmd test
 ```
 
-全テストではPlaywrightがChromiumを起動し、TestcontainersがPostgreSQLを一時起動するため、Docker Desktopも先に起動する。H2のローカルデータは `data/` に保存され、Gitの管理対象には含めない。
+アプリ再起動とH2ファイル保持だけを確認する:
+
+```powershell
+.\mvnw.cmd '-Dtest=ApplicationRestartPersistenceTest' test
+```
+
+この試験は一時H2ファイルへ架空案件を保存し、Spring Bootを停止・再起動して一覧、詳細、Flyway履歴を確認する。通常利用の `data/` は変更しない。
+
+全テストではPlaywrightがChromiumを起動し、TestcontainersがPostgreSQLを一時起動するため、Docker Desktopも先に起動する。
 
 ## ドキュメント
 
