@@ -24,4 +24,18 @@ class ScheduleDatePolicyTest {
 		assertThat(policy.isPast(LocalDate.of(2026, 6, 19))).isTrue();
 		assertThat(policy.isPast(LocalDate.of(2026, 6, 20))).isFalse();
 	}
+
+	@Test
+	void allowsTodayWhenTodayIsAWorkday() {
+		ScheduleDatePolicy workdayPolicy = new ScheduleDatePolicy(Clock.fixed(
+				Instant.parse("2026-06-24T03:00:00Z"), ZoneId.of("Asia/Tokyo")));
+
+		assertThat(workdayPolicy.isRegistrable(LocalDate.of(2026, 6, 24))).isTrue();
+	}
+
+	@Test
+	void rejectsPreviousAndFollowingVisibleRangeMonths() {
+		assertThat(policy.isRegistrable(LocalDate.of(2026, 5, 29))).isFalse();
+		assertThat(policy.isRegistrable(LocalDate.of(2026, 8, 5))).isFalse();
+	}
 }

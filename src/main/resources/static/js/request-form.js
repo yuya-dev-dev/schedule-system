@@ -132,10 +132,14 @@ document.addEventListener("DOMContentLoaded", () => {
             return false;
         }
         staleState = false;
-        status.textContent = "保存できませんでした";
+        status.textContent = result.entryState === "PUBLISHED"
+            ? "未入力のため変更されませんでした。元の予定を維持しています"
+            : "保存できませんでした";
         status.className = "save-status failed";
         retryButton.hidden = false;
-        showErrors([result.message]);
+        const missing = (result.missingFields || []).map(name => `${name}が未入力です`);
+        retryButton.hidden = result.entryState === "PUBLISHED" && missing.length > 0;
+        showErrors(missing.length > 0 ? missing : [result.message]);
         return false;
     };
 

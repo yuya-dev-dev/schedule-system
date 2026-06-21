@@ -3,6 +3,7 @@ package com.yuyadev.schedulesystem.request;
 import com.yuyadev.schedulesystem.schedule.ScheduleDatePolicy;
 import jakarta.persistence.OptimisticLockException;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -62,6 +63,11 @@ public class ScheduleRequestAutosaveService {
 			request = find(id);
 			if (request.getVersion() != expectedVersion) {
 				return SaveResult.stale(request.getId());
+			}
+			if (request.getEntryState() == EntryState.PUBLISHED
+					&& !canAppearOnSchedule(input)) {
+				return SaveResult.invalidInput(
+						request.getId(), ScheduleRequest.missingRequiredFields(input));
 			}
 			if (request.getEntryState() == EntryState.PUBLISHED
 					&& canAppearOnSchedule(input)
@@ -129,6 +135,9 @@ public class ScheduleRequestAutosaveService {
 		if (result.stale()) {
 			return AutosaveResult.stale(request);
 		}
+		if (result.invalidInput()) {
+			return AutosaveResult.invalidPublishedEdit(request, result.missingFields());
+		}
 		if (result.conflict()) {
 			return AutosaveResult.timeConflict(request);
 		}
@@ -156,17 +165,26 @@ public class ScheduleRequestAutosaveService {
 		return false;
 	}
 
-	private record SaveResult(Long requestId, boolean stale, boolean conflict) {
+	private record SaveResult(
+			Long requestId,
+			boolean stale,
+			boolean conflict,
+			boolean invalidInput,
+			List<String> missingFields) {
 		private static SaveResult saved(Long id) {
-			return new SaveResult(id, false, false);
+			return new SaveResult(id, false, false, false, List.of());
 		}
 
 		private static SaveResult stale(Long id) {
-			return new SaveResult(id, true, false);
+			return new SaveResult(id, true, false, false, List.of());
 		}
 
 		private static SaveResult conflict(Long id) {
-			return new SaveResult(id, false, true);
+			return new SaveResult(id, false, true, false, List.of());
+		}
+
+		private static SaveResult invalidInput(Long id, List<String> missingFields) {
+			return new SaveResult(id, false, false, true, List.copyOf(missingFields));
 		}
 	}
 }

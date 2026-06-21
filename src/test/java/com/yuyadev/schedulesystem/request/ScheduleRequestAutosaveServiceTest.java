@@ -113,6 +113,49 @@ class ScheduleRequestAutosaveServiceTest {
 				.isEqualTo("社員B");
 	}
 
+	@Test
+	void keepsPublishedSlotWhileListFieldsAreTemporarilyMissing() {
+		AutosaveResult created = service.save(
+				null, 0, input("社員A", WorkType.INSTALL, "13:00", "14:00"));
+		ScheduleRequest before = repository.findById(created.requestId()).orElseThrow();
+		long originalVersion = before.getVersion();
+
+		AutosaveResult rejected = service.save(
+				created.requestId(), originalVersion,
+				input(null, WorkType.INSTALL, "13:00", "14:00"));
+
+		ScheduleRequest unchanged = repository.findById(created.requestId()).orElseThrow();
+		assertThat(rejected.status()).isEqualTo(AutosaveResult.Status.INVALID);
+		assertThat(rejected.entryState()).isEqualTo(EntryState.PUBLISHED);
+		assertThat(rejected.missingFields()).contains("依頼者名");
+		assertThat(rejected.message()).contains("元の予定を維持");
+		assertThat(unchanged.getEntryState()).isEqualTo(EntryState.PUBLISHED);
+		assertThat(unchanged.getRequesterName()).isEqualTo("社員A");
+		assertThat(unchanged.getStartTime()).isEqualTo(LocalTime.of(13, 0));
+		assertThat(unchanged.getEndTime()).isEqualTo(LocalTime.of(14, 0));
+		assertThat(unchanged.getVersion()).isEqualTo(originalVersion);
+	}
+
+	@Test
+	void savesDetailChangesWithoutReleasingPublishedSlot() {
+		AutosaveResult created = service.save(
+				null, 0, input("社員A", WorkType.INSTALL, "15:00", "16:00"));
+		ScheduleRequestInput changed = new ScheduleRequestInput(
+				WORK_DATE, LocalTime.of(15, 0), LocalTime.of(16, 0), WorkType.INSTALL,
+				"社員A", "更新後の作業内容", "愛知県豊田市架空町", "17時まで",
+				false, null, null, null, DispatchStatus.REQUIRED, "更新後の備考");
+
+		AutosaveResult edited = service.save(
+				created.requestId(), created.version(), changed);
+
+		ScheduleRequest saved = repository.findById(created.requestId()).orElseThrow();
+		assertThat(edited.status()).isEqualTo(AutosaveResult.Status.SAVED);
+		assertThat(edited.entryState()).isEqualTo(EntryState.PUBLISHED);
+		assertThat(saved.getRequestDetail()).isEqualTo("更新後の作業内容");
+		assertThat(saved.getEntryState()).isEqualTo(EntryState.PUBLISHED);
+		assertThat(repository.countByEntryState(EntryState.DRAFT)).isZero();
+	}
+
 	private ScheduleRequestInput input(
 			String requester, WorkType workType, String start, String end) {
 		return new ScheduleRequestInput(

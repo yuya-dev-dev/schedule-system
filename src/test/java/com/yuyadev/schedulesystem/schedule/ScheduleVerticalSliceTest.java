@@ -86,6 +86,13 @@ class ScheduleVerticalSliceTest {
 	}
 
 	@Test
+	void redirectsRootToSchedule() throws Exception {
+		mockMvc.perform(get("/"))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/schedule"));
+	}
+
+	@Test
 	void confirmsAndPhysicallyDeletesPublishedRequest() throws Exception {
 		ScheduleRequest request = repository.saveAndFlush(ScheduleRequest.published(
 				LocalDate.of(2026, 6, 24), LocalTime.of(10, 0), LocalTime.of(11, 0),
@@ -288,6 +295,33 @@ class ScheduleVerticalSliceTest {
 	}
 
 	@Test
+	void recalculatesColorsAfterAnEarlierRequestIsDeleted() {
+		LocalDate workDate = LocalDate.of(2026, 6, 24);
+		ScheduleRequest first = repository.saveAndFlush(ScheduleRequest.published(
+				workDate, LocalTime.of(9, 0), LocalTime.of(9, 30),
+				"社員A", WorkType.INSTALL));
+		ScheduleRequest second = repository.saveAndFlush(ScheduleRequest.published(
+				workDate, LocalTime.of(10, 0), LocalTime.of(10, 30),
+				"社員B", WorkType.DELIVERY));
+		repository.saveAndFlush(ScheduleRequest.published(
+				workDate, LocalTime.of(11, 0), LocalTime.of(11, 30),
+				"社員C", WorkType.COLLECT));
+
+		repository.deleteById(first.getId());
+		repository.flush();
+		MonthScheduleView view = monthScheduleService.getMonth("2026-06");
+		int dateIndex = java.util.stream.IntStream.range(0, view.workDates().size())
+				.filter(index -> view.workDates().get(index).date().equals(workDate))
+				.findFirst()
+				.orElseThrow();
+
+		assertThat(cellAt(view, dateIndex, LocalTime.of(10, 0)).requestId())
+				.isEqualTo(second.getId());
+		assertThat(cellAt(view, dateIndex, LocalTime.of(10, 0)).colorIndex()).isEqualTo(1);
+		assertThat(cellAt(view, dateIndex, LocalTime.of(11, 0)).colorIndex()).isEqualTo(2);
+	}
+
+	@Test
 	void makesPastDatesReadOnlyFromScheduleThroughServiceLayer() throws Exception {
 		LocalDate workDate = LocalDate.of(2026, 6, 19);
 		ScheduleRequest past = repository.saveAndFlush(ScheduleRequest.published(
@@ -417,6 +451,10 @@ class ScheduleVerticalSliceTest {
 				.contains("hidden");
 		assertThat(tagWithAttribute(html, "input", "name", "requesterName"))
 				.doesNotContain("required");
+		assertThat(tagWithAttribute(html, "section", "id", "normal-work-fields"))
+				.contains("hidden");
+		assertThat(tagWithAttribute(html, "textarea", "name", "requestDetail"))
+				.doesNotContain("required");
 	}
 
 	@Test
@@ -457,6 +495,16 @@ class ScheduleVerticalSliceTest {
 		assertThat(tagWithAttribute(companionHtml, "span", "id", "address-required"))
 				.contains("hidden");
 		assertThat(tagWithAttribute(companionHtml, "input", "name", "address"))
+				.doesNotContain("required");
+		assertThat(tagWithAttribute(companionHtml, "textarea", "name", "requestDetail"))
+				.contains("required");
+		assertThat(tagWithAttribute(companionHtml, "input", "name", "desiredArrivalTime"))
+				.contains("required");
+		assertThat(tagWithAttribute(companionHtml, "input", "name", "meetingPlace"))
+				.contains("required");
+		assertThat(tagWithAttribute(companionHtml, "select", "name", "departureTime"))
+				.contains("required");
+		assertThat(tagWithAttribute(companionHtml, "input", "name", "vehicleName"))
 				.doesNotContain("required");
 	}
 
@@ -505,9 +553,58 @@ class ScheduleVerticalSliceTest {
 
 		ScheduleRequest saved = repository.findById(id).orElseThrow();
 		assertThat(saved.getRequestDetail()).isEqualTo("更新後の架空作業");
+		assertThat(saved.getDesiredArrivalTime()).isEqualTo("午後ならいつでも");
+		assertThat(saved.getDispatchStatus()).isEqualTo(
+				com.yuyadev.schedulesystem.request.DispatchStatus.UNANSWERED);
 		assertThat(saved.isCompanionRequired()).isFalse();
 		assertThat(saved.getMeetingPlace()).isNull();
 		assertThat(repository.count()).isOne();
+	}
+
+	@Test
+	void rendersOptionalVehicleAndDispatchChoicesAndPersistsFreeArrivalText() throws Exception {
+		MvcResult formResult = mockMvc.perform(get("/requests/new").param("date", "2026-06-24"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("なければ空欄")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("未回答")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("出庫が必要")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("すでに出庫済み")))
+				.andReturn();
+		assertThat(tagWithAttribute(
+				formResult.getResponse().getContentAsString(), "input", "name", "vehicleName"))
+				.contains("placeholder=\"なければ空欄\"")
+				.doesNotContain("required");
+
+		MvcResult savedResult = mockMvc.perform(post("/requests/autosave")
+					.param("workDate", "2026-06-24")
+					.param("startTime", "16:00")
+					.param("endTime", "17:00")
+					.param("workType", "DELIVERY")
+					.param("requesterName", "社員A")
+					.param("requestDetail", "架空の配達")
+					.param("address", "愛知県名古屋市架空町")
+					.param("desiredArrivalTime", "午後かつ17時までならいつでも")
+					.param("dispatchStatus", "DISPATCHED"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("SAVED"))
+				.andExpect(jsonPath("$.message").value("保存しました"))
+				.andReturn();
+		Long id = new com.fasterxml.jackson.databind.ObjectMapper()
+				.readTree(savedResult.getResponse().getContentAsString())
+				.get("requestId").asLong();
+
+		ScheduleRequest saved = repository.findById(id).orElseThrow();
+		assertThat(saved.getDesiredArrivalTime()).isEqualTo("午後かつ17時までならいつでも");
+		assertThat(saved.getDispatchStatus()).isEqualTo(
+				com.yuyadev.schedulesystem.request.DispatchStatus.DISPATCHED);
+		assertThat(saved.getVehicleName()).isNull();
+
+		mockMvc.perform(get("/requests/{id}", id))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"value=\"午後かつ17時までならいつでも\"")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"value=\"DISPATCHED\" selected=\"selected\"")));
 	}
 
 	private String tagWithAttribute(
