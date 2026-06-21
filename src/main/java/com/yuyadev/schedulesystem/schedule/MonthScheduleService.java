@@ -46,9 +46,23 @@ public class MonthScheduleService {
 		return new MonthScheduleView(
 				selectedMonth.getYear() + "年" + selectedMonth.getMonthValue() + "月",
 				selectedMonth.format(MONTH_VALUE),
+				initialFocusDate(currentMonth, selectedMonth, workDates),
 				monthTabs(currentMonth, selectedMonth),
 				workDates.stream().map(this::toWorkDateView).toList(),
 				timeRows(workDates, requests, colors));
+	}
+
+	private String initialFocusDate(
+			YearMonth currentMonth, YearMonth selectedMonth, List<LocalDate> workDates) {
+		if (!selectedMonth.equals(currentMonth)) {
+			return null;
+		}
+		LocalDate today = LocalDate.now(clock);
+		return workDates.stream()
+				.filter(date -> !date.isBefore(today))
+				.findFirst()
+				.map(LocalDate::toString)
+				.orElse(null);
 	}
 
 	private YearMonth selectMonth(String requestedMonth, YearMonth currentMonth) {

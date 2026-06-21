@@ -50,6 +50,7 @@ class MonthScheduleServiceTest {
 		assertThat(view.workDates())
 				.extracting(WorkDateView::past)
 				.containsExactly(true, true, true, true, true, true, false, false);
+		assertThat(view.initialFocusDate()).isEqualTo("2026-06-24");
 		assertThat(view.timeRows()).hasSize(18);
 		assertThat(view.timeRows().getFirst().cells().getFirst().destinationUrl()).isNull();
 		assertThat(view.timeRows().getFirst().cells().getFirst().readOnly()).isTrue();
@@ -62,5 +63,13 @@ class MonthScheduleServiceTest {
 		MonthScheduleView view = service.getMonth("2027-01");
 
 		assertThat(view.selectedMonth()).isEqualTo("2026-06");
+		assertThat(view.initialFocusDate()).isEqualTo("2026-06-24");
+	}
+
+	@Test
+	void doesNotSelectAnInitialFocusDateForAnotherMonth() {
+		MonthScheduleView view = service.getMonth("2026-07");
+
+		assertThat(view.initialFocusDate()).isNull();
 	}
 }

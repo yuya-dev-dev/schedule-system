@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${schedule.title + ' スケジュール'}">スケジュール</title>
     <link rel="stylesheet" th:href="@{/css/app.css(v=3)}">
+    <script defer th:src="@{/js/schedule-month.js(v=1)}"></script>
 </head>
 <body class="schedule-page">
 <header class="page-header">
@@ -43,12 +44,14 @@
         </div>
     </details>
 
-    <div class="schedule-scroll" aria-label="月間スケジュール">
+    <div class="schedule-scroll" aria-label="月間スケジュール"
+         th:data-initial-focus-date="${schedule.initialFocusDate}">
         <table class="schedule-table">
             <thead>
             <tr>
                 <th class="time-heading" scope="col">時間</th>
                 <th th:each="workDate : ${schedule.workDates}" scope="col"
+                    th:data-work-date="${workDate.date}"
                     th:classappend="${workDate.past} ? ' past-date'">
                     <span class="date-label" th:text="${workDate.monthDayLabel}">6/3</span>
                     <span class="weekday-label" th:text="${workDate.weekdayLabel}">水</span>

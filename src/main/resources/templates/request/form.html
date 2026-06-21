@@ -30,7 +30,10 @@
         <input type="hidden" th:field="*{workDate}">
 
         <div class="save-status-row">
-            <div id="save-status" class="save-status" role="status" aria-live="polite">入力内容は自動保存されます</div>
+            <div id="save-status" class="save-status" role="status" aria-live="polite"
+                 th:text="${readOnly ? '閲覧専用' : '入力内容は自動保存されます'}">
+                入力内容は自動保存されます
+            </div>
             <button id="retry-save" type="button" class="retry-save" hidden>再試行</button>
         </div>
 
