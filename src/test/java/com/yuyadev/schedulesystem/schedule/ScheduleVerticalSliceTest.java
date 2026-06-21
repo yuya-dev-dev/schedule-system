@@ -155,6 +155,8 @@ class ScheduleVerticalSliceTest {
 		mockMvc.perform(get("/schedule"))
 				.andExpect(status().isOk())
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("2026年6月 スケジュール")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"data-initial-focus-date=\"2026-06-24\"")))
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("/requests/new?date=2026-06-24")));
 
 		mockMvc.perform(get("/requests/new").param("date", "2026-06-24"))
@@ -305,6 +307,8 @@ class ScheduleVerticalSliceTest {
 						"過去日の案件は閲覧専用です")))
 				.andReturn();
 		String html = formResult.getResponse().getContentAsString();
+		assertThat(html).contains("閲覧専用</div>");
+		assertThat(html).doesNotContain("入力内容は自動保存されます");
 		assertThat(tagWithAttribute(html, "select", "name", "startTime")).contains("disabled");
 		assertThat(tagWithAttribute(html, "input", "name", "requesterName")).contains("disabled");
 		assertThat(tagWithAttribute(html, "div", "id", "destructive-actions")).contains("hidden");

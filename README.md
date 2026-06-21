@@ -106,6 +106,7 @@ Windowsでアプリを起動する:
 - [技術選定・検証記録](docs/technical-decisions.md)
 - [開発ロードマップ](docs/development-roadmap.md)
 - [テスト方針](docs/test-policy.md)
+- [フェーズ4 テスト設計](docs/phase4-test-design.md)
 
 ## 開発ルール
 
