@@ -31,6 +31,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let previousWorkType = workType.value;
     let saveQueue = Promise.resolve();
     let staleState = false;
+    let changeRevision = 0;
+    let queuedRevision = -1;
 
     const isInternalWork = value => value === "RECEIVING" || value === "PRODUCT_MANAGEMENT";
     const isNormalWork = () => workType.value !== "" && !isInternalWork(workType.value);
@@ -57,6 +59,16 @@ document.addEventListener("DOMContentLoaded", () => {
         cancelRequestLink.hidden = draft;
         draftDeleteForm.action = `/requests/drafts/${requestId}/delete`;
         cancelRequestLink.href = `/requests/${requestId}/cancel`;
+    };
+
+    const updateBrowserUrl = (requestId, entryState) => {
+        if (!requestId || !entryState) return;
+        const path = entryState === "DRAFT"
+            ? `/requests/drafts/${requestId}`
+            : `/requests/${requestId}`;
+        if (window.location.pathname !== path) {
+            window.history.replaceState(null, "", path);
+        }
     };
 
     const updateDynamicFields = () => {
@@ -103,6 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
             idField.value = result.requestId;
             versionField.value = result.version;
             updateDestructiveActions(result.requestId, result.entryState);
+            updateBrowserUrl(result.requestId, result.entryState);
         }
 
         if (result.status === "SAVED") {
@@ -143,7 +156,14 @@ document.addEventListener("DOMContentLoaded", () => {
         return false;
     };
 
-    const autosave = () => {
+    const markDirty = () => {
+        changeRevision += 1;
+    };
+
+    const autosave = (force = false) => {
+        const revision = changeRevision;
+        if (!force && queuedRevision === revision) return saveQueue;
+        queuedRevision = revision;
         saveQueue = saveQueue.then(performAutosave).catch(() => {
             staleState = false;
             status.textContent = "保存できませんでした。入力欄を変更すると再試行します";
@@ -168,12 +188,14 @@ document.addEventListener("DOMContentLoaded", () => {
             clearNormalValues();
         }
         previousWorkType = event.target.value;
+        markDirty();
         updateDynamicFields();
         autosave();
     });
 
     companion.addEventListener("change", () => {
         if (!companion.checked) clearCompanionValues();
+        markDirty();
         updateDynamicFields();
         autosave();
     });
@@ -183,18 +205,28 @@ document.addEventListener("DOMContentLoaded", () => {
             window.location.reload();
             return;
         }
-        autosave();
+        autosave(true);
     });
 
     form.querySelectorAll("input:not([type=hidden]):not([type=checkbox]), textarea")
-        .forEach(field => field.addEventListener("blur", autosave));
+        .forEach(field => {
+            field.addEventListener("input", markDirty);
+            field.addEventListener("blur", () => autosave());
+        });
     form.querySelectorAll("select").forEach(field => {
-        if (field !== workType) field.addEventListener("change", autosave);
+        if (field !== workType) field.addEventListener("change", () => {
+            markDirty();
+            autosave();
+        });
     });
 
     form.addEventListener("submit", async event => {
         event.preventDefault();
         clearErrors();
+        if (changeRevision === 0) {
+            window.location.assign(form.dataset.scheduleUrl);
+            return;
+        }
         const saved = await autosave();
         if (saved) window.location.assign(form.dataset.scheduleUrl);
     });
