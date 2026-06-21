@@ -86,6 +86,57 @@ class ScheduleRequestTest {
 	}
 
 	@Test
+	void rejectsTimesOutsideBusinessHours() {
+		assertThatThrownBy(() -> ScheduleRequest.published(
+					WORK_DATE,
+					LocalTime.of(8, 0),
+					LocalTime.of(9, 0),
+					"社員A",
+					WorkType.INSTALL))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("8:30から17:30");
+
+		assertThatThrownBy(() -> ScheduleRequest.published(
+					WORK_DATE,
+					LocalTime.of(17, 0),
+					LocalTime.of(18, 0),
+					"社員A",
+					WorkType.INSTALL))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("8:30から17:30");
+	}
+
+	@Test
+	void allowsTheFullBusinessDay() {
+		ScheduleRequest request = ScheduleRequest.published(
+				WORK_DATE,
+				LocalTime.of(8, 30),
+				LocalTime.of(17, 30),
+				"社員A",
+				WorkType.INSTALL);
+
+		assertThat(request.getStartTime()).isEqualTo(LocalTime.of(8, 30));
+		assertThat(request.getEndTime()).isEqualTo(LocalTime.of(17, 30));
+	}
+
+	@Test
+	void trimsTextAndNormalizesBlankTextToNull() {
+		ScheduleRequest request = ScheduleRequest.draft(new ScheduleRequestInput(
+				WORK_DATE, LocalTime.of(9, 0), LocalTime.of(10, 0), WorkType.INSTALL,
+				" 社員A ", " 作業内容 ", "   ", " 午後 ", false,
+				" 使用しない ", LocalTime.of(8, 30), " 使用しない ",
+				DispatchStatus.UNANSWERED, "   "));
+
+		assertThat(request.getRequesterName()).isEqualTo("社員A");
+		assertThat(request.getRequestDetail()).isEqualTo("作業内容");
+		assertThat(request.getAddress()).isNull();
+		assertThat(request.getDesiredArrivalTime()).isEqualTo("午後");
+		assertThat(request.getMeetingPlace()).isNull();
+		assertThat(request.getVehicleName()).isNull();
+		assertThat(request.getNote()).isNull();
+	}
+
+	@Test
 	void publishesACompleteDraftAndClearsDraftReason() {
 		ScheduleRequest request = ScheduleRequest.draft(
 				WORK_DATE,
@@ -167,6 +218,31 @@ class ScheduleRequestTest {
 		assertThat(request.getRequestDetail()).isNull();
 		assertThat(request.getNote()).isNull();
 		assertThat(request.getDispatchStatus()).isEqualTo(DispatchStatus.UNANSWERED);
+	}
+
+	@Test
+	void changingNormalWorkToInternalWorkClearsNormalDetails() {
+		ScheduleRequest request = ScheduleRequest.draft(new ScheduleRequestInput(
+				WORK_DATE, LocalTime.of(9, 0), LocalTime.of(10, 0), WorkType.INSTALL,
+				"社員A", "設置作業", "愛知県名古屋市", "午後", true,
+				"名古屋支店", LocalTime.of(8, 30), "車両A",
+				DispatchStatus.DISPATCHED, "連絡事項"));
+
+		request.applyInput(new ScheduleRequestInput(
+				WORK_DATE, LocalTime.of(9, 0), LocalTime.of(10, 0), WorkType.RECEIVING,
+				null, "残してはいけない", "残してはいけない", "残してはいけない", true,
+				"残してはいけない", LocalTime.of(8, 30), "残してはいけない",
+				DispatchStatus.REQUIRED, "残してはいけない"));
+
+		assertThat(request.getRequestDetail()).isNull();
+		assertThat(request.getAddress()).isNull();
+		assertThat(request.getDesiredArrivalTime()).isNull();
+		assertThat(request.isCompanionRequired()).isFalse();
+		assertThat(request.getMeetingPlace()).isNull();
+		assertThat(request.getDepartureTime()).isNull();
+		assertThat(request.getVehicleName()).isNull();
+		assertThat(request.getDispatchStatus()).isEqualTo(DispatchStatus.UNANSWERED);
+		assertThat(request.getNote()).isNull();
 	}
 
 	private ScheduleRequestInput input(

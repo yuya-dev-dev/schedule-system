@@ -167,7 +167,15 @@ public class ScheduleRequest {
 	}
 
 	private static String normalize(String value) {
-		return value == null ? null : value.trim();
+		if (value == null) {
+			return null;
+		}
+		String normalized = value.trim();
+		return normalized.isEmpty() ? null : normalized;
+	}
+
+	public static List<String> missingRequiredFields(ScheduleRequestInput input) {
+		return draft(input).missingRequiredFields();
 	}
 
 	private static void validatePublishedTime(LocalTime startTime, LocalTime endTime) {

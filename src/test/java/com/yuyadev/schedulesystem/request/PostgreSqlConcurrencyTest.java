@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -42,6 +43,9 @@ class PostgreSqlConcurrencyTest {
 
 	@Autowired
 	private ScheduleRequestPublishingService publishingService;
+
+	@Autowired
+	private ScheduleRequestAutosaveService autosaveService;
 
 	@Autowired
 	private ScheduleRequestRepository repository;
@@ -148,6 +152,101 @@ class PostgreSqlConcurrencyTest {
 
 		assertThatThrownBy(() -> repository.saveAndFlush(staleCopy))
 				.isInstanceOf(OptimisticLockingFailureException.class);
+	}
+
+	@Test
+	void keepsPublishedRequestWhenAnotherRequestTargetsItsSlotDuringEditing() throws Exception {
+		PublishResult existingResult = publishingService.publish(new PublishCommand(
+				WORK_DATE, LocalTime.of(9, 0), LocalTime.of(10, 0),
+				"社員A", WorkType.INSTALL));
+		ScheduleRequest existing = repository.findById(existingResult.requestId()).orElseThrow();
+		ScheduleRequestInput edit = new ScheduleRequestInput(
+				WORK_DATE, LocalTime.of(9, 0), LocalTime.of(10, 0), WorkType.INSTALL,
+				"社員A", "更新後の作業内容", "愛知県名古屋市架空町", "午前中",
+				false, null, null, null, DispatchStatus.UNANSWERED, null);
+		PublishCommand newcomer = new PublishCommand(
+				WORK_DATE, LocalTime.of(9, 30), LocalTime.of(10, 30),
+				"社員B", WorkType.DELIVERY);
+		CountDownLatch ready = new CountDownLatch(2);
+		CountDownLatch start = new CountDownLatch(1);
+
+		try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+			Future<AutosaveResult> edited = executor.submit(() -> {
+				ready.countDown();
+				if (!start.await(10, TimeUnit.SECONDS)) {
+					throw new IllegalStateException("Concurrent edit did not start in time");
+				}
+				return autosaveService.save(existing.getId(), existing.getVersion(), edit);
+			});
+			Future<PublishResult> competing =
+					executor.submit(() -> publishAfterSignal(newcomer, ready, start));
+
+			assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+			start.countDown();
+
+			assertThat(edited.get().status()).isEqualTo(AutosaveResult.Status.SAVED);
+			assertThat(competing.get().status()).isEqualTo(PublishResult.Status.TIME_CONFLICT);
+		}
+
+		ScheduleRequest unchangedSlot = repository.findById(existing.getId()).orElseThrow();
+		assertThat(unchangedSlot.getEntryState()).isEqualTo(EntryState.PUBLISHED);
+		assertThat(unchangedSlot.getStartTime()).isEqualTo(LocalTime.of(9, 0));
+		assertThat(unchangedSlot.getEndTime()).isEqualTo(LocalTime.of(10, 0));
+		assertThat(unchangedSlot.getRequestDetail()).isEqualTo("更新後の作業内容");
+		assertThat(repository.countByEntryState(EntryState.PUBLISHED)).isOne();
+		assertThat(repository.countByEntryState(EntryState.DRAFT)).isOne();
+	}
+
+	@Test
+	void databaseConstraintRejectsDirectOverlappingInsert() {
+		repository.saveAndFlush(ScheduleRequest.published(
+				WORK_DATE, LocalTime.of(10, 0), LocalTime.of(11, 0),
+				"社員A", WorkType.INSTALL));
+
+		assertThatThrownBy(() -> repository.saveAndFlush(ScheduleRequest.published(
+					WORK_DATE, LocalTime.of(10, 30), LocalTime.of(11, 30),
+					"社員B", WorkType.DELIVERY)))
+				.isInstanceOf(DataIntegrityViolationException.class);
+	}
+
+	@Test
+	void publishesDifferentSlotsConcurrently() throws Exception {
+		PublishCommand firstCommand = new PublishCommand(
+				WORK_DATE, LocalTime.of(13, 0), LocalTime.of(14, 0),
+				"社員A", WorkType.INSTALL);
+		PublishCommand secondCommand = new PublishCommand(
+				WORK_DATE, LocalTime.of(14, 0), LocalTime.of(15, 0),
+				"社員B", WorkType.COLLECT);
+		CountDownLatch ready = new CountDownLatch(2);
+		CountDownLatch start = new CountDownLatch(1);
+
+		try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+			Future<PublishResult> first =
+					executor.submit(() -> publishAfterSignal(firstCommand, ready, start));
+			Future<PublishResult> second =
+					executor.submit(() -> publishAfterSignal(secondCommand, ready, start));
+
+			assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+			start.countDown();
+
+			assertThat(List.of(first.get().status(), second.get().status()))
+					.containsOnly(PublishResult.Status.PUBLISHED);
+		}
+		assertThat(repository.countByEntryState(EntryState.PUBLISHED)).isEqualTo(2);
+	}
+
+	@Test
+	void incompletePublishedRequestStillReservesItsSlot() {
+		repository.saveAndFlush(ScheduleRequest.published(
+				WORK_DATE, LocalTime.of(15, 0), LocalTime.of(16, 0), "社員A", null));
+
+		PublishResult result = publishingService.publish(new PublishCommand(
+				WORK_DATE, LocalTime.of(15, 30), LocalTime.of(16, 30),
+				"社員B", WorkType.DELIVERY));
+
+		assertThat(result.status()).isEqualTo(PublishResult.Status.TIME_CONFLICT);
+		assertThat(repository.countByEntryState(EntryState.PUBLISHED)).isOne();
+		assertThat(repository.countByEntryState(EntryState.DRAFT)).isOne();
 	}
 
 	private PublishResult publishAfterSignal(
