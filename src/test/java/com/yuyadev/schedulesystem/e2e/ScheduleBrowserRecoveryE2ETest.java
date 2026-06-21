@@ -105,7 +105,7 @@ class ScheduleBrowserRecoveryE2ETest {
 	}
 
 	@Test
-	void publishesIncompleteRequestAndProtectsItsSlot() {
+	void publishesRequestWithoutWorkTypeAndProtectsItsSlot() {
 		page.navigate(url("/requests/new?date=2026-06-24"));
 		setListFieldsWithoutEvents(page, "10:00", "11:00", "社員A");
 		page.locator("#requesterName").focus();
@@ -114,9 +114,9 @@ class ScheduleBrowserRecoveryE2ETest {
 		page.locator(".back-submit").click();
 		page.waitForURL("**/schedule?month=2026-06");
 
-		Locator incomplete = page.locator("a[aria-label='案件を開く']")
+		Locator occupied = page.locator("a[aria-label='案件を開く']")
 				.filter(new Locator.FilterOptions().setHasText("社員A")).first();
-		assertThat(incomplete.textContent()).contains("＊未入力");
+		assertThat(occupied.textContent()).doesNotContain("＊未入力");
 
 		page.locator("a[href='/requests/new?date=2026-06-24']").first().click();
 		setListFieldsWithoutEvents(page, "10:00", "11:00", "社員B");

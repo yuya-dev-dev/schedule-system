@@ -374,7 +374,7 @@ class ScheduleVerticalSliceTest {
 	}
 
 	@Test
-	void publishesWithoutWorkTypeAndShowsIncompleteMarker() throws Exception {
+	void publishesWithoutWorkTypeAndDoesNotShowIncompleteMarker() throws Exception {
 		mockMvc.perform(post("/requests/save")
 					.param("workDate", "2026-06-24")
 					.param("startTime", "10:00")
@@ -386,7 +386,8 @@ class ScheduleVerticalSliceTest {
 		assertThat(saved.getWorkType()).isNull();
 		mockMvc.perform(get("/schedule").param("month", "2026-06"))
 				.andExpect(status().isOk())
-				.andExpect(content().string(org.hamcrest.Matchers.containsString("＊未入力")));
+				.andExpect(content().string(org.hamcrest.Matchers.not(
+						org.hamcrest.Matchers.containsString("＊未入力"))));
 	}
 
 	@Test

@@ -368,7 +368,7 @@ public class ScheduleRequest {
 	}
 
 	public boolean hasMissingRequiredFields() {
-		return workType == null || !missingRequiredFields().isEmpty();
+		return !missingRequiredFields().isEmpty();
 	}
 
 	public void publish() {
