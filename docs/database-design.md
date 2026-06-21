@@ -105,7 +105,7 @@ erDiagram
 - 最初の入力値を保存した時点で `schedule_requests` を作成する。入力がないままフォームを離れた場合はレコードを作成しない。
 - 文字入力項目は前後の空白を除去し、空文字だけの場合はNULLへ正規化する。
 - 新規レコードは `entry_state = DRAFT` で作成する。
-- `work_type` が入庫、商品管理以外または未入力の場合は `requester_name`、`start_time`、`end_time`、入庫、商品管理の場合は `start_time`、`end_time`、`work_type` がそろい、時間重複がなければ `PUBLISHED` へ変更する。作業種別未入力の通常作業は `＊未入力` の対象とする。
+- `work_type` が入庫、商品管理以外または未入力の場合は `requester_name`、`start_time`、`end_time`、入庫、商品管理の場合は `start_time`、`end_time`、`work_type` がそろい、時間重複がなければ `PUBLISHED` へ変更する。作業種別が未入力でも、それだけを理由に `＊未入力` の対象とはしない。
 - 一覧反映条件の不足時は `draft_reason = INCOMPLETE`、時間重複時は `draft_reason = TIME_CONFLICT` とする。
 - `draft_error_detail` には不足項目または直近の競合時間帯を保存し、下書き一覧へ理由を表示する。
 - 下書き一覧は `work_date`、入力済みの `requester_name`、`updated_at`、`draft_reason`、`draft_error_detail` を表示する。

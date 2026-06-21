@@ -41,7 +41,7 @@ class ScheduleRequestAutosaveServiceTest {
 		assertThat(repository.count()).isOne();
 		assertThat(second.missingFields()).isEmpty();
 		assertThat(repository.findById(second.requestId()).orElseThrow().hasMissingRequiredFields())
-				.isTrue();
+				.isFalse();
 	}
 
 	@Test

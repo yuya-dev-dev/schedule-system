@@ -176,12 +176,12 @@ class ScheduleRequestTest {
 	}
 
 	@Test
-	void keepsIncompleteMarkerWhenOnlyWorkTypeIsMissing() {
+	void doesNotReportIncompleteWhenOnlyWorkTypeIsMissing() {
 		ScheduleRequest request = ScheduleRequest.published(
 				WORK_DATE, LocalTime.of(9, 0), LocalTime.of(10, 0), "社員A", null);
 
 		assertThat(request.missingRequiredFields()).isEmpty();
-		assertThat(request.hasMissingRequiredFields()).isTrue();
+		assertThat(request.hasMissingRequiredFields()).isFalse();
 	}
 
 	@Test
