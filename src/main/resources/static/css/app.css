@@ -240,6 +240,16 @@ textarea {
 .schedule-table td.color-4 { background: var(--color-4); }
 .schedule-table td.color-5 { background: var(--color-5); }
 
+.schedule-table .past-date,
+.schedule-table td.past-cell:not(.occupied) {
+    background: #e5e9ec;
+    color: #68737d;
+}
+
+.blocked-cell {
+    cursor: not-allowed;
+}
+
 .schedule-cell-link {
     display: flex;
     width: 100%;
@@ -484,6 +494,22 @@ textarea:focus {
 
 .error-summary p {
     margin: 4px 0;
+}
+
+.readonly-notice {
+    margin: 0 0 22px;
+    border-left: 4px solid var(--accent);
+    background: #eef8f5;
+    padding: 12px 14px;
+    color: #174f43;
+    font-weight: 700;
+}
+
+.request-form :disabled {
+    border-color: #b7c0c7;
+    background: #edf0f2;
+    color: #44515b;
+    opacity: 1;
 }
 
 .back-submit {

@@ -8,4 +8,5 @@ public record ScheduleCellView(
 		String workTypeName,
 		boolean incomplete,
 		int colorIndex,
+		boolean readOnly,
 		String destinationUrl) {}

@@ -82,6 +82,9 @@ public class ScheduleRequestController {
 	@GetMapping("/{id}/cancel")
 	public String confirmCancellation(@PathVariable Long id, Model model) {
 		ScheduleRequest request = deletionService.findPublished(id);
+		if (datePolicy.isPast(request.getWorkDate())) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "過去案件はキャンセルできません");
+		}
 		model.addAttribute("request", request);
 		model.addAttribute("dateTitle", request.getWorkDate().format(DATE_TITLE));
 		model.addAttribute("scheduleUrl", scheduleUrl(request.getWorkDate()));
@@ -103,6 +106,10 @@ public class ScheduleRequestController {
 		if (result.status() == RequestDeletionService.CancellationStatus.NOT_FOUND) {
 			redirectAttributes.addFlashAttribute("notice", "案件はすでに削除されています");
 			return "redirect:/schedule";
+		}
+		if (result.status() == RequestDeletionService.CancellationStatus.READ_ONLY) {
+			redirectAttributes.addFlashAttribute("notice", "過去案件は変更できません");
+			return "redirect:/requests/" + id;
 		}
 		return "redirect:" + scheduleUrl(result.workDate());
 	}
@@ -154,7 +161,9 @@ public class ScheduleRequestController {
 		model.addAttribute("requesterRequired", requiresRequester(form.getWorkType()));
 		model.addAttribute("normalWork", form.getWorkType() != null
 				&& !ScheduleRequest.isInternalWork(form.getWorkType()));
-		model.addAttribute("returnOnly", returnOnly);
+		boolean readOnly = datePolicy.isPast(form.getWorkDate());
+		model.addAttribute("readOnly", readOnly);
+		model.addAttribute("returnOnly", returnOnly || readOnly);
 		model.addAttribute("scheduleUrl", form.getWorkDate() == null
 				? "/schedule"
 				: scheduleUrl(form.getWorkDate()));

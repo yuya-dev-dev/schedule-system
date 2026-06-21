@@ -47,7 +47,12 @@ class MonthScheduleServiceTest {
 		assertThat(view.workDates())
 				.extracting(WorkDateView::monthDayLabel)
 				.containsExactly("6/3", "6/5", "6/10", "6/12", "6/17", "6/19", "6/24", "6/26");
+		assertThat(view.workDates())
+				.extracting(WorkDateView::past)
+				.containsExactly(true, true, true, true, true, true, false, false);
 		assertThat(view.timeRows()).hasSize(18);
+		assertThat(view.timeRows().getFirst().cells().getFirst().destinationUrl()).isNull();
+		assertThat(view.timeRows().getFirst().cells().getFirst().readOnly()).isTrue();
 		assertThat(view.timeRows().getFirst().startTime()).isEqualTo(LocalTime.of(8, 30));
 		assertThat(view.timeRows().getLast().endTime()).isEqualTo(LocalTime.of(17, 30));
 	}

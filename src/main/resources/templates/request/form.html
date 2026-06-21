@@ -4,22 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${dateTitle + ' 案件入力'}">案件入力</title>
-    <link rel="stylesheet" th:href="@{/css/app.css(v=2)}">
+    <link rel="stylesheet" th:href="@{/css/app.css(v=3)}">
     <script defer="defer" th:src="@{/js/request-form.js}"></script>
 </head>
 <body class="form-page">
 <header class="form-header">
-    <p class="page-kicker" th:text="${editing ? '案件の確認・編集' : '新しい案件'}">新しい案件</p>
+    <p class="page-kicker"
+       th:text="${readOnly ? '過去案件の閲覧' : (editing ? '案件の確認・編集' : '新しい案件')}">新しい案件</p>
     <h1 th:text="${dateTitle}">2026年6月19日（金）</h1>
 </header>
 
 <main class="form-main">
+    <p th:if="${readOnly}" class="readonly-notice" role="status">
+        過去日の案件は閲覧専用です。内容の変更やキャンセルはできません。
+    </p>
     <div id="error-summary" th:classappend="${#lists.isEmpty(errors)} ? ' is-hidden'" class="error-summary" role="alert">
         <p th:each="error : ${errors}" th:text="${error}">入力内容を確認してください</p>
     </div>
 
     <form id="request-form" th:action="@{/requests/save}" th:object="${form}" method="post" class="request-form"
-          data-autosave-url="/requests/autosave" th:data-schedule-url="${scheduleUrl}">
+          data-autosave-url="/requests/autosave" th:data-schedule-url="${scheduleUrl}"
+          th:data-read-only="${readOnly}">
         <input type="hidden" th:field="*{id}">
         <input type="hidden" th:field="*{version}">
         <input type="hidden" th:field="*{workDate}">
@@ -33,7 +38,7 @@
             <legend><span class="required">＊必須</span> 時間範囲</legend>
             <label>
                 <span>開始時間</span>
-                <select th:field="*{startTime}" required>
+                <select th:field="*{startTime}" th:disabled="${readOnly}" required>
                     <option value="">選択してください</option>
                     <option th:each="time : ${startTimeOptions}" th:value="${time}" th:text="${time}">8:30</option>
                 </select>
@@ -41,7 +46,7 @@
             <span class="range-separator" aria-hidden="true">〜</span>
             <label>
                 <span>終了時間</span>
-                <select th:field="*{endTime}" required>
+                <select th:field="*{endTime}" th:disabled="${readOnly}" required>
                     <option value="">選択してください</option>
                     <option th:each="time : ${endTimeOptions}" th:value="${time}" th:text="${time}">9:00</option>
                 </select>
@@ -50,7 +55,7 @@
 
         <label class="form-field">
             <span>作業種別</span>
-            <select th:field="*{workType}">
+            <select th:field="*{workType}" th:disabled="${readOnly}">
                 <option value="">選択してください</option>
                 <option th:each="type : ${workTypes}"
                         th:value="${type}"
@@ -60,30 +65,33 @@
 
         <label class="form-field">
             <span><span id="requester-required" class="required" th:hidden="${!requesterRequired}">＊必須</span> 依頼者名</span>
-            <input type="text" th:field="*{requesterName}" maxlength="100" placeholder="例：山本" th:required="${requesterRequired}">
+            <input type="text" th:field="*{requesterName}" maxlength="100" placeholder="例：山本"
+                   th:required="${requesterRequired}" th:disabled="${readOnly}">
             <small>入庫・商品管理では任意です</small>
         </label>
 
         <label id="companion-toggle" class="check-field" th:hidden="${form.workType != null and !normalWork}">
-            <input type="checkbox" th:field="*{companionRequired}">
+            <input type="checkbox" th:field="*{companionRequired}" th:disabled="${readOnly}">
             <span>同行あり</span>
         </label>
 
         <div id="companion-fields" class="conditional-fields" th:hidden="${!form.companionRequired}">
             <label class="form-field">
                 <span><span class="required">＊必須</span> 集合場所</span>
-                <input type="text" th:field="*{meetingPlace}" maxlength="300" placeholder="例：名古屋支店">
+                <input type="text" th:field="*{meetingPlace}" maxlength="300" placeholder="例：名古屋支店"
+                       th:disabled="${readOnly}">
             </label>
             <label class="form-field">
                 <span><span class="required">＊必須</span> 出発時間</span>
-                <select th:field="*{departureTime}">
+                <select th:field="*{departureTime}" th:disabled="${readOnly}">
                     <option value="">選択してください</option>
                     <option th:each="time : ${startTimeOptions}" th:value="${time}" th:text="${time}">8:30</option>
                 </select>
             </label>
             <label class="form-field">
                 <span>使用車両の指定</span>
-                <input type="text" th:field="*{vehicleName}" maxlength="100" placeholder="なければ空欄">
+                <input type="text" th:field="*{vehicleName}" maxlength="100" placeholder="なければ空欄"
+                       th:disabled="${readOnly}">
             </label>
         </div>
 
@@ -91,6 +99,7 @@
             <label class="form-field">
                 <span><span class="normal-required required" th:hidden="${!normalWork}">＊必須</span> 依頼内容</span>
                 <textarea th:field="*{requestDetail}" rows="5" maxlength="4000"
+                          th:disabled="${readOnly}"
                           placeholder="例：コーヒーサーバー2台の設置。必要な機械・備品をまとめて記入してください"></textarea>
             </label>
 
@@ -99,18 +108,20 @@
                             th:hidden="${!normalWork or form.companionRequired}">＊必須</span> 現場住所もしくは会社名</span>
                 <input type="text" th:field="*{address}" maxlength="500"
                        placeholder="例：愛知県名古屋市中区○○、株式会社○○"
+                       th:disabled="${readOnly}"
                        th:required="${normalWork and !form.companionRequired}">
             </label>
 
             <label class="form-field">
                 <span><span class="normal-required required" th:hidden="${!normalWork}">＊必須</span> 顧客先到着希望時間</span>
                 <input type="text" th:field="*{desiredArrivalTime}" maxlength="100"
+                       th:disabled="${readOnly}"
                        placeholder="例：13時頃、午後かつ17時までならいつでも">
             </label>
 
             <label class="form-field">
                 <span>出庫状況</span>
-                <select th:field="*{dispatchStatus}">
+                <select th:field="*{dispatchStatus}" th:disabled="${readOnly}">
                     <option th:each="status : ${dispatchStatuses}"
                             th:value="${status}" th:text="${status.displayName}">未回答</option>
                 </select>
@@ -119,7 +130,7 @@
             <label class="form-field">
                 <span>備考</span>
                 <small>例: 現地担当者への連絡、注意事項等あれば</small>
-                <textarea th:field="*{note}" rows="4" maxlength="4000"></textarea>
+                <textarea th:field="*{note}" rows="4" maxlength="4000" th:disabled="${readOnly}"></textarea>
             </label>
         </section>
 
@@ -133,7 +144,7 @@
         </button>
     </form>
 
-    <div id="destructive-actions" class="destructive-actions" th:hidden="${!editing}">
+    <div id="destructive-actions" class="destructive-actions" th:hidden="${!editing or readOnly}">
         <form id="draft-delete-form"
               th:action="${editing} ? @{/requests/drafts/{id}/delete(id=${form.id})} : '/requests/drafts/0/delete'"
               method="post" th:hidden="${!draft}"
