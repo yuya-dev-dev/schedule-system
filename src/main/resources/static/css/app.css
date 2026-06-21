@@ -529,6 +529,11 @@ textarea:focus {
     cursor: pointer;
 }
 
+.destructive-actions[hidden],
+.destructive-actions [hidden] {
+    display: none;
+}
+
 .danger-button:hover,
 .danger-button:focus-visible {
     background: #fff0ee;
@@ -544,6 +549,15 @@ textarea:focus {
 .cancel-warning {
     margin: 0 0 20px;
     color: var(--danger);
+    font-weight: 700;
+}
+
+.schedule-notice {
+    margin: 16px;
+    border-left: 4px solid var(--accent);
+    background: #eef8f5;
+    padding: 12px 14px;
+    color: #174f43;
     font-weight: 700;
 }
 

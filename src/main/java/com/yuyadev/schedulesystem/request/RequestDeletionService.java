@@ -7,6 +7,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class RequestDeletionService {
 
+	public enum CancellationStatus {
+		DELETED,
+		CHANGED,
+		NOT_FOUND
+	}
+
+	public record CancellationResult(CancellationStatus status, LocalDate workDate) {
+	}
+
 	private final ScheduleRequestRepository repository;
 
 	public RequestDeletionService(ScheduleRequestRepository repository) {
@@ -23,11 +32,17 @@ public class RequestDeletionService {
 	}
 
 	@Transactional
-	public LocalDate cancelPublished(Long id) {
-		ScheduleRequest request = findPublished(id);
+	public CancellationResult cancelPublished(Long id, long expectedVersion) {
+		ScheduleRequest request = repository.findById(id).orElse(null);
+		if (request == null || request.getEntryState() != EntryState.PUBLISHED) {
+			return new CancellationResult(CancellationStatus.NOT_FOUND, null);
+		}
 		LocalDate workDate = request.getWorkDate();
+		if (request.getVersion() != expectedVersion) {
+			return new CancellationResult(CancellationStatus.CHANGED, workDate);
+		}
 		repository.delete(request);
-		return workDate;
+		return new CancellationResult(CancellationStatus.DELETED, workDate);
 	}
 
 	private ScheduleRequest find(Long id) {
