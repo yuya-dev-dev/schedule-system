@@ -92,7 +92,10 @@ public class MonthScheduleService {
 	private WorkDateView toWorkDateView(LocalDate date) {
 		String weekday = date.getDayOfWeek() == DayOfWeek.WEDNESDAY ? "水" : "金";
 		return new WorkDateView(
-				date, date.getMonthValue() + "/" + date.getDayOfMonth(), weekday);
+				date,
+				date.getMonthValue() + "/" + date.getDayOfMonth(),
+				weekday,
+				date.isBefore(LocalDate.now(clock)));
 	}
 
 	private List<TimeRowView> timeRows(
@@ -124,12 +127,14 @@ public class MonthScheduleService {
 				.filter(candidate -> overlaps(candidate, slotStart, slotEnd))
 				.findFirst()
 				.orElse(null);
+		boolean readOnly = date.isBefore(LocalDate.now(clock));
 		if (request == null) {
-			String url = UriComponentsBuilder.fromPath("/requests/new")
+			String url = readOnly ? null : UriComponentsBuilder.fromPath("/requests/new")
 					.queryParam("date", date)
 					.build()
 					.toUriString();
-			return new ScheduleCellView(null, false, false, null, null, false, 0, url);
+			return new ScheduleCellView(
+					null, false, false, null, null, false, 0, readOnly, url);
 		}
 
 		boolean firstCell = slotStart.equals(OPENING_TIME)
@@ -142,6 +147,7 @@ public class MonthScheduleService {
 				request.getWorkType() == null ? null : request.getWorkType().getDisplayName(),
 				request.hasMissingRequiredFields(),
 				colors.get(request.getId()),
+				readOnly,
 				"/requests/" + request.getId());
 	}
 
@@ -157,7 +163,8 @@ public class MonthScheduleService {
 			byDate.computeIfAbsent(request.getWorkDate(), ignored -> new ArrayList<>()).add(request);
 		}
 		for (List<ScheduleRequest> sameDay : byDate.values()) {
-			sameDay.sort(Comparator.comparing(ScheduleRequest::getStartTime));
+			sameDay.sort(Comparator.comparing(ScheduleRequest::getStartTime)
+					.thenComparing(ScheduleRequest::getId));
 			for (int index = 0; index < sameDay.size(); index++) {
 				colors.put(sameDay.get(index).getId(), (index % COLOR_COUNT) + 1);
 			}

@@ -14,11 +14,14 @@ class ScheduleDatePolicyTest {
 			Instant.parse("2026-06-20T03:00:00Z"), ZoneId.of("Asia/Tokyo")));
 
 	@Test
-	void allowsOnlyWednesdayAndFridayInPreviousCurrentAndNextMonth() {
-		assertThat(policy.isRegistrable(LocalDate.of(2026, 5, 1))).isTrue();
+	void allowsOnlyTodayOrLaterWednesdayAndFridayInVisibleMonths() {
+		assertThat(policy.isRegistrable(LocalDate.of(2026, 5, 1))).isFalse();
+		assertThat(policy.isRegistrable(LocalDate.of(2026, 6, 19))).isFalse();
 		assertThat(policy.isRegistrable(LocalDate.of(2026, 6, 24))).isTrue();
 		assertThat(policy.isRegistrable(LocalDate.of(2026, 7, 31))).isTrue();
 		assertThat(policy.isRegistrable(LocalDate.of(2026, 8, 5))).isFalse();
 		assertThat(policy.isRegistrable(LocalDate.of(2026, 6, 23))).isFalse();
+		assertThat(policy.isPast(LocalDate.of(2026, 6, 19))).isTrue();
+		assertThat(policy.isPast(LocalDate.of(2026, 6, 20))).isFalse();
 	}
 }

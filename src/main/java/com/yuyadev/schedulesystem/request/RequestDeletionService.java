@@ -1,5 +1,6 @@
 package com.yuyadev.schedulesystem.request;
 
+import com.yuyadev.schedulesystem.schedule.ScheduleDatePolicy;
 import java.time.LocalDate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,6 +11,7 @@ public class RequestDeletionService {
 	public enum CancellationStatus {
 		DELETED,
 		CHANGED,
+		READ_ONLY,
 		NOT_FOUND
 	}
 
@@ -17,9 +19,12 @@ public class RequestDeletionService {
 	}
 
 	private final ScheduleRequestRepository repository;
+	private final ScheduleDatePolicy datePolicy;
 
-	public RequestDeletionService(ScheduleRequestRepository repository) {
+	public RequestDeletionService(
+			ScheduleRequestRepository repository, ScheduleDatePolicy datePolicy) {
 		this.repository = repository;
+		this.datePolicy = datePolicy;
 	}
 
 	@Transactional(readOnly = true)
@@ -38,6 +43,9 @@ public class RequestDeletionService {
 			return new CancellationResult(CancellationStatus.NOT_FOUND, null);
 		}
 		LocalDate workDate = request.getWorkDate();
+		if (datePolicy.isPast(workDate)) {
+			return new CancellationResult(CancellationStatus.READ_ONLY, workDate);
+		}
 		if (request.getVersion() != expectedVersion) {
 			return new CancellationResult(CancellationStatus.CHANGED, workDate);
 		}

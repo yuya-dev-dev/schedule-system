@@ -265,6 +265,77 @@ class ScheduleVerticalSliceTest {
 	}
 
 	@Test
+	void reusesFiveColorsWithoutGivingAdjacentRequestsTheSameColor() {
+		LocalDate workDate = LocalDate.of(2026, 6, 24);
+		for (int index = 0; index < 6; index++) {
+			LocalTime start = LocalTime.of(8, 30).plusMinutes(index * 30L);
+			repository.saveAndFlush(ScheduleRequest.published(
+					workDate, start, start.plusMinutes(30), "社員" + index, WorkType.DELIVERY));
+		}
+
+		MonthScheduleView view = monthScheduleService.getMonth("2026-06");
+		int dateIndex = java.util.stream.IntStream.range(0, view.workDates().size())
+				.filter(index -> view.workDates().get(index).date().equals(workDate))
+				.findFirst()
+				.orElseThrow();
+
+		assertThat(java.util.stream.IntStream.range(0, 6)
+				.mapToObj(index -> cellAt(
+						view, dateIndex, LocalTime.of(8, 30).plusMinutes(index * 30L)).colorIndex()))
+				.containsExactly(1, 2, 3, 4, 5, 1);
+	}
+
+	@Test
+	void makesPastDatesReadOnlyFromScheduleThroughServiceLayer() throws Exception {
+		LocalDate workDate = LocalDate.of(2026, 6, 19);
+		ScheduleRequest past = repository.saveAndFlush(ScheduleRequest.published(
+				workDate, LocalTime.of(10, 0), LocalTime.of(11, 0),
+				"社員A", WorkType.INSTALL));
+
+		mockMvc.perform(get("/schedule").param("month", "2026-06"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.not(
+						org.hamcrest.Matchers.containsString("/requests/new?date=2026-06-19"))))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"/requests/" + past.getId())));
+
+		MvcResult formResult = mockMvc.perform(get("/requests/{id}", past.getId()))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"過去日の案件は閲覧専用です")))
+				.andReturn();
+		String html = formResult.getResponse().getContentAsString();
+		assertThat(tagWithAttribute(html, "select", "name", "startTime")).contains("disabled");
+		assertThat(tagWithAttribute(html, "input", "name", "requesterName")).contains("disabled");
+		assertThat(tagWithAttribute(html, "div", "id", "destructive-actions")).contains("hidden");
+
+		mockMvc.perform(get("/requests/new").param("date", "2026-06-19"))
+				.andExpect(status().isBadRequest());
+		mockMvc.perform(get("/requests/{id}/cancel", past.getId()))
+				.andExpect(status().isBadRequest());
+
+		mockMvc.perform(post("/requests/autosave")
+					.param("id", past.getId().toString())
+					.param("version", Long.toString(past.getVersion()))
+					.param("workDate", "2026-06-19")
+					.param("startTime", "12:00")
+					.param("endTime", "13:00")
+					.param("requesterName", "社員B"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("INVALID"))
+				.andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("今日以降")));
+
+		mockMvc.perform(post("/requests/{id}/cancel", past.getId())
+					.param("version", Long.toString(past.getVersion())))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/requests/" + past.getId()));
+
+		ScheduleRequest unchanged = repository.findById(past.getId()).orElseThrow();
+		assertThat(unchanged.getRequesterName()).isEqualTo("社員A");
+		assertThat(unchanged.getStartTime()).isEqualTo(LocalTime.of(10, 0));
+	}
+
+	@Test
 	void publishesWithoutWorkTypeAndShowsIncompleteMarker() throws Exception {
 		mockMvc.perform(post("/requests/save")
 					.param("workDate", "2026-06-24")
@@ -304,7 +375,7 @@ class ScheduleVerticalSliceTest {
 					.param("endTime", "11:00")
 					.param("requesterName", "社員A"))
 				.andExpect(status().isOk())
-				.andExpect(content().string(org.hamcrest.Matchers.containsString("前月・当月・翌月")));
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("表示対象月")));
 
 		assertThat(repository.count()).isZero();
 	}

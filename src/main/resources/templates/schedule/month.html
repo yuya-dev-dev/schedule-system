@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${schedule.title + ' スケジュール'}">スケジュール</title>
-    <link rel="stylesheet" th:href="@{/css/app.css(v=2)}">
+    <link rel="stylesheet" th:href="@{/css/app.css(v=3)}">
 </head>
 <body class="schedule-page">
 <header class="page-header">
@@ -48,7 +48,8 @@
             <thead>
             <tr>
                 <th class="time-heading" scope="col">時間</th>
-                <th th:each="workDate : ${schedule.workDates}" scope="col">
+                <th th:each="workDate : ${schedule.workDates}" scope="col"
+                    th:classappend="${workDate.past} ? ' past-date'">
                     <span class="date-label" th:text="${workDate.monthDayLabel}">6/3</span>
                     <span class="weekday-label" th:text="${workDate.weekdayLabel}">水</span>
                 </th>
@@ -58,10 +59,13 @@
             <tr th:each="row : ${schedule.timeRows}">
                 <th class="time-cell" scope="row" th:text="${row.label}">8:30〜9:00</th>
                 <td th:each="cell : ${row.cells}"
-                    th:classappend="${cell.occupied} ? ${' occupied color-' + cell.colorIndex} : ' empty'">
-                    <a class="schedule-cell-link"
+                    th:classappend="${(cell.occupied ? ' occupied color-' + cell.colorIndex : ' empty')
+                        + (cell.readOnly ? ' past-cell' : '')}">
+                    <a th:if="${cell.destinationUrl != null}" class="schedule-cell-link"
                        th:href="${cell.destinationUrl}"
-                       th:aria-label="${cell.occupied ? '案件を開く' : '新しい案件を入力'}">
+                       th:aria-label="${cell.occupied
+                            ? (cell.readOnly ? '過去案件を開く' : '案件を開く')
+                            : '新しい案件を入力'}">
                         <span th:if="${cell.occupied and cell.firstCell}" class="cell-main">
                             <strong th:text="${#strings.isEmpty(cell.requesterName) ? cell.workTypeName : cell.requesterName}">山本</strong>
                             <small th:if="${!#strings.isEmpty(cell.requesterName)}" th:text="${cell.workTypeName}">設置</small>
@@ -69,6 +73,8 @@
                         </span>
                         <span th:if="${cell.occupied and !cell.firstCell}" class="continuation" aria-hidden="true">↓</span>
                     </a>
+                    <span th:unless="${cell.destinationUrl != null}" class="schedule-cell-link blocked-cell"
+                          aria-label="過去日のため入力できません"></span>
                 </td>
             </tr>
             </tbody>

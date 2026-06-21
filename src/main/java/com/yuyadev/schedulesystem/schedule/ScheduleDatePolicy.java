@@ -16,7 +16,7 @@ public class ScheduleDatePolicy {
 	}
 
 	public boolean isRegistrable(LocalDate date) {
-		if (date == null || !isWorkday(date)) {
+		if (date == null || isPast(date) || !isWorkday(date)) {
 			return false;
 		}
 		YearMonth currentMonth = YearMonth.now(clock);
@@ -27,8 +27,13 @@ public class ScheduleDatePolicy {
 
 	public void requireRegistrable(LocalDate date) {
 		if (!isRegistrable(date)) {
-			throw new IllegalArgumentException("対象日は前月・当月・翌月に表示される水曜日または金曜日を指定してください");
+			throw new IllegalArgumentException(
+					"対象日は今日以降かつ表示対象月の水曜日または金曜日を指定してください");
 		}
+	}
+
+	public boolean isPast(LocalDate date) {
+		return date != null && date.isBefore(LocalDate.now(clock));
 	}
 
 	private boolean isWorkday(LocalDate date) {

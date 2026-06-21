@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("request-form");
     if (!form) return;
+    if (form.dataset.readOnly === "true") return;
 
     const workType = document.getElementById("workType");
     const requester = document.getElementById("requesterName");
