@@ -529,6 +529,11 @@ textarea:focus {
     cursor: pointer;
 }
 
+.destructive-actions[hidden],
+.destructive-actions [hidden] {
+    display: none;
+}
+
 .danger-button:hover,
 .danger-button:focus-visible {
     background: #fff0ee;
