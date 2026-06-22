@@ -116,6 +116,77 @@ class PostgreSqlConcurrencyTest {
 	}
 
 	@Test
+	void autosaveKeepsTheLosingConcurrentInputAsAConflictDraft() throws Exception {
+		ScheduleRequestInput firstInput = input(
+				LocalTime.of(10, 0), LocalTime.of(12, 0), "社員A", WorkType.INSTALL);
+		ScheduleRequestInput overlappingInput = input(
+				LocalTime.of(11, 0), LocalTime.of(13, 0), "社員B", WorkType.DELIVERY);
+		CountDownLatch ready = new CountDownLatch(2);
+		CountDownLatch start = new CountDownLatch(1);
+
+		try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+			Future<AutosaveResult> first =
+					executor.submit(() -> autosaveAfterSignal(firstInput, ready, start));
+			Future<AutosaveResult> second =
+					executor.submit(() -> autosaveAfterSignal(overlappingInput, ready, start));
+
+			assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+			start.countDown();
+
+			List<AutosaveResult> results = List.of(first.get(), second.get());
+			assertThat(results)
+					.extracting(AutosaveResult::status)
+					.containsExactlyInAnyOrder(
+							AutosaveResult.Status.SAVED, AutosaveResult.Status.TIME_CONFLICT);
+			assertThat(results)
+					.filteredOn(result -> result.status() == AutosaveResult.Status.TIME_CONFLICT)
+					.singleElement()
+					.satisfies(result -> {
+						assertThat(result.requestId()).isNotNull();
+						assertThat(result.entryState()).isEqualTo(EntryState.DRAFT);
+					});
+		}
+
+		assertThat(repository.countByEntryState(EntryState.PUBLISHED)).isOne();
+		assertThat(repository.countByEntryState(EntryState.DRAFT)).isOne();
+		assertThat(repository.findAll())
+				.extracting(ScheduleRequest::getRequesterName)
+				.containsExactlyInAnyOrder("社員A", "社員B");
+		ScheduleRequest conflictDraft = repository.findAll().stream()
+				.filter(request -> request.getEntryState() == EntryState.DRAFT)
+				.findFirst()
+				.orElseThrow();
+		assertThat(conflictDraft.getDraftReason()).isEqualTo(DraftReason.TIME_CONFLICT);
+		assertThat(conflictDraft.getDraftErrorDetail()).contains("重複");
+	}
+
+	@Test
+	void autosavePublishesAdjacentRequestsSavedConcurrently() throws Exception {
+		ScheduleRequestInput firstInput = input(
+				LocalTime.of(12, 0), LocalTime.of(14, 0), "社員A", WorkType.INSTALL);
+		ScheduleRequestInput adjacentInput = input(
+				LocalTime.of(14, 0), LocalTime.of(16, 0), "社員B", WorkType.COLLECT);
+		CountDownLatch ready = new CountDownLatch(2);
+		CountDownLatch start = new CountDownLatch(1);
+
+		try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+			Future<AutosaveResult> first =
+					executor.submit(() -> autosaveAfterSignal(firstInput, ready, start));
+			Future<AutosaveResult> second =
+					executor.submit(() -> autosaveAfterSignal(adjacentInput, ready, start));
+
+			assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+			start.countDown();
+
+			assertThat(List.of(first.get().status(), second.get().status()))
+					.containsOnly(AutosaveResult.Status.SAVED);
+		}
+
+		assertThat(repository.countByEntryState(EntryState.PUBLISHED)).isEqualTo(2);
+		assertThat(repository.countByEntryState(EntryState.DRAFT)).isZero();
+	}
+
+	@Test
 	void allowsARequestToStartWhenThePreviousRequestEnds() {
 		PublishResult first = publishingService.publish(new PublishCommand(
 				WORK_DATE,
@@ -256,5 +327,37 @@ class PostgreSqlConcurrencyTest {
 			throw new IllegalStateException("Concurrent publish did not start in time");
 		}
 		return publishingService.publish(command);
+	}
+
+	private AutosaveResult autosaveAfterSignal(
+			ScheduleRequestInput input, CountDownLatch ready, CountDownLatch start)
+			throws InterruptedException {
+		ready.countDown();
+		if (!start.await(10, TimeUnit.SECONDS)) {
+			throw new IllegalStateException("Concurrent autosave did not start in time");
+		}
+		return autosaveService.save(null, 0, input);
+	}
+
+	private ScheduleRequestInput input(
+			LocalTime start,
+			LocalTime end,
+			String requester,
+			WorkType workType) {
+		return new ScheduleRequestInput(
+				WORK_DATE,
+				start,
+				end,
+				workType,
+				requester,
+				"架空の作業内容",
+				"愛知県名古屋市中区架空町1-1",
+				"午後",
+				false,
+				null,
+				null,
+				null,
+				DispatchStatus.UNANSWERED,
+				null);
 	}
 }

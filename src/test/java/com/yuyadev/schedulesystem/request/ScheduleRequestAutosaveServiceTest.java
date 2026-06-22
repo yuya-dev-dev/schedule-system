@@ -2,6 +2,7 @@ package com.yuyadev.schedulesystem.request;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -154,6 +156,23 @@ class ScheduleRequestAutosaveServiceTest {
 		assertThat(saved.getRequestDetail()).isEqualTo("更新後の作業内容");
 		assertThat(saved.getEntryState()).isEqualTo(EntryState.PUBLISHED);
 		assertThat(repository.countByEntryState(EntryState.DRAFT)).isZero();
+	}
+
+	@Test
+	void identifiesOnlyPublishedTimeConstraintDeadlocksAsAutosaveConflicts() {
+		CannotAcquireLockException publishedTimeDeadlock = new CannotAcquireLockException(
+				"排他制約の検査でデッドロック",
+				new SQLException(
+						"ex_schedule_requests_published_time の検査中",
+						"40P01"));
+		CannotAcquireLockException unrelatedDeadlock = new CannotAcquireLockException(
+				"別処理のデッドロック",
+				new SQLException("unrelated constraint", "40P01"));
+
+		assertThat(ScheduleRequestAutosaveService.isPublishedTimeDeadlock(publishedTimeDeadlock))
+				.isTrue();
+		assertThat(ScheduleRequestAutosaveService.isPublishedTimeDeadlock(unrelatedDeadlock))
+				.isFalse();
 	}
 
 	private ScheduleRequestInput input(
