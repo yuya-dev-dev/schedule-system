@@ -59,11 +59,17 @@ class MonthScheduleServiceTest {
 	}
 
 	@Test
-	void fallsBackToCurrentMonthWhenRequestedMonthIsOutsideTabs() {
+	void displaysAnyRequestedMonthWhileKeepingCurrentMonthTabs() {
 		MonthScheduleView view = service.getMonth("2027-01");
 
-		assertThat(view.selectedMonth()).isEqualTo("2026-06");
-		assertThat(view.initialFocusDate()).isEqualTo("2026-06-24");
+		assertThat(view.selectedMonth()).isEqualTo("2027-01");
+		assertThat(view.selectedYear()).isEqualTo(2027);
+		assertThat(view.selectedMonthNumber()).isEqualTo(1);
+		assertThat(view.initialFocusDate()).isNull();
+		assertThat(view.monthTabs())
+				.extracting(MonthTabView::label)
+				.containsExactly("2026年5月", "2026年6月", "2026年7月");
+		assertThat(view.monthTabs()).noneMatch(MonthTabView::selected);
 	}
 
 	@Test
@@ -79,5 +85,15 @@ class MonthScheduleServiceTest {
 		MonthScheduleView view = service.getMonth("2026-07");
 
 		assertThat(view.initialFocusDate()).isNull();
+	}
+
+	@Test
+	void displaysArbitraryPastMonthAsReadOnly() {
+		MonthScheduleView view = service.getMonth("2025-01");
+
+		assertThat(view.selectedMonth()).isEqualTo("2025-01");
+		assertThat(view.workDates()).isNotEmpty().allMatch(WorkDateView::past);
+		assertThat(view.timeRows()).allSatisfy(row ->
+				assertThat(row.cells()).allMatch(ScheduleCellView::readOnly));
 	}
 }

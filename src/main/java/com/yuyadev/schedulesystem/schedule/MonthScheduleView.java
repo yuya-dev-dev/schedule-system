@@ -5,6 +5,8 @@ import java.util.List;
 public record MonthScheduleView(
 		String title,
 		String selectedMonth,
+		int selectedYear,
+		int selectedMonthNumber,
 		String initialFocusDate,
 		List<MonthTabView> monthTabs,
 		List<WorkDateView> workDates,
