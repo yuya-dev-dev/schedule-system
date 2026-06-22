@@ -26,18 +26,44 @@ class ErrorPageIntegrationTest {
 		assertNotFound("/requests/999999");
 	}
 
+	@Test
+	void rendersTheNotFoundPageForMissingDraftsAndCancellationConfirmations() throws Exception {
+		assertNotFound("/requests/drafts/999999");
+		assertNotFound("/requests/999999/cancel");
+	}
+
+	@Test
+	void rendersTheNotFoundPageWhenDeletingAMissingDraft() throws Exception {
+		HttpResponse<String> response = httpClient.send(
+				HttpRequest.newBuilder(URI.create(url("/requests/drafts/999999/delete")))
+						.header("Accept", "text/html")
+						.POST(HttpRequest.BodyPublishers.noBody())
+						.build(),
+				HttpResponse.BodyHandlers.ofString());
+
+		assertNotFoundResponse(response);
+	}
+
 	private void assertNotFound(String path) throws Exception {
 		HttpResponse<String> response = httpClient.send(
-				HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))
+				HttpRequest.newBuilder(URI.create(url(path)))
 						.header("Accept", "text/html")
 						.GET()
 						.build(),
 				HttpResponse.BodyHandlers.ofString());
 
+		assertNotFoundResponse(response);
+	}
+
+	private void assertNotFoundResponse(HttpResponse<String> response) {
 		assertThat(response.statusCode()).isEqualTo(404);
 		assertThat(response.body())
 				.contains("ページが見つかりません")
 				.contains("指定された案件またはページは、削除されたか存在しません")
 				.contains("スケジュール一覧へ戻る");
+	}
+
+	private String url(String path) {
+		return "http://127.0.0.1:" + port + path;
 	}
 }

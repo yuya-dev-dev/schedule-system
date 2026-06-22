@@ -37,7 +37,7 @@ public class DraftManagementService {
 	public ScheduleRequest findDraft(Long id) {
 		ScheduleRequest request = find(id);
 		if (request.getEntryState() != EntryState.DRAFT) {
-			throw new IllegalArgumentException("下書きではありません");
+			throw new ScheduleRequestNotFoundException("下書きが見つかりません");
 		}
 		return request;
 	}
@@ -52,7 +52,7 @@ public class DraftManagementService {
 
 	private ScheduleRequest find(Long id) {
 		return repository.findById(id)
-				.orElseThrow(() -> new IllegalArgumentException("下書きが見つかりません"));
+				.orElseThrow(() -> new ScheduleRequestNotFoundException("下書きが見つかりません"));
 	}
 
 	private DraftListItem toListItem(ScheduleRequest request) {

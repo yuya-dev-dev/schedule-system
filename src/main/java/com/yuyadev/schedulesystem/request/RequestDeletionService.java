@@ -31,7 +31,7 @@ public class RequestDeletionService {
 	public ScheduleRequest findPublished(Long id) {
 		ScheduleRequest request = find(id);
 		if (request.getEntryState() != EntryState.PUBLISHED) {
-			throw new IllegalArgumentException("一覧へ反映済みの案件ではありません");
+			throw new ScheduleRequestNotFoundException("案件が見つかりません");
 		}
 		return request;
 	}
@@ -55,6 +55,6 @@ public class RequestDeletionService {
 
 	private ScheduleRequest find(Long id) {
 		return repository.findById(id)
-				.orElseThrow(() -> new IllegalArgumentException("案件が見つかりません"));
+				.orElseThrow(() -> new ScheduleRequestNotFoundException("案件が見つかりません"));
 	}
 }
