@@ -53,6 +53,11 @@
 5. 前月・当月・翌月タブを操作し、5月・6月・7月へ切り替えられる
 6. sticky見出し、固定月タブ、Safariの表示領域に業務操作を妨げる重なりがない
 
+実機確認画像:
+
+- [月間スケジュール](images/iphone-schedule.jpg)
+- [案件詳細](images/iphone-request-detail.jpg)
+
 ## 5. 判定
 
 - PC主要表示、iPhone相当幅、個人iPhone Safariの閲覧要件は合格

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ページが見つかりません</title>
+    <link rel="stylesheet" th:href="@{/css/app.css(v=4)}">
+</head>
+<body class="error-page">
+<header class="page-header">
+    <div>
+        <p class="page-kicker">配送・設置案件</p>
+        <h1>ページが見つかりません</h1>
+    </div>
+</header>
+<main class="error-main">
+    <p>指定された案件またはページは、削除されたか存在しません。</p>
+    <a class="back-submit" th:href="@{/schedule}">スケジュール一覧へ戻る</a>
+</main>
+</body>
+</html>
