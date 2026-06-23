@@ -8,7 +8,6 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.YearMonth;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -24,7 +23,6 @@ public class MonthScheduleService {
 	private static final LocalTime CLOSING_TIME = LocalTime.of(17, 30);
 	private static final int SLOT_MINUTES = 30;
 	private static final int COLOR_COUNT = 5;
-	private static final DateTimeFormatter MONTH_VALUE = DateTimeFormatter.ofPattern("yyyy-MM");
 
 	private final ScheduleRequestRepository repository;
 	private final Clock clock;
@@ -45,7 +43,9 @@ public class MonthScheduleService {
 
 		return new MonthScheduleView(
 				selectedMonth.getYear() + "年" + selectedMonth.getMonthValue() + "月",
-				selectedMonth.format(MONTH_VALUE),
+				selectedMonth.toString(),
+				selectedMonth.getYear(),
+				selectedMonth.getMonthValue(),
 				initialFocusDate(currentMonth, selectedMonth, workDates),
 				monthTabs(currentMonth, selectedMonth),
 				workDates.stream().map(this::toWorkDateView).toList(),
@@ -71,12 +71,8 @@ public class MonthScheduleService {
 		}
 		YearMonth parsed;
 		try {
-			parsed = YearMonth.parse(requestedMonth, MONTH_VALUE);
+			parsed = YearMonth.parse(requestedMonth);
 		} catch (RuntimeException exception) {
-			return currentMonth;
-		}
-		if (parsed.isBefore(currentMonth.minusMonths(1))
-				|| parsed.isAfter(currentMonth.plusMonths(1))) {
 			return currentMonth;
 		}
 		return parsed;
@@ -91,7 +87,7 @@ public class MonthScheduleService {
 
 	private MonthTabView monthTab(YearMonth month, YearMonth selectedMonth) {
 		return new MonthTabView(
-				month.format(MONTH_VALUE),
+				month.toString(),
 				month.getYear() + "年" + month.getMonthValue() + "月",
 				month.equals(selectedMonth));
 	}

@@ -93,6 +93,23 @@ class ScheduleBrowserE2ETest {
 	}
 
 	@Test
+	void selectsAnArbitraryMonthAndKeepsCurrentMonthTabs() {
+		page.navigate(url("/schedule"));
+		page.locator("#month-picker-year").fill("2027");
+		page.locator("#month-picker-month").selectOption("1");
+		page.getByRole(com.microsoft.playwright.options.AriaRole.BUTTON,
+				new Page.GetByRoleOptions().setName("表示")).click();
+		page.waitForURL("**/schedule?year=2027&monthNumber=1");
+
+		assertThat(page.locator("h1").textContent()).contains("2027年1月");
+		assertThat(page.locator("#month-picker-year").inputValue()).isEqualTo("2027");
+		assertThat(page.locator("#month-picker-month").inputValue()).isEqualTo("1");
+		assertThat(page.locator(".month-tabs").textContent())
+				.contains("2026年5月", "2026年6月", "2026年7月");
+		assertThat(page.locator(".month-tabs a.active").count()).isZero();
+	}
+
+	@Test
 	void keepsConflictingInputAsDraftAndReturnsToSchedule() {
 		savePublished(FUTURE_WORK_DATE, "10:00", "12:00", "社員A", WorkType.INSTALL);
 		page.navigate(url("/requests/new?date=2026-06-24"));

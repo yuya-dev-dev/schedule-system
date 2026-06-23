@@ -59,6 +59,56 @@ textarea {
     font-weight: 700;
 }
 
+.month-picker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.month-picker-field {
+    display: grid;
+    gap: 4px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.month-picker input,
+.month-picker select,
+.month-picker button {
+    min-height: 40px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--surface);
+    padding: 7px 10px;
+    color: var(--ink);
+}
+
+.month-picker input {
+    width: 112px;
+}
+
+.month-picker select {
+    width: 88px;
+}
+
+.month-picker button {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.month-picker-error {
+    margin: 10px 0 0;
+    color: var(--danger);
+    font-size: 13px;
+    font-weight: 700;
+}
+
 .schedule-page main {
     padding-bottom: 66px;
 }

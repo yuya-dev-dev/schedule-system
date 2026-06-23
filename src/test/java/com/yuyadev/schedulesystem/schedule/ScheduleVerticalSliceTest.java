@@ -404,19 +404,49 @@ class ScheduleVerticalSliceTest {
 	}
 
 	@Test
-	void rejectsDatesOutsideVisibleMonths() throws Exception {
-		mockMvc.perform(get("/requests/new").param("date", "2026-10-07"))
-				.andExpect(status().isBadRequest());
+	void selectsArbitraryMonthAndRegistersFutureWorkDate() throws Exception {
+		MvcResult selectedMonthResult = mockMvc.perform(get("/schedule")
+					.param("year", "2027")
+					.param("monthNumber", "1"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"2027年1月 スケジュール")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"name=\"year\"")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"value=\"2027\"")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("2026年5月")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("2026年6月")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("2026年7月")))
+				.andReturn();
+		assertThat(tagWithAttribute(
+				selectedMonthResult.getResponse().getContentAsString(), "option", "value", "1"))
+				.contains("selected=\"selected\"");
+
+		mockMvc.perform(get("/requests/new").param("date", "2027-01-06"))
+				.andExpect(status().isOk());
 
 		mockMvc.perform(post("/requests/save")
-					.param("workDate", "2026-10-07")
+					.param("workDate", "2027-01-06")
 					.param("startTime", "10:00")
 					.param("endTime", "11:00")
 					.param("requesterName", "社員A"))
-				.andExpect(status().isOk())
-				.andExpect(content().string(org.hamcrest.Matchers.containsString("表示対象月")));
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/schedule?month=2027-01"));
 
-		assertThat(repository.count()).isZero();
+		assertThat(repository.count()).isOne();
+	}
+
+	@Test
+	void rejectsInvalidMonthSelectionAndFallsBackToCurrentMonth() throws Exception {
+		mockMvc.perform(get("/schedule")
+					.param("year", "2027")
+					.param("monthNumber", "13"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"正しい年と月を入力してください")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"2026年6月 スケジュール")));
 	}
 
 	@Test
