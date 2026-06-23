@@ -9,6 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.yuyadev.schedulesystem.holiday.CalendarHoliday;
+import com.yuyadev.schedulesystem.holiday.CalendarHolidayRepository;
 import com.yuyadev.schedulesystem.request.EntryState;
 import com.yuyadev.schedulesystem.request.DraftReason;
 import com.yuyadev.schedulesystem.request.ScheduleRequest;
@@ -16,6 +18,7 @@ import com.yuyadev.schedulesystem.request.ScheduleRequestRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import com.yuyadev.schedulesystem.request.ScheduleRequestPublishingService;
@@ -47,6 +50,9 @@ class ScheduleVerticalSliceTest {
 	private ScheduleRequestRepository repository;
 
 	@Autowired
+	private CalendarHolidayRepository holidayRepository;
+
+	@Autowired
 	private ScheduleRequestPublishingService publishingService;
 
 	@Autowired
@@ -55,6 +61,7 @@ class ScheduleVerticalSliceTest {
 	@AfterEach
 	void cleanUp() {
 		repository.deleteAll();
+		holidayRepository.deleteAll();
 	}
 
 	@Test
@@ -435,6 +442,34 @@ class ScheduleVerticalSliceTest {
 				.andExpect(redirectedUrl("/schedule?month=2027-01"));
 
 		assertThat(repository.count()).isOne();
+	}
+
+	@Test
+	void excludesHolidayColumnsAndRejectsHolidayRegistration() throws Exception {
+		holidayRepository.save(new CalendarHoliday(
+				LocalDate.of(2026, 6, 24), "架空の祝日", "test",
+				LocalDateTime.of(2026, 6, 20, 12, 0)));
+
+		mockMvc.perform(get("/schedule").param("month", "2026-06"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString("6/26")))
+				.andExpect(content().string(org.hamcrest.Matchers.not(
+						org.hamcrest.Matchers.containsString("6/24"))))
+				.andExpect(content().string(org.hamcrest.Matchers.not(
+						org.hamcrest.Matchers.containsString("/requests/new?date=2026-06-24"))));
+
+		mockMvc.perform(get("/requests/new").param("date", "2026-06-24"))
+				.andExpect(status().isBadRequest());
+
+		mockMvc.perform(post("/requests/save")
+					.param("workDate", "2026-06-24")
+					.param("startTime", "10:00")
+					.param("endTime", "11:00")
+					.param("requesterName", "社員A"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"祝日ではない水曜日または金曜日")));
+		assertThat(repository.count()).isZero();
 	}
 
 	@Test

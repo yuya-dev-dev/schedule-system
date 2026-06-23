@@ -4,13 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import com.yuyadev.schedulesystem.holiday.HolidayCalendarService;
 import com.yuyadev.schedulesystem.request.EntryState;
 import com.yuyadev.schedulesystem.request.ScheduleRequestRepository;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,13 +26,17 @@ class MonthScheduleServiceTest {
 	@Mock
 	private ScheduleRequestRepository repository;
 
+	@Mock
+	private HolidayCalendarService holidayCalendarService;
+
 	private MonthScheduleService service;
 
 	@BeforeEach
 	void setUp() {
 		Clock clock = Clock.fixed(
 				Instant.parse("2026-06-20T03:00:00Z"), ZoneId.of("Asia/Tokyo"));
-		service = new MonthScheduleService(repository, clock);
+		service = new MonthScheduleService(repository, holidayCalendarService, clock);
+		when(holidayCalendarService.holidayDatesBetween(any(), any())).thenReturn(Set.of());
 		when(repository.findByWorkDateBetweenAndEntryStateOrderByWorkDateAscStartTimeAsc(
 				any(), any(), any(EntryState.class)))
 				.thenReturn(List.of());
@@ -56,6 +63,21 @@ class MonthScheduleServiceTest {
 		assertThat(view.timeRows().getFirst().cells().getFirst().readOnly()).isTrue();
 		assertThat(view.timeRows().getFirst().startTime()).isEqualTo(LocalTime.of(8, 30));
 		assertThat(view.timeRows().getLast().endTime()).isEqualTo(LocalTime.of(17, 30));
+	}
+
+	@Test
+	void excludesCachedHolidaysFromWorkDates() {
+		when(holidayCalendarService.holidayDatesBetween(any(), any()))
+				.thenReturn(Set.of(LocalDate.of(2026, 6, 24)));
+
+		MonthScheduleView view = service.getMonth("2026-06");
+
+		assertThat(view.workDates())
+				.extracting(WorkDateView::date)
+				.doesNotContain(LocalDate.of(2026, 6, 24));
+		assertThat(view.workDates())
+				.extracting(WorkDateView::monthDayLabel)
+				.containsExactly("6/3", "6/5", "6/10", "6/12", "6/17", "6/19", "6/26");
 	}
 
 	@Test
