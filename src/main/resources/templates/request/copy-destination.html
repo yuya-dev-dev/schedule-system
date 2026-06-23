@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>コピー先選択</title>
+    <link rel="stylesheet" th:href="@{/css/app.css(v=5)}">
+</head>
+<body class="schedule-page copy-page">
+<header class="page-header">
+    <div>
+        <p class="page-kicker">案件コピー</p>
+        <h1>コピー先選択</h1>
+        <p class="copy-source-summary">
+            <span th:text="${sourceDateTitle}">2026年6月24日（水）</span>
+            <span th:text="${source.startTime.toString() + '〜' + source.endTime.toString()}">10:00〜12:00</span>
+            <strong th:text="${#strings.isEmpty(source.requesterName) ? source.workType.displayName : source.requesterName}">
+                社員A
+            </strong>
+        </p>
+    </div>
+    <form class="month-picker" method="get"
+          th:action="@{/requests/{sourceId}/copy(sourceId=${source.id})}"
+          aria-label="年月を選択">
+        <label class="month-picker-field" for="copy-month-picker-year">
+            <span>年</span>
+            <input id="copy-month-picker-year" name="year" type="number" min="1" required
+                   inputmode="numeric" th:value="${schedule.selectedYear}">
+        </label>
+        <label class="month-picker-field" for="copy-month-picker-month">
+            <span>月</span>
+            <select id="copy-month-picker-month" name="monthNumber" required>
+                <option th:each="number : ${#numbers.sequence(1, 12)}"
+                        th:value="${number}"
+                        th:text="${number + '月'}"
+                        th:selected="${number == schedule.selectedMonthNumber}">1月</option>
+            </select>
+        </label>
+        <button type="submit">表示</button>
+    </form>
+    <p th:if="${monthSelectionError}" class="month-picker-error" role="alert"
+       th:text="${monthSelectionError}">正しい年と月を入力してください</p>
+</header>
+
+<main>
+    <section class="copy-direct-panel" aria-label="日付を直接入力">
+        <h2>日付を直接入力</h2>
+        <form class="copy-direct-form" method="post"
+              th:action="@{/requests/{sourceId}/copy(sourceId=${source.id})}">
+            <label class="month-picker-field" for="copy-target-date">
+                <span>コピー先日付</span>
+                <input id="copy-target-date" name="targetDate" type="date" required>
+            </label>
+            <button type="submit">この日にコピー</button>
+        </form>
+        <p th:if="${targetDateError}" class="month-picker-error" role="alert"
+           th:text="${targetDateError}">コピー先を確認してください</p>
+    </section>
+
+    <h2 class="copy-schedule-title" th:text="${schedule.title + ' スケジュール'}">
+        2026年6月 スケジュール
+    </h2>
+    <div class="schedule-scroll copy-schedule-scroll" aria-label="コピー先の簡易スケジュール">
+        <table class="schedule-table copy-schedule-table">
+            <thead>
+            <tr>
+                <th class="time-heading" scope="col">時間</th>
+                <th th:each="workDate : ${schedule.workDates}" scope="col"
+                    th:classappend="${(workDate.past ? ' past-date' : '') + (workDate.dayOff ? ' day-off-date' : '')}">
+                    <span class="date-label" th:text="${workDate.monthDayLabel}">6/3</span>
+                    <span class="weekday-label" th:text="${workDate.weekdayLabel}">水</span>
+                    <span th:if="${workDate.dayOff}" class="day-off-badge">休み</span>
+                    <span th:if="${source.workDate.equals(workDate.date)}" class="copy-date-state">コピー元</span>
+                    <span th:if="${workDate.past}" class="copy-date-state">過去日</span>
+                    <form th:if="${!workDate.past and !workDate.dayOff and !source.workDate.equals(workDate.date)}"
+                          class="copy-date-form"
+                          method="post"
+                          th:action="@{/requests/{sourceId}/copy(sourceId=${source.id})}">
+                        <input type="hidden" name="targetDate" th:value="${workDate.date}">
+                        <button type="submit">この日にコピー</button>
+                    </form>
+                </th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="row : ${schedule.timeRows}">
+                <th class="time-cell" scope="row" th:text="${row.label}">8:30〜9:00</th>
+                <td th:each="cell : ${row.cells}"
+                    th:classappend="${cell.dayOff ? ' day-off-cell' : ((cell.occupied ? ' occupied color-' + cell.colorIndex : ' empty')
+                        + (cell.readOnly ? ' past-cell' : ''))}">
+                    <span class="schedule-cell-link blocked-cell">
+                        <span th:if="${cell.occupied and cell.firstCell}" class="cell-main">
+                            <strong th:text="${#strings.isEmpty(cell.requesterName) ? cell.workTypeName : cell.requesterName}">
+                                山本
+                            </strong>
+                            <small th:if="${!#strings.isEmpty(cell.requesterName)}" th:text="${cell.workTypeName}">設置</small>
+                            <small th:if="${cell.incomplete}" class="incomplete">＊未入力</small>
+                        </span>
+                        <span th:if="${cell.occupied and !cell.firstCell}" class="continuation" aria-hidden="true">↓</span>
+                        <span th:if="${cell.dayOff and cell.firstCell}" class="day-off-label">休み</span>
+                    </span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="copy-actions">
+        <a th:href="@{/requests/{id}(id=${source.id})}" class="back-submit">コピー元へ戻る</a>
+    </div>
+</main>
+</body>
+</html>

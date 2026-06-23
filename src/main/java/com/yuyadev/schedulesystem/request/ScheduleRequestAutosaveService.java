@@ -18,8 +18,6 @@ public class ScheduleRequestAutosaveService {
 
 	private static final String POSTGRES_EXCLUSION_VIOLATION = "23P01";
 	private static final String POSTGRES_DEADLOCK_DETECTED = "40P01";
-	private static final String PUBLISHED_TIME_CONSTRAINT =
-			"ex_schedule_requests_published_time";
 
 	private final ScheduleRequestRepository repository;
 	private final ScheduleDatePolicy datePolicy;
@@ -177,19 +175,7 @@ public class ScheduleRequestAutosaveService {
 	}
 
 	static boolean isPublishedTimeDeadlock(Throwable throwable) {
-		return hasSqlState(throwable, POSTGRES_DEADLOCK_DETECTED)
-				&& hasMessage(throwable, PUBLISHED_TIME_CONSTRAINT);
-	}
-
-	private static boolean hasMessage(Throwable throwable, String expectedText) {
-		Throwable current = throwable;
-		while (current != null) {
-			if (current.getMessage() != null && current.getMessage().contains(expectedText)) {
-				return true;
-			}
-			current = current.getCause();
-		}
-		return false;
+		return hasSqlState(throwable, POSTGRES_DEADLOCK_DETECTED);
 	}
 
 	private record SaveResult(

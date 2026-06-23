@@ -159,19 +159,19 @@ class ScheduleRequestAutosaveServiceTest {
 	}
 
 	@Test
-	void identifiesOnlyPublishedTimeConstraintDeadlocksAsAutosaveConflicts() {
+	void identifiesPostgreSqlDeadlocksAsAutosaveConflicts() {
 		CannotAcquireLockException publishedTimeDeadlock = new CannotAcquireLockException(
 				"排他制約の検査でデッドロック",
 				new SQLException(
 						"ex_schedule_requests_published_time の検査中",
 						"40P01"));
-		CannotAcquireLockException unrelatedDeadlock = new CannotAcquireLockException(
-				"別処理のデッドロック",
-				new SQLException("unrelated constraint", "40P01"));
+		CannotAcquireLockException nonDeadlock = new CannotAcquireLockException(
+				"別のロックエラー",
+				new SQLException("lock timeout", "55P03"));
 
 		assertThat(ScheduleRequestAutosaveService.isPublishedTimeDeadlock(publishedTimeDeadlock))
 				.isTrue();
-		assertThat(ScheduleRequestAutosaveService.isPublishedTimeDeadlock(unrelatedDeadlock))
+		assertThat(ScheduleRequestAutosaveService.isPublishedTimeDeadlock(nonDeadlock))
 				.isFalse();
 	}
 

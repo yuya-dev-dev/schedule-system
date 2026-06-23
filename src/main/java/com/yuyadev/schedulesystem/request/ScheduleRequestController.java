@@ -2,9 +2,7 @@ package com.yuyadev.schedulesystem.request;
 
 import com.yuyadev.schedulesystem.schedule.ScheduleDatePolicy;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.http.HttpStatus;
@@ -25,8 +23,6 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/requests")
 public class ScheduleRequestController {
 
-	private static final LocalTime OPENING_TIME = LocalTime.of(8, 30);
-	private static final LocalTime CLOSING_TIME = LocalTime.of(17, 30);
 	private static final DateTimeFormatter DATE_TITLE =
 			DateTimeFormatter.ofPattern("yyyy年M月d日（E）", Locale.JAPANESE);
 
@@ -35,18 +31,21 @@ public class ScheduleRequestController {
 	private final ScheduleDatePolicy datePolicy;
 	private final DraftManagementService draftManagementService;
 	private final RequestDeletionService deletionService;
+	private final RequestFormPageBuilder formPageBuilder;
 
 	public ScheduleRequestController(
 			ScheduleRequestRepository repository,
 			ScheduleRequestAutosaveService autosaveService,
 			ScheduleDatePolicy datePolicy,
 			DraftManagementService draftManagementService,
-			RequestDeletionService deletionService) {
+			RequestDeletionService deletionService,
+			RequestFormPageBuilder formPageBuilder) {
 		this.repository = repository;
 		this.autosaveService = autosaveService;
 		this.datePolicy = datePolicy;
 		this.draftManagementService = draftManagementService;
 		this.deletionService = deletionService;
+		this.formPageBuilder = formPageBuilder;
 	}
 
 	@GetMapping("/new")
@@ -135,7 +134,7 @@ public class ScheduleRequestController {
 
 	private String renderForm(
 			ScheduleRequestForm form, List<String> errors, Model model) {
-		return renderForm(form, errors, model, false);
+		return formPageBuilder.render(form, errors, model);
 	}
 
 	private String renderForm(
@@ -143,49 +142,12 @@ public class ScheduleRequestController {
 			List<String> errors,
 			Model model,
 			boolean returnOnly) {
-		model.addAttribute("form", form);
-		model.addAttribute("errors", errors);
-		model.addAttribute("workTypes", WorkType.values());
-		model.addAttribute("dispatchStatuses", DispatchStatus.values());
-		model.addAttribute(
-				"startTimeOptions", timeOptions(OPENING_TIME, CLOSING_TIME.minusMinutes(30)));
-		model.addAttribute("endTimeOptions", timeOptions(OPENING_TIME.plusMinutes(30), CLOSING_TIME));
-		model.addAttribute("dateTitle", form.getWorkDate() == null
-				? "日付未指定"
-				: form.getWorkDate().format(DATE_TITLE));
-		model.addAttribute("editing", form.getId() != null);
-		model.addAttribute("draft", form.getId() != null
-				&& repository.findById(form.getId())
-						.map(request -> request.getEntryState() == EntryState.DRAFT)
-						.orElse(false));
-		model.addAttribute("requesterRequired", requiresRequester(form.getWorkType()));
-		model.addAttribute("normalWork", form.getWorkType() != null
-				&& !ScheduleRequest.isInternalWork(form.getWorkType()));
-		boolean readOnly = datePolicy.isPast(form.getWorkDate());
-		model.addAttribute("readOnly", readOnly);
-		model.addAttribute("returnOnly", returnOnly || readOnly);
-		model.addAttribute("scheduleUrl", form.getWorkDate() == null
-				? "/schedule"
-				: scheduleUrl(form.getWorkDate()));
-		return "request/form";
+		return formPageBuilder.render(form, errors, model, returnOnly);
 	}
 
 	private String scheduleUrl(LocalDate date) {
 		return "/schedule?month=" + date.getYear()
 				+ "-" + String.format("%02d", date.getMonthValue());
-	}
-
-	private boolean requiresRequester(WorkType workType) {
-		return workType != WorkType.RECEIVING
-				&& workType != WorkType.PRODUCT_MANAGEMENT;
-	}
-
-	private List<LocalTime> timeOptions(LocalTime first, LocalTime last) {
-		List<LocalTime> options = new ArrayList<>();
-		for (LocalTime time = first; !time.isAfter(last); time = time.plusMinutes(30)) {
-			options.add(time);
-		}
-		return List.copyOf(options);
 	}
 
 	private ScheduleRequest publishedRequest(Long id) {
