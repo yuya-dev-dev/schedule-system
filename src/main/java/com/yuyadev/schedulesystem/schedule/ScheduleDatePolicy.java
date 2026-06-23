@@ -11,15 +11,21 @@ public class ScheduleDatePolicy {
 
 	private final Clock clock;
 	private final HolidayCalendarService holidayCalendarService;
+	private final DayOffCalendarService dayOffCalendarService;
 
-	public ScheduleDatePolicy(Clock clock, HolidayCalendarService holidayCalendarService) {
+	public ScheduleDatePolicy(
+			Clock clock,
+			HolidayCalendarService holidayCalendarService,
+			DayOffCalendarService dayOffCalendarService) {
 		this.clock = clock;
 		this.holidayCalendarService = holidayCalendarService;
+		this.dayOffCalendarService = dayOffCalendarService;
 	}
 
 	public boolean isRegistrable(LocalDate date) {
 		if (date == null || isPast(date) || !isWorkday(date)
-				|| holidayCalendarService.isHoliday(date)) {
+				|| holidayCalendarService.isHoliday(date)
+				|| dayOffCalendarService.isDayOff(date)) {
 			return false;
 		}
 		return true;
@@ -28,7 +34,7 @@ public class ScheduleDatePolicy {
 	public void requireRegistrable(LocalDate date) {
 		if (!isRegistrable(date)) {
 			throw new IllegalArgumentException(
-					"対象日は今日以降の祝日ではない水曜日または金曜日を指定してください");
+					"対象日は今日以降の祝日・休みではない水曜日または金曜日を指定してください");
 		}
 	}
 

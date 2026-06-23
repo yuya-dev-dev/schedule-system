@@ -53,7 +53,7 @@ public class ScheduleRequestController {
 	public String newRequest(@RequestParam LocalDate date, Model model) {
 		if (!datePolicy.isRegistrable(date)) {
 			throw new ResponseStatusException(
-					HttpStatus.BAD_REQUEST, "祝日ではない水曜日または金曜日を指定してください");
+					HttpStatus.BAD_REQUEST, "祝日・休みではない水曜日または金曜日を指定してください");
 		}
 		return renderForm(ScheduleRequestForm.newFor(date), List.of(), model);
 	}

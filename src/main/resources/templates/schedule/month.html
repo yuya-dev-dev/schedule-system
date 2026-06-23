@@ -71,9 +71,16 @@
                 <th class="time-heading" scope="col">時間</th>
                 <th th:each="workDate : ${schedule.workDates}" scope="col"
                     th:data-work-date="${workDate.date}"
-                    th:classappend="${workDate.past} ? ' past-date'">
+                    th:classappend="${(workDate.past ? ' past-date' : '') + (workDate.dayOff ? ' day-off-date' : '')}">
                     <span class="date-label" th:text="${workDate.monthDayLabel}">6/3</span>
                     <span class="weekday-label" th:text="${workDate.weekdayLabel}">水</span>
+                    <span th:if="${workDate.dayOff}" class="day-off-badge">休み</span>
+                    <span th:if="${!workDate.past}" class="day-off-actions">
+                        <a th:if="${!workDate.dayOff}"
+                           th:href="@{/schedule/day-offs/new(date=${workDate.date})}">休みにする</a>
+                        <a th:if="${workDate.dayOff}"
+                           th:href="@{/schedule/day-offs/{date}/delete(date=${workDate.date})}">休み解除</a>
+                    </span>
                 </th>
             </tr>
             </thead>
@@ -81,8 +88,8 @@
             <tr th:each="row : ${schedule.timeRows}">
                 <th class="time-cell" scope="row" th:text="${row.label}">8:30〜9:00</th>
                 <td th:each="cell : ${row.cells}"
-                    th:classappend="${(cell.occupied ? ' occupied color-' + cell.colorIndex : ' empty')
-                        + (cell.readOnly ? ' past-cell' : '')}">
+                    th:classappend="${cell.dayOff ? ' day-off-cell' : ((cell.occupied ? ' occupied color-' + cell.colorIndex : ' empty')
+                        + (cell.readOnly ? ' past-cell' : ''))}">
                     <a th:if="${cell.destinationUrl != null}" class="schedule-cell-link"
                        th:href="${cell.destinationUrl}"
                        th:aria-label="${cell.occupied
@@ -96,7 +103,9 @@
                         <span th:if="${cell.occupied and !cell.firstCell}" class="continuation" aria-hidden="true">↓</span>
                     </a>
                     <span th:unless="${cell.destinationUrl != null}" class="schedule-cell-link blocked-cell"
-                          aria-label="過去日のため入力できません"></span>
+                          th:aria-label="${cell.dayOff ? '休みのため入力できません' : '過去日のため入力できません'}">
+                        <span th:if="${cell.dayOff and cell.firstCell}" class="day-off-label">休み</span>
+                    </span>
                 </td>
             </tr>
             </tbody>

@@ -29,14 +29,19 @@ class MonthScheduleServiceTest {
 	@Mock
 	private HolidayCalendarService holidayCalendarService;
 
+	@Mock
+	private DayOffCalendarService dayOffCalendarService;
+
 	private MonthScheduleService service;
 
 	@BeforeEach
 	void setUp() {
 		Clock clock = Clock.fixed(
 				Instant.parse("2026-06-20T03:00:00Z"), ZoneId.of("Asia/Tokyo"));
-		service = new MonthScheduleService(repository, holidayCalendarService, clock);
+		service = new MonthScheduleService(
+				repository, holidayCalendarService, dayOffCalendarService, clock);
 		when(holidayCalendarService.holidayDatesBetween(any(), any())).thenReturn(Set.of());
+		when(dayOffCalendarService.dayOffDatesBetween(any(), any())).thenReturn(Set.of());
 		when(repository.findByWorkDateBetweenAndEntryStateOrderByWorkDateAscStartTimeAsc(
 				any(), any(), any(EntryState.class)))
 				.thenReturn(List.of());
@@ -78,6 +83,26 @@ class MonthScheduleServiceTest {
 		assertThat(view.workDates())
 				.extracting(WorkDateView::monthDayLabel)
 				.containsExactly("6/3", "6/5", "6/10", "6/12", "6/17", "6/19", "6/26");
+	}
+
+	@Test
+	void displaysDayOffColumnAsBlockedCells() {
+		when(dayOffCalendarService.dayOffDatesBetween(any(), any()))
+				.thenReturn(Set.of(LocalDate.of(2026, 6, 24)));
+
+		MonthScheduleView view = service.getMonth("2026-06");
+
+		WorkDateView dayOff = view.workDates().stream()
+				.filter(workDate -> workDate.date().equals(LocalDate.of(2026, 6, 24)))
+				.findFirst()
+				.orElseThrow();
+		assertThat(dayOff.dayOff()).isTrue();
+		int dateIndex = view.workDates().indexOf(dayOff);
+		assertThat(view.timeRows())
+				.extracting(row -> row.cells().get(dateIndex))
+				.allMatch(ScheduleCellView::dayOff)
+				.allMatch(cell -> cell.destinationUrl() == null);
+		assertThat(view.timeRows().getFirst().cells().get(dateIndex).firstCell()).isTrue();
 	}
 
 	@Test
