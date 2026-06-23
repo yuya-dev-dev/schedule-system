@@ -37,6 +37,12 @@
             <button id="retry-save" type="button" class="retry-save" hidden>再試行</button>
         </div>
 
+        <div th:if="${copyAllowed}" class="copy-entry-action">
+            <a th:href="@{/requests/{id}/copy(id=${form.id})}">
+                この入力内容をほかの日時にコピーする
+            </a>
+        </div>
+
         <fieldset class="time-range">
             <legend><span class="required">＊必須</span> 時間範囲</legend>
             <label>

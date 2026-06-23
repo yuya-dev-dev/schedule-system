@@ -514,6 +514,98 @@ textarea {
 .save-status.saved { color: var(--accent); }
 .save-status.failed { color: var(--danger); }
 
+.copy-entry-action {
+    margin-top: -10px;
+}
+
+.copy-entry-action a,
+.copy-date-form button,
+.copy-direct-form button {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    background: var(--surface);
+    padding: 7px 12px;
+    color: var(--accent);
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.copy-entry-action a:hover,
+.copy-entry-action a:focus-visible,
+.copy-date-form button:hover,
+.copy-date-form button:focus-visible,
+.copy-direct-form button:hover,
+.copy-direct-form button:focus-visible {
+    background: #eef8f5;
+    outline: 3px solid rgba(23, 107, 91, 0.18);
+}
+
+.copy-source-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin: 10px 0 0;
+    color: var(--muted);
+}
+
+.copy-source-summary strong {
+    color: var(--ink);
+}
+
+.copy-direct-panel {
+    border-bottom: 1px solid var(--line);
+    background: #f7f9fa;
+    padding: 16px 24px;
+}
+
+.copy-direct-panel h2 {
+    margin: 0 0 12px;
+    font-size: 17px;
+}
+
+.copy-direct-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 10px;
+}
+
+.copy-direct-form input {
+    width: 190px;
+}
+
+.copy-schedule-title {
+    margin: 18px 24px 12px;
+    font-size: 18px;
+}
+
+.copy-date-form {
+    margin-top: 5px;
+}
+
+.copy-date-form button {
+    min-height: 32px;
+    padding: 5px 9px;
+    font-size: 11px;
+}
+
+.copy-date-state {
+    display: inline-block;
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.copy-actions {
+    padding: 18px 24px 40px;
+}
+
 .time-range {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
