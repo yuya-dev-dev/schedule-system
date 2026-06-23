@@ -1,5 +1,6 @@
 package com.yuyadev.schedulesystem.schedule;
 
+import com.yuyadev.schedulesystem.holiday.HolidayCalendarService;
 import com.yuyadev.schedulesystem.request.EntryState;
 import com.yuyadev.schedulesystem.request.ScheduleRequest;
 import com.yuyadev.schedulesystem.request.ScheduleRequestRepository;
@@ -13,6 +14,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -25,10 +27,15 @@ public class MonthScheduleService {
 	private static final int COLOR_COUNT = 5;
 
 	private final ScheduleRequestRepository repository;
+	private final HolidayCalendarService holidayCalendarService;
 	private final Clock clock;
 
-	public MonthScheduleService(ScheduleRequestRepository repository, Clock clock) {
+	public MonthScheduleService(
+			ScheduleRequestRepository repository,
+			HolidayCalendarService holidayCalendarService,
+			Clock clock) {
 		this.repository = repository;
+		this.holidayCalendarService = holidayCalendarService;
 		this.clock = clock;
 	}
 
@@ -93,9 +100,12 @@ public class MonthScheduleService {
 	}
 
 	private List<LocalDate> workDates(YearMonth month) {
+		Set<LocalDate> holidays = holidayCalendarService.holidayDatesBetween(
+				month.atDay(1), month.atEndOfMonth());
 		return month.atDay(1).datesUntil(month.plusMonths(1).atDay(1))
 				.filter(date -> date.getDayOfWeek() == DayOfWeek.WEDNESDAY
 						|| date.getDayOfWeek() == DayOfWeek.FRIDAY)
+				.filter(date -> !holidays.contains(date))
 				.toList();
 	}
 
