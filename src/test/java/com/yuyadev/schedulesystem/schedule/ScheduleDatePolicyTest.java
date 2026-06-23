@@ -20,13 +20,17 @@ class ScheduleDatePolicyTest {
 	@Mock
 	private HolidayCalendarService holidayCalendarService;
 
+	@Mock
+	private DayOffCalendarService dayOffCalendarService;
+
 	private ScheduleDatePolicy policy;
 
 	@BeforeEach
 	void setUp() {
 		policy = new ScheduleDatePolicy(Clock.fixed(
 				Instant.parse("2026-06-20T03:00:00Z"), ZoneId.of("Asia/Tokyo")),
-				holidayCalendarService);
+				holidayCalendarService,
+				dayOffCalendarService);
 	}
 
 	@Test
@@ -50,7 +54,8 @@ class ScheduleDatePolicyTest {
 	void allowsTodayWhenTodayIsAWorkday() {
 		ScheduleDatePolicy workdayPolicy = new ScheduleDatePolicy(Clock.fixed(
 				Instant.parse("2026-06-24T03:00:00Z"), ZoneId.of("Asia/Tokyo")),
-				holidayCalendarService);
+				holidayCalendarService,
+				dayOffCalendarService);
 		when(holidayCalendarService.isHoliday(LocalDate.of(2026, 6, 24))).thenReturn(false);
 
 		assertThat(workdayPolicy.isRegistrable(LocalDate.of(2026, 6, 24))).isTrue();
@@ -59,6 +64,14 @@ class ScheduleDatePolicyTest {
 	@Test
 	void rejectsHolidayEvenWhenItIsFutureWorkday() {
 		when(holidayCalendarService.isHoliday(LocalDate.of(2026, 6, 24))).thenReturn(true);
+
+		assertThat(policy.isRegistrable(LocalDate.of(2026, 6, 24))).isFalse();
+	}
+
+	@Test
+	void rejectsDayOffEvenWhenItIsFutureWorkday() {
+		when(holidayCalendarService.isHoliday(LocalDate.of(2026, 6, 24))).thenReturn(false);
+		when(dayOffCalendarService.isDayOff(LocalDate.of(2026, 6, 24))).thenReturn(true);
 
 		assertThat(policy.isRegistrable(LocalDate.of(2026, 6, 24))).isFalse();
 	}

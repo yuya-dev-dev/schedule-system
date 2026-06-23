@@ -28,14 +28,17 @@ public class MonthScheduleService {
 
 	private final ScheduleRequestRepository repository;
 	private final HolidayCalendarService holidayCalendarService;
+	private final DayOffCalendarService dayOffCalendarService;
 	private final Clock clock;
 
 	public MonthScheduleService(
 			ScheduleRequestRepository repository,
 			HolidayCalendarService holidayCalendarService,
+			DayOffCalendarService dayOffCalendarService,
 			Clock clock) {
 		this.repository = repository;
 		this.holidayCalendarService = holidayCalendarService;
+		this.dayOffCalendarService = dayOffCalendarService;
 		this.clock = clock;
 	}
 
@@ -43,6 +46,8 @@ public class MonthScheduleService {
 		YearMonth currentMonth = YearMonth.now(clock);
 		YearMonth selectedMonth = selectMonth(requestedMonth, currentMonth);
 		List<LocalDate> workDates = workDates(selectedMonth);
+		Set<LocalDate> dayOffDates = dayOffCalendarService.dayOffDatesBetween(
+				selectedMonth.atDay(1), selectedMonth.atEndOfMonth());
 		List<ScheduleRequest> requests = repository
 				.findByWorkDateBetweenAndEntryStateOrderByWorkDateAscStartTimeAsc(
 						selectedMonth.atDay(1), selectedMonth.atEndOfMonth(), EntryState.PUBLISHED);
@@ -55,8 +60,8 @@ public class MonthScheduleService {
 				selectedMonth.getMonthValue(),
 				initialFocusDate(currentMonth, selectedMonth, workDates),
 				monthTabs(currentMonth, selectedMonth),
-				workDates.stream().map(this::toWorkDateView).toList(),
-				timeRows(workDates, requests, colors));
+				workDates.stream().map(date -> toWorkDateView(date, dayOffDates.contains(date))).toList(),
+				timeRows(workDates, dayOffDates, requests, colors));
 	}
 
 	private String initialFocusDate(
@@ -109,17 +114,19 @@ public class MonthScheduleService {
 				.toList();
 	}
 
-	private WorkDateView toWorkDateView(LocalDate date) {
+	private WorkDateView toWorkDateView(LocalDate date, boolean dayOff) {
 		String weekday = date.getDayOfWeek() == DayOfWeek.WEDNESDAY ? "水" : "金";
 		return new WorkDateView(
 				date,
 				date.getMonthValue() + "/" + date.getDayOfMonth(),
 				weekday,
-				date.isBefore(LocalDate.now(clock)));
+				date.isBefore(LocalDate.now(clock)),
+				dayOff);
 	}
 
 	private List<TimeRowView> timeRows(
 			List<LocalDate> workDates,
+			Set<LocalDate> dayOffDates,
 			List<ScheduleRequest> requests,
 			Map<Long, Integer> colors) {
 		List<TimeRowView> rows = new ArrayList<>();
@@ -129,7 +136,7 @@ public class MonthScheduleService {
 			LocalTime end = start.plusMinutes(SLOT_MINUTES);
 			List<ScheduleCellView> cells = new ArrayList<>();
 			for (LocalDate date : workDates) {
-				cells.add(toCell(date, start, end, requests, colors));
+				cells.add(toCell(date, start, end, dayOffDates.contains(date), requests, colors));
 			}
 			rows.add(new TimeRowView(start, end, timeLabel(start, end), List.copyOf(cells)));
 		}
@@ -140,8 +147,22 @@ public class MonthScheduleService {
 			LocalDate date,
 			LocalTime slotStart,
 			LocalTime slotEnd,
+			boolean dayOff,
 			List<ScheduleRequest> requests,
 			Map<Long, Integer> colors) {
+		if (dayOff) {
+			return new ScheduleCellView(
+					null,
+					false,
+					slotStart.equals(OPENING_TIME),
+					null,
+					null,
+					false,
+					0,
+					true,
+					null,
+					true);
+		}
 		ScheduleRequest request = requests.stream()
 				.filter(candidate -> candidate.getWorkDate().equals(date))
 				.filter(candidate -> overlaps(candidate, slotStart, slotEnd))
@@ -154,7 +175,7 @@ public class MonthScheduleService {
 					.build()
 					.toUriString();
 			return new ScheduleCellView(
-					null, false, false, null, null, false, 0, readOnly, url);
+					null, false, false, null, null, false, 0, readOnly, url, false);
 		}
 
 		boolean firstCell = slotStart.equals(OPENING_TIME)
@@ -168,7 +189,8 @@ public class MonthScheduleService {
 				request.hasMissingRequiredFields(),
 				colors.get(request.getId()),
 				readOnly,
-				"/requests/" + request.getId());
+				"/requests/" + request.getId(),
+				false);
 	}
 
 	private boolean overlaps(

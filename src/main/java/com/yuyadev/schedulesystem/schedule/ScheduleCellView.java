@@ -9,4 +9,5 @@ public record ScheduleCellView(
 		boolean incomplete,
 		int colorIndex,
 		boolean readOnly,
-		String destinationUrl) {}
+		String destinationUrl,
+		boolean dayOff) {}

@@ -12,6 +12,8 @@
     --color-3: #c9e8c4;
     --color-4: #f4e5a7;
     --color-5: #d8c9e8;
+    --day-off: #d6dde2;
+    --day-off-strong: #4b5560;
 }
 
 * {
@@ -268,6 +270,34 @@ textarea {
     font-size: 13px;
 }
 
+.day-off-badge {
+    display: inline-block;
+    margin-top: 4px;
+    border: 1px solid #8a96a0;
+    border-radius: 999px;
+    padding: 1px 7px;
+    color: var(--day-off-strong);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.day-off-actions {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.day-off-actions a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.day-off-actions a:focus-visible,
+.day-off-actions a:hover {
+    text-decoration: underline;
+}
+
 .schedule-table .time-cell {
     padding: 8px;
     font-size: 13px;
@@ -289,6 +319,12 @@ textarea {
 .schedule-table td.color-3 { background: var(--color-3); }
 .schedule-table td.color-4 { background: var(--color-4); }
 .schedule-table td.color-5 { background: var(--color-5); }
+
+.schedule-table .day-off-date,
+.schedule-table td.day-off-cell {
+    background: var(--day-off);
+    color: var(--day-off-strong);
+}
 
 .schedule-table .past-date,
 .schedule-table td.past-cell:not(.occupied) {
@@ -358,6 +394,12 @@ textarea {
 
 .continuation {
     font-size: 22px;
+    font-weight: 700;
+}
+
+.day-off-label {
+    color: var(--day-off-strong);
+    font-size: 15px;
     font-weight: 700;
 }
 
