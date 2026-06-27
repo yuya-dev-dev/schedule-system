@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${dateTitle + ' 案件入力'}">案件入力</title>
-    <link rel="stylesheet" th:href="@{/css/app.css(v=3)}">
+    <link rel="stylesheet" th:href="@{/css/app.css(v=8)}">
     <script defer="defer" th:src="@{/js/request-form.js}"></script>
 </head>
-<body class="form-page">
+<body class="form-page request-form-page">
 <header class="form-header">
     <p class="page-kicker"
        th:text="${readOnly ? '過去案件の閲覧' : (editing ? '案件の確認・編集' : '新しい案件')}">新しい案件</p>
