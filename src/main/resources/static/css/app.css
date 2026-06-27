@@ -675,7 +675,7 @@ main[tabindex="-1"]:focus {
 }
 
 .request-form-page .form-main {
-    padding: 24px 24px 56px;
+    padding: 24px 24px calc(148px + env(safe-area-inset-bottom));
 }
 
 .request-form {
@@ -1051,6 +1051,15 @@ textarea:focus {
     box-shadow: 0 8px 16px rgba(17, 24, 32, 0.16);
 }
 
+.request-form-page .request-form .back-submit {
+    position: fixed;
+    z-index: 30;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    left: 50%;
+    width: min(720px, calc(100vw - 48px));
+    transform: translateX(-50%);
+}
+
 .request-form-page .back-submit:hover,
 .request-form-page .back-submit:focus-visible {
     background: #2a3037;
@@ -1296,7 +1305,7 @@ textarea:focus {
     }
 
     .request-form-page .form-main {
-        padding: 18px 12px 40px;
+        padding: 18px 12px calc(132px + env(safe-area-inset-bottom));
     }
 
     .confirmation-page .form-header h1 {
