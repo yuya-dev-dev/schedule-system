@@ -20,6 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const destructiveActions = document.getElementById("destructive-actions");
     const draftDeleteForm = document.getElementById("draft-delete-form");
     const cancelRequestLink = document.getElementById("cancel-request-link");
+    const backSubmit = form.querySelector(".back-submit");
     const detailRequiredFields = ["requestDetail", "desiredArrivalTime"]
         .map(id => document.getElementById(id));
     const companionRequiredFields = ["meetingPlace", "departureTime"]
@@ -220,8 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    form.addEventListener("submit", async event => {
-        event.preventDefault();
+    const returnToSchedule = async () => {
         clearErrors();
         if (changeRevision === 0) {
             window.location.assign(form.dataset.scheduleUrl);
@@ -229,6 +229,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         const saved = await autosave();
         if (saved) window.location.assign(form.dataset.scheduleUrl);
+    };
+
+    form.addEventListener("submit", async event => {
+        event.preventDefault();
+        await returnToSchedule();
+    });
+
+    backSubmit.addEventListener("click", async () => {
+        await returnToSchedule();
     });
 
     updateDynamicFields();
