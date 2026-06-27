@@ -154,6 +154,8 @@ H2は単独でのローカル開発とデモに限定する。H2にはPostgreSQL
 - [フェーズ4 テスト設計](docs/phase4-test-design.md)
 - [フェーズ4 性能・容量試験結果](docs/phase4-performance-results.md)
 - [フェーズ4 手動端末試験結果](docs/phase4-manual-device-results.md)
+- [フェーズ5F UIリニューアル抜き出し計画](docs/phase5f-ui-refresh-plan.md)
+- [Codex 開発チーム運用ルール](docs/codex-agent-team.md)
 
 ## 開発ルール
 
