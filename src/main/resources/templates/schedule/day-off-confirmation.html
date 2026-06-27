@@ -4,15 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${mode == 'SET' ? '休み設定確認' : '休み解除確認'}">休み設定確認</title>
-    <link rel="stylesheet" th:href="@{/css/app.css(v=6)}">
+    <link rel="stylesheet" th:href="@{/css/app.css(v=9)}">
 </head>
-<body class="form-page">
+<body class="form-page confirmation-page day-off-page">
+<a class="skip-link" href="#main-content">本文へ移動</a>
 <header class="form-header">
     <p class="page-kicker" th:text="${mode == 'SET' ? '休み設定確認' : '休み解除確認'}">休み設定確認</p>
     <h1 th:text="${dateTitle}">2026年6月24日（水）</h1>
 </header>
 
-<main class="form-main">
+<main id="main-content" class="form-main" tabindex="-1">
     <section class="cancel-confirmation day-off-confirmation">
         <div th:if="${mode == 'SET'}">
             <p th:if="${confirmation.hasRequests() and !secondStep}" class="cancel-warning">

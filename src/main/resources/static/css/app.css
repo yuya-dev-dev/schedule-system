@@ -72,6 +72,31 @@ textarea {
     font: inherit;
 }
 
+.skip-link {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 100;
+    transform: translateY(-140%);
+    border-radius: 999px;
+    background: var(--schedule-accent);
+    padding: 10px 14px;
+    color: #ffffff;
+    font-weight: 800;
+    text-decoration: none;
+    box-shadow: var(--schedule-shadow-soft);
+    transition: transform 0.15s ease;
+}
+
+.skip-link:focus-visible {
+    transform: translateY(0);
+    outline: 3px solid var(--schedule-focus);
+}
+
+main[tabindex="-1"]:focus {
+    outline: none;
+}
+
 .page-header,
 .form-header {
     padding: 20px 24px 16px;
@@ -245,6 +270,11 @@ textarea {
     padding: 11px 16px;
     font-weight: 700;
     cursor: pointer;
+}
+
+.draft-panel summary:focus-visible {
+    outline: 3px solid var(--schedule-focus);
+    outline-offset: -3px;
 }
 
 .draft-count {
@@ -773,17 +803,34 @@ textarea {
     flex-wrap: wrap;
     gap: 8px 12px;
     margin: 10px 0 0;
-    color: var(--muted);
+    color: var(--schedule-muted);
+}
+
+.copy-source-summary span,
+.copy-source-summary strong {
+    display: inline-flex;
+    min-height: 26px;
+    align-items: center;
+    border: 1px solid var(--schedule-line);
+    border-radius: 999px;
+    background: #ffffff;
+    padding: 3px 10px;
+    color: var(--schedule-ink);
+    font-size: 12px;
 }
 
 .copy-source-summary strong {
-    color: var(--ink);
+    border-color: var(--schedule-line-strong);
+    font-weight: 800;
 }
 
 .copy-direct-panel {
-    border-bottom: 1px solid var(--line);
-    background: #f7f9fa;
-    padding: 16px 24px;
+    margin: 14px 24px 16px;
+    border: 1px solid var(--schedule-line);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 16px;
+    box-shadow: var(--schedule-shadow-soft);
 }
 
 .copy-direct-panel h2 {
@@ -804,6 +851,7 @@ textarea {
 
 .copy-schedule-title {
     margin: 18px 24px 12px;
+    color: var(--schedule-ink);
     font-size: 18px;
 }
 
@@ -1046,16 +1094,73 @@ textarea:focus {
     font-weight: 800;
 }
 
+.confirmation-page,
+.error-page {
+    background:
+        linear-gradient(180deg, #f8f9fa 0, var(--form-bg) 260px),
+        var(--form-bg);
+    color: var(--form-ink);
+}
+
+.confirmation-page .form-header {
+    border-color: var(--form-line);
+    background: rgba(255, 255, 255, 0.94);
+}
+
+.error-page .page-header {
+    border-color: var(--form-line);
+    background: rgba(255, 255, 255, 0.94);
+}
+
+.confirmation-page .form-header h1 {
+    color: var(--form-ink);
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.error-page .page-header h1 {
+    color: var(--form-ink);
+    font-weight: 800;
+}
+
+.confirmation-page .back-submit,
+.copy-page .back-submit,
+.error-page .back-submit {
+    border-radius: 999px;
+    background: var(--form-accent);
+    font-weight: 800;
+    box-shadow: 0 8px 16px rgba(17, 24, 32, 0.16);
+}
+
+.confirmation-page .back-submit:hover,
+.confirmation-page .back-submit:focus-visible,
+.copy-page .back-submit:hover,
+.copy-page .back-submit:focus-visible,
+.error-page .back-submit:hover,
+.error-page .back-submit:focus-visible {
+    background: #2a3037;
+    outline: 3px solid var(--form-focus);
+}
+
+.confirmation-page .danger-button {
+    border-radius: 999px;
+    font-weight: 800;
+}
+
 .cancel-confirmation {
-    border-left: 4px solid var(--danger);
-    background: var(--surface);
-    padding: 20px;
+    border: 1px solid var(--form-line);
+    border-left: 5px solid var(--danger);
+    border-radius: 10px;
+    background: var(--form-panel);
+    padding: 22px;
+    box-shadow: var(--form-shadow-soft);
 }
 
 .cancel-warning {
-    margin: 0 0 20px;
+    margin: 0 0 18px;
     color: var(--danger);
-    font-weight: 700;
+    font-weight: 800;
+    line-height: 1.7;
 }
 
 .schedule-notice {
@@ -1071,7 +1176,12 @@ textarea:focus {
     display: grid;
     max-width: 760px;
     gap: 24px;
+    margin: 28px auto;
+    border: 1px solid var(--form-line);
+    border-radius: 10px;
+    background: var(--form-panel);
     padding: 32px 24px;
+    box-shadow: var(--form-shadow-soft);
 }
 
 .error-main p {
@@ -1087,23 +1197,38 @@ textarea:focus {
 .cancel-confirmation dl {
     display: grid;
     margin: 0 0 24px;
+    overflow: hidden;
+    border: 1px solid var(--form-line);
+    border-radius: 8px;
+    background: var(--form-panel-soft);
 }
 
 .cancel-confirmation dl div {
     display: grid;
     grid-template-columns: 130px minmax(0, 1fr);
     gap: 12px;
-    border-bottom: 1px solid var(--line);
-    padding: 12px 0;
+    border-bottom: 1px solid var(--form-line);
+    padding: 12px 14px;
+}
+
+.cancel-confirmation dl div:last-child {
+    border-bottom: 0;
 }
 
 .cancel-confirmation dt {
-    color: var(--muted);
-    font-weight: 700;
+    color: var(--form-muted);
+    font-weight: 800;
 }
 
 .cancel-confirmation dd {
     margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.day-off-confirmation p:not(.cancel-warning) {
+    margin: 0 0 20px;
+    color: var(--form-muted);
+    line-height: 1.7;
 }
 
 @media (max-width: 600px) {
@@ -1134,6 +1259,17 @@ textarea:focus {
         overflow-x: auto;
     }
 
+    .copy-source-summary {
+        gap: 6px;
+    }
+
+    .copy-source-summary span,
+    .copy-source-summary strong {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
     .draft-panel {
         margin: 12px 12px 14px;
     }
@@ -1161,6 +1297,38 @@ textarea:focus {
 
     .request-form-page .form-main {
         padding: 18px 12px 40px;
+    }
+
+    .confirmation-page .form-header h1 {
+        font-size: 22px;
+    }
+
+    .copy-direct-panel {
+        margin: 12px;
+        padding: 14px 12px;
+    }
+
+    .copy-direct-form {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .copy-direct-form input {
+        width: 100%;
+    }
+
+    .copy-schedule-title {
+        margin: 16px 12px 10px;
+        font-size: 16px;
+    }
+
+    .copy-actions {
+        padding: 16px 12px 38px;
+    }
+
+    .copy-actions .back-submit,
+    .error-main .back-submit {
+        width: 100%;
     }
 
     .request-form {
@@ -1216,6 +1384,11 @@ textarea:focus {
     .cancel-confirmation dl div {
         grid-template-columns: 1fr;
         gap: 4px;
+    }
+
+    .error-main {
+        margin: 18px 12px;
+        padding: 22px 18px;
     }
 
     .time-range {

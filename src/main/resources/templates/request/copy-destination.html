@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>コピー先選択</title>
-    <link rel="stylesheet" th:href="@{/css/app.css(v=6)}">
+    <link rel="stylesheet" th:href="@{/css/app.css(v=9)}">
 </head>
 <body class="schedule-page copy-page">
+<a class="skip-link" href="#main-content">本文へ移動</a>
 <header class="page-header">
     <div>
         <p class="page-kicker">案件コピー</p>
@@ -42,7 +43,7 @@
        th:text="${monthSelectionError}">正しい年と月を入力してください</p>
 </header>
 
-<main>
+<main id="main-content" tabindex="-1">
     <section class="copy-direct-panel" aria-label="日付を直接入力">
         <h2>日付を直接入力</h2>
         <form class="copy-direct-form" method="post"

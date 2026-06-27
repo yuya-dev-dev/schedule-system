@@ -4,17 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${dateTitle + ' 案件入力'}">案件入力</title>
-    <link rel="stylesheet" th:href="@{/css/app.css(v=8)}">
+    <link rel="stylesheet" th:href="@{/css/app.css(v=9)}">
     <script defer="defer" th:src="@{/js/request-form.js}"></script>
 </head>
 <body class="form-page request-form-page">
+<a class="skip-link" href="#main-content">本文へ移動</a>
 <header class="form-header">
     <p class="page-kicker"
        th:text="${readOnly ? '過去案件の閲覧' : (editing ? '案件の確認・編集' : '新しい案件')}">新しい案件</p>
     <h1 th:text="${dateTitle}">2026年6月19日（金）</h1>
 </header>
 
-<main class="form-main">
+<main id="main-content" class="form-main" tabindex="-1">
     <p th:if="${readOnly}" class="readonly-notice" role="status">
         過去日の案件は閲覧専用です。内容の変更やキャンセルはできません。
     </p>

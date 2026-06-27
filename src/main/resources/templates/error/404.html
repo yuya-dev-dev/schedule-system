@@ -4,16 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ページが見つかりません</title>
-    <link rel="stylesheet" th:href="@{/css/app.css(v=4)}">
+    <link rel="stylesheet" th:href="@{/css/app.css(v=9)}">
 </head>
 <body class="error-page">
+<a class="skip-link" href="#main-content">本文へ移動</a>
 <header class="page-header">
     <div>
         <p class="page-kicker">配送・設置案件</p>
         <h1>ページが見つかりません</h1>
     </div>
 </header>
-<main class="error-main">
+<main id="main-content" class="error-main" tabindex="-1">
     <p>指定された案件またはページは、削除されたか存在しません。</p>
     <a class="back-submit" th:href="@{/schedule}">スケジュール一覧へ戻る</a>
 </main>
