@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${schedule.title + ' スケジュール'}">スケジュール</title>
-    <link rel="stylesheet" th:href="@{/css/app.css(v=6)}">
+    <link rel="stylesheet" th:href="@{/css/app.css(v=9)}">
     <script defer th:src="@{/js/schedule-month.js(v=1)}"></script>
 </head>
 <body class="schedule-page">
+<a class="skip-link" href="#main-content">本文へ移動</a>
 <header class="page-header">
     <div>
         <p class="page-kicker">配送・設置案件</p>
@@ -34,7 +35,7 @@
        th:text="${monthSelectionError}">正しい年と月を入力してください</p>
 </header>
 
-<main>
+<main id="main-content" tabindex="-1">
     <div th:if="${notice}" class="schedule-notice" role="status" th:text="${notice}">
         案件はすでに削除されています
     </div>

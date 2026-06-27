@@ -4,15 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>依頼キャンセル確認</title>
-    <link rel="stylesheet" th:href="@{/css/app.css(v=3)}">
+    <link rel="stylesheet" th:href="@{/css/app.css(v=9)}">
 </head>
-<body class="form-page">
+<body class="form-page confirmation-page">
+<a class="skip-link" href="#main-content">本文へ移動</a>
 <header class="form-header">
     <p class="page-kicker">依頼キャンセル確認</p>
     <h1 th:text="${dateTitle}">2026年6月19日（金）</h1>
 </header>
 
-<main class="form-main">
+<main id="main-content" class="form-main" tabindex="-1">
     <div th:if="${cancelError}" class="error-summary" role="alert">
         <p th:text="${cancelError}">内容が変更されました。最新内容を確認してください</p>
     </div>
