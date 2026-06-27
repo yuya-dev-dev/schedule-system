@@ -2,16 +2,19 @@ package com.yuyadev.schedulesystem.request;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.yuyadev.schedulesystem.TestClockConfiguration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles("test")
+@Import(TestClockConfiguration.class)
 class ScheduleRequestWorkflowTest {
 
 	private static final LocalDate WORK_DATE = LocalDate.of(2026, 6, 24);

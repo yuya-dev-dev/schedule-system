@@ -3,6 +3,7 @@ package com.yuyadev.schedulesystem.request;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.yuyadev.schedulesystem.TestClockConfiguration;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.TestPropertySource;
@@ -26,6 +28,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
 @SpringBootTest
+@Import(TestClockConfiguration.class)
 @TestPropertySource(
 		properties = {
 			"spring.flyway.locations=classpath:db/migration/common,classpath:db/migration/postgresql",
