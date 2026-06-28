@@ -16,14 +16,14 @@
     --day-off-strong: #4b5560;
     --schedule-ink: #171b20;
     --schedule-muted: #68717c;
-    --schedule-line: #cfd5db;
-    --schedule-line-strong: #aeb7c0;
-    --schedule-bg: #eef1f4;
-    --schedule-panel: #f8f9fa;
-    --schedule-header: #f2f4f6;
+    --schedule-line: rgba(17, 24, 32, 0.13);
+    --schedule-line-strong: rgba(17, 24, 32, 0.24);
+    --schedule-bg: #eef2f5;
+    --schedule-panel: #fafbfc;
+    --schedule-header: #f7f8f9;
     --schedule-card: #ffffff;
-    --schedule-shadow: 0 8px 18px rgba(23, 27, 32, 0.08);
-    --schedule-shadow-soft: 0 3px 10px rgba(23, 27, 32, 0.08);
+    --schedule-shadow: 0 10px 28px rgba(23, 27, 32, 0.07);
+    --schedule-shadow-soft: 0 4px 14px rgba(23, 27, 32, 0.06);
     --schedule-accent: #111820;
     --schedule-focus: rgba(17, 24, 32, 0.22);
     --schedule-color-1: #d8e7ef;
@@ -364,8 +364,8 @@ main[tabindex="-1"]:focus {
     width: 100%;
     overflow: auto;
     overscroll-behavior-x: contain;
-    border-top: 1px solid var(--schedule-line);
-    border-bottom: 1px solid var(--schedule-line);
+    border-top: 1px solid rgba(17, 24, 32, 0.08);
+    border-bottom: 1px solid rgba(17, 24, 32, 0.08);
     background: var(--schedule-card);
     box-shadow: var(--schedule-shadow);
 }
@@ -390,9 +390,11 @@ main[tabindex="-1"]:focus {
     z-index: 2;
     width: 166px;
     min-width: 166px;
-    height: 62px;
-    padding: 8px 10px;
-    background: var(--schedule-header);
+    height: 64px;
+    padding: 9px 10px 8px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 248, 249, 0.96)),
+        var(--schedule-header);
     color: var(--schedule-ink);
     text-align: center;
     box-shadow: inset 0 -1px 0 var(--schedule-line-strong);
@@ -405,7 +407,9 @@ main[tabindex="-1"]:focus {
     z-index: 3;
     width: 118px;
     min-width: 118px;
-    background: var(--schedule-header);
+    background:
+        linear-gradient(90deg, rgba(247, 248, 249, 0.98), rgba(242, 245, 247, 0.98)),
+        var(--schedule-header);
 }
 
 .schedule-table .time-heading {
@@ -415,15 +419,17 @@ main[tabindex="-1"]:focus {
 .date-label {
     display: block;
     color: var(--schedule-ink);
-    font-size: 19px;
+    font-size: 21px;
+    font-weight: 800;
     line-height: 1.05;
 }
 
 .weekday-label {
     display: block;
-    margin-top: 2px;
+    margin-top: 3px;
     color: var(--schedule-muted);
-    font-size: 13px;
+    font-size: 12px;
+    font-weight: 700;
 }
 
 .day-off-badge {
@@ -457,7 +463,7 @@ main[tabindex="-1"]:focus {
 .schedule-table .time-cell {
     padding: 8px 10px;
     color: var(--schedule-muted);
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     text-align: right;
     white-space: nowrap;
@@ -468,7 +474,17 @@ main[tabindex="-1"]:focus {
     min-width: 166px;
     height: 66px;
     padding: 0;
-    background: #fbfcfd;
+    background: #fcfdfe;
+}
+
+.schedule-table tbody tr:nth-child(even) td.empty:not(.past-cell):not(.day-off-cell) {
+    background: #f7f9fa;
+}
+
+.schedule-table tbody tr:nth-child(even) .time-cell {
+    background:
+        linear-gradient(90deg, rgba(244, 246, 248, 0.98), rgba(239, 243, 246, 0.98)),
+        var(--schedule-header);
 }
 
 .schedule-table td.color-1 { --entry-bg: var(--schedule-color-1); --entry-bar: var(--schedule-bar-1); }
@@ -482,17 +498,17 @@ main[tabindex="-1"]:focus {
     background:
         repeating-linear-gradient(
             135deg,
-            #d9dee3 0,
-            #d9dee3 8px,
-            #e4e8eb 8px,
-            #e4e8eb 16px
+            rgba(210, 217, 223, 0.82) 0,
+            rgba(210, 217, 223, 0.82) 8px,
+            rgba(231, 235, 238, 0.88) 8px,
+            rgba(231, 235, 238, 0.88) 16px
         );
     color: var(--day-off-strong);
 }
 
 .schedule-table .past-date,
 .schedule-table td.past-cell:not(.occupied) {
-    background: #edf0f2;
+    background: #eef2f4;
     color: #68737d;
 }
 
@@ -514,22 +530,29 @@ main[tabindex="-1"]:focus {
 
 .occupied .schedule-cell-link {
     position: relative;
-    margin: 5px;
-    width: calc(100% - 10px);
-    height: calc(100% - 10px);
-    min-height: 56px;
-    border: 1px solid rgba(17, 24, 32, 0.1);
-    border-left: 6px solid var(--entry-bar);
-    border-radius: 7px;
-    background: var(--entry-bg);
-    box-shadow: 0 3px 10px rgba(17, 24, 32, 0.11);
+    margin: 6px;
+    width: calc(100% - 12px);
+    height: calc(100% - 12px);
+    min-height: 54px;
+    border: 1px solid rgba(17, 24, 32, 0.08);
+    border-left: 5px solid var(--entry-bar);
+    border-radius: 6px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0)),
+        var(--entry-bg);
+    box-shadow: 0 2px 8px rgba(17, 24, 32, 0.08);
 }
 
-.empty:not(.past-cell) > a.schedule-cell-link:hover,
-.empty:not(.past-cell) > a.schedule-cell-link:focus-visible {
-    background: #eef1f3;
-    outline: 2px solid var(--schedule-accent);
+.empty:not(.past-cell) > a.schedule-cell-link:hover {
+    background: rgba(17, 24, 32, 0.035);
+    outline: 2px solid rgba(17, 24, 32, 0.2);
     outline-offset: -2px;
+}
+
+.empty:not(.past-cell) > a.schedule-cell-link:focus-visible {
+    background: rgba(17, 24, 32, 0.055);
+    outline: 3px solid var(--schedule-accent);
+    outline-offset: -3px;
 }
 
 .empty:not(.past-cell) > a.schedule-cell-link::after {
@@ -558,6 +581,7 @@ main[tabindex="-1"]:focus {
 .occupied .schedule-cell-link:focus-visible {
     outline: 3px solid var(--schedule-focus);
     outline-offset: 1px;
+    box-shadow: 0 4px 12px rgba(17, 24, 32, 0.12);
 }
 
 .cell-main {
@@ -599,8 +623,12 @@ main[tabindex="-1"]:focus {
 }
 
 .day-off-label {
+    border: 1px solid rgba(75, 85, 96, 0.26);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.52);
+    padding: 2px 9px;
     color: var(--day-off-strong);
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
 }
 
