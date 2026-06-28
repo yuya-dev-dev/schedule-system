@@ -170,7 +170,7 @@ main[tabindex="-1"]:focus {
 }
 
 .schedule-page main {
-    padding-bottom: 66px;
+    padding-bottom: calc(78px + env(safe-area-inset-bottom));
 }
 
 .schedule-page {
@@ -206,13 +206,17 @@ main[tabindex="-1"]:focus {
 .schedule-page .month-picker {
     flex-wrap: nowrap;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     margin-top: 0;
     border: 1px solid var(--schedule-line);
     border-radius: 999px;
-    background: var(--schedule-panel);
-    padding: 5px;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 248, 249, 0.96)),
+        var(--schedule-panel);
+    padding: 4px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.92),
+        0 5px 14px rgba(17, 24, 32, 0.05);
 }
 
 .schedule-page .month-picker-field {
@@ -221,6 +225,7 @@ main[tabindex="-1"]:focus {
     gap: 6px;
     color: var(--schedule-muted);
     font-size: 11px;
+    font-weight: 800;
 }
 
 .schedule-page .month-picker input,
@@ -230,12 +235,13 @@ main[tabindex="-1"]:focus {
     border-color: transparent;
     border-radius: 999px;
     background: transparent;
-    padding: 5px 10px;
+    padding: 5px 11px;
 }
 
 .schedule-page .month-picker input:focus,
 .schedule-page .month-picker select:focus {
-    border-color: var(--schedule-line-strong);
+    border-color: rgba(17, 24, 32, 0.18);
+    background: #ffffff;
     outline: 3px solid var(--schedule-focus);
 }
 
@@ -248,9 +254,17 @@ main[tabindex="-1"]:focus {
 }
 
 .schedule-page .month-picker button {
-    background: var(--schedule-accent);
+    background:
+        linear-gradient(180deg, #242a31, var(--schedule-accent));
     color: #ffffff;
-    box-shadow: 0 5px 12px rgba(17, 24, 32, 0.18);
+    box-shadow: 0 4px 10px rgba(17, 24, 32, 0.18);
+}
+
+.schedule-page .month-picker button:hover,
+.schedule-page .month-picker button:focus-visible {
+    background:
+        linear-gradient(180deg, #313840, #151c24);
+    outline: 3px solid var(--schedule-focus);
 }
 
 .draft-panel {
@@ -258,8 +272,10 @@ main[tabindex="-1"]:focus {
     overflow: hidden;
     border: 1px solid var(--schedule-line);
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.86);
-    box-shadow: var(--schedule-shadow-soft);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 251, 0.92)),
+        var(--schedule-card);
+    box-shadow: 0 6px 18px rgba(17, 24, 32, 0.055);
 }
 
 .draft-panel summary {
@@ -267,9 +283,30 @@ main[tabindex="-1"]:focus {
     min-height: 52px;
     align-items: center;
     gap: 10px;
-    padding: 11px 16px;
-    font-weight: 700;
+    padding: 11px 18px;
+    color: var(--schedule-ink);
+    font-weight: 800;
     cursor: pointer;
+    list-style: none;
+}
+
+.draft-panel summary::-webkit-details-marker {
+    display: none;
+}
+
+.draft-panel summary::after {
+    content: "";
+    margin-left: auto;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--schedule-muted);
+    border-bottom: 2px solid var(--schedule-muted);
+    transform: rotate(45deg) translateY(-2px);
+    transform-origin: center;
+}
+
+.draft-panel[open] summary::after {
+    transform: rotate(225deg) translateY(-2px);
 }
 
 .draft-panel summary:focus-visible {
@@ -282,17 +319,21 @@ main[tabindex="-1"]:focus {
     min-width: 26px;
     min-height: 26px;
     place-items: center;
+    border: 1px solid rgba(17, 24, 32, 0.08);
     border-radius: 50%;
-    background: var(--schedule-accent);
+    background:
+        linear-gradient(180deg, #242a31, var(--schedule-accent));
     color: #ffffff;
     font-size: 13px;
+    font-weight: 800;
+    box-shadow: 0 4px 10px rgba(17, 24, 32, 0.16);
 }
 
 .draft-list {
     display: grid;
-    gap: 10px;
+    gap: 8px;
     max-width: 980px;
-    padding: 0 16px 16px;
+    padding: 0 18px 18px;
 }
 
 .draft-item {
@@ -300,12 +341,14 @@ main[tabindex="-1"]:focus {
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    border: 1px solid var(--schedule-line);
+    border: 1px solid rgba(17, 24, 32, 0.1);
     border-left: 4px solid #646b73;
     border-radius: 8px;
-    background: var(--surface);
-    padding: 12px 14px;
-    box-shadow: 0 2px 8px rgba(17, 24, 32, 0.05);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(249, 250, 251, 0.94)),
+        var(--surface);
+    padding: 13px 14px;
+    box-shadow: 0 2px 8px rgba(17, 24, 32, 0.045);
 }
 
 .draft-item-main {
@@ -320,11 +363,11 @@ main[tabindex="-1"]:focus {
 }
 
 .draft-item-main small {
-    color: var(--muted);
+    color: var(--schedule-muted);
 }
 
 .draft-reason {
-    color: var(--danger);
+    color: #a23b32;
     font-size: 13px;
     font-weight: 700;
 }
@@ -342,12 +385,21 @@ main[tabindex="-1"]:focus {
     min-height: 40px;
     border: 1px solid var(--schedule-line);
     border-radius: 999px;
-    background: var(--surface);
+    background: rgba(255, 255, 255, 0.82);
     padding: 8px 12px;
     color: var(--ink);
     font-weight: 700;
     text-decoration: none;
     cursor: pointer;
+}
+
+.draft-actions a:hover,
+.draft-actions a:focus-visible,
+.draft-actions button:hover,
+.draft-actions button:focus-visible {
+    border-color: var(--schedule-line-strong);
+    background: #ffffff;
+    outline: 3px solid var(--schedule-focus);
 }
 
 .draft-actions button {
@@ -356,7 +408,7 @@ main[tabindex="-1"]:focus {
 
 .draft-empty {
     margin: 0;
-    padding: 0 16px 16px;
+    padding: 0 18px 18px;
     color: var(--muted);
 }
 
@@ -640,29 +692,47 @@ main[tabindex="-1"]:focus {
     z-index: 10;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    border-top: 1px solid var(--schedule-line);
-    background: var(--surface);
-    box-shadow: 0 -8px 22px rgba(17, 24, 32, 0.08);
+    gap: 4px;
+    border-top: 1px solid rgba(17, 24, 32, 0.1);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 248, 249, 0.98)),
+        var(--surface);
+    padding: 7px 10px calc(7px + env(safe-area-inset-bottom));
+    box-shadow: 0 -10px 26px rgba(17, 24, 32, 0.09);
 }
 
 .month-tabs a {
     min-width: 0;
-    padding: 14px 8px 13px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 10px 8px;
     color: var(--schedule-muted);
     font-size: 15px;
+    font-weight: 700;
     text-align: center;
     text-decoration: none;
     white-space: nowrap;
 }
 
 .month-tabs a + a {
-    border-left: 1px solid #e1e5e8;
+    border-left: 0;
 }
 
 .month-tabs a.active {
-    box-shadow: inset 0 -3px 0 var(--schedule-accent);
+    border-color: rgba(17, 24, 32, 0.13);
+    background: #ffffff;
+    box-shadow:
+        inset 0 -2px 0 var(--schedule-accent),
+        0 4px 12px rgba(17, 24, 32, 0.08);
     color: var(--schedule-accent);
-    font-weight: 700;
+    font-weight: 800;
+}
+
+.month-tabs a:hover,
+.month-tabs a:focus-visible {
+    border-color: rgba(17, 24, 32, 0.16);
+    background: rgba(255, 255, 255, 0.82);
+    outline: 3px solid var(--schedule-focus);
 }
 
 .form-page {
