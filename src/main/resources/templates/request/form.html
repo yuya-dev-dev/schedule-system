@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${dateTitle + ' 案件入力'}">案件入力</title>
-    <link rel="stylesheet" th:href="@{/css/app.css(v=13)}">
-    <script defer="defer" th:src="@{/js/request-form.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/app.css(v=14)}">
+    <script defer="defer" th:src="@{/js/request-form.js(v=14)}"></script>
 </head>
 <body class="form-page request-form-page">
 <a class="skip-link" href="#main-content">本文へ移動</a>
@@ -30,10 +30,13 @@
         <input type="hidden" th:field="*{version}">
         <input type="hidden" th:field="*{workDate}">
 
-        <div class="save-status-row">
-            <div id="save-status" class="save-status" role="status" aria-live="polite"
-                 th:text="${readOnly ? '閲覧専用' : '入力内容は自動保存されます'}">
-                入力内容は自動保存されます
+        <div class="save-status-row" aria-label="保存状態">
+            <div class="save-status-main">
+                <span class="save-status-label">保存状態</span>
+                <div id="save-status" class="save-status" role="status" aria-live="polite"
+                     th:text="${readOnly ? '閲覧専用' : '入力内容は自動保存されます'}">
+                    入力内容は自動保存されます
+                </div>
             </div>
             <button id="retry-save" type="button" class="retry-save" hidden>再試行</button>
         </div>
@@ -44,70 +47,82 @@
             </a>
         </div>
 
-        <fieldset class="time-range">
-            <legend><span class="required">＊必須</span> 時間範囲</legend>
-            <label>
-                <span>開始時間</span>
-                <select th:field="*{startTime}" th:disabled="${readOnly}" required>
+        <section class="form-section form-section-primary" aria-labelledby="basic-section-title">
+            <div class="form-section-header">
+                <p class="form-section-kicker">まず確定する項目</p>
+                <h2 id="basic-section-title">基本情報</h2>
+            </div>
+
+            <fieldset class="time-range">
+                <legend><span class="required">＊必須</span> 時間範囲</legend>
+                <label>
+                    <span>開始時間</span>
+                    <select th:field="*{startTime}" th:disabled="${readOnly}" required>
+                        <option value="">選択してください</option>
+                        <option th:each="time : ${startTimeOptions}" th:value="${time}" th:text="${time}">8:30</option>
+                    </select>
+                </label>
+                <span class="range-separator" aria-hidden="true">〜</span>
+                <label>
+                    <span>終了時間</span>
+                    <select th:field="*{endTime}" th:disabled="${readOnly}" required>
+                        <option value="">選択してください</option>
+                        <option th:each="time : ${endTimeOptions}" th:value="${time}" th:text="${time}">9:00</option>
+                    </select>
+                </label>
+            </fieldset>
+
+            <label class="form-field">
+                <span>作業種別</span>
+                <select th:field="*{workType}" th:disabled="${readOnly}">
                     <option value="">選択してください</option>
-                    <option th:each="time : ${startTimeOptions}" th:value="${time}" th:text="${time}">8:30</option>
+                    <option th:each="type : ${workTypes}"
+                            th:value="${type}"
+                            th:text="${type.displayName}">設置</option>
                 </select>
             </label>
-            <span class="range-separator" aria-hidden="true">〜</span>
-            <label>
-                <span>終了時間</span>
-                <select th:field="*{endTime}" th:disabled="${readOnly}" required>
-                    <option value="">選択してください</option>
-                    <option th:each="time : ${endTimeOptions}" th:value="${time}" th:text="${time}">9:00</option>
-                </select>
-            </label>
-        </fieldset>
 
-        <label class="form-field">
-            <span>作業種別</span>
-            <select th:field="*{workType}" th:disabled="${readOnly}">
-                <option value="">選択してください</option>
-                <option th:each="type : ${workTypes}"
-                        th:value="${type}"
-                        th:text="${type.displayName}">設置</option>
-            </select>
-        </label>
-
-        <label class="form-field">
-            <span><span id="requester-required" class="required" th:hidden="${!requesterRequired}">＊必須</span> 依頼者名</span>
-            <input type="text" th:field="*{requesterName}" maxlength="100" placeholder="例：山本"
-                   th:required="${requesterRequired}" th:disabled="${readOnly}">
-            <small>入庫・商品管理では任意です</small>
-        </label>
-
-        <label id="companion-toggle" class="check-field" th:hidden="${form.workType != null and !normalWork}">
-            <input type="checkbox" th:field="*{companionRequired}" th:disabled="${readOnly}">
-            <span>同行あり</span>
-        </label>
-
-        <div id="companion-fields" class="conditional-fields" th:hidden="${!form.companionRequired}">
             <label class="form-field">
-                <span><span class="required">＊必須</span> 集合場所</span>
-                <input type="text" th:field="*{meetingPlace}" maxlength="300" placeholder="例：名古屋支店"
-                       th:disabled="${readOnly}"
-                       th:required="${normalWork and form.companionRequired}">
+                <span><span id="requester-required" class="required" th:hidden="${!requesterRequired}">＊必須</span> 依頼者名</span>
+                <input type="text" th:field="*{requesterName}" maxlength="100" placeholder="例：山本"
+                       th:required="${requesterRequired}" th:disabled="${readOnly}">
+                <small>入庫・商品管理では任意です</small>
             </label>
-            <label class="form-field">
-                <span><span class="required">＊必須</span> 出発時間</span>
-                <select th:field="*{departureTime}" th:disabled="${readOnly}"
-                        th:required="${normalWork and form.companionRequired}">
-                    <option value="">選択してください</option>
-                    <option th:each="time : ${startTimeOptions}" th:value="${time}" th:text="${time}">8:30</option>
-                </select>
+
+            <label id="companion-toggle" class="check-field" th:hidden="${form.workType != null and !normalWork}">
+                <input type="checkbox" th:field="*{companionRequired}" th:disabled="${readOnly}">
+                <span>同行あり</span>
             </label>
-            <label class="form-field">
-                <span>使用車両の指定</span>
-                <input type="text" th:field="*{vehicleName}" maxlength="100" placeholder="なければ空欄"
-                       th:disabled="${readOnly}">
-            </label>
-        </div>
+
+            <div id="companion-fields" class="conditional-fields" th:hidden="${!form.companionRequired}">
+                <label class="form-field">
+                    <span><span class="required">＊必須</span> 集合場所</span>
+                    <input type="text" th:field="*{meetingPlace}" maxlength="300" placeholder="例：名古屋支店"
+                           th:disabled="${readOnly}"
+                           th:required="${normalWork and form.companionRequired}">
+                </label>
+                <label class="form-field">
+                    <span><span class="required">＊必須</span> 出発時間</span>
+                    <select th:field="*{departureTime}" th:disabled="${readOnly}"
+                            th:required="${normalWork and form.companionRequired}">
+                        <option value="">選択してください</option>
+                        <option th:each="time : ${startTimeOptions}" th:value="${time}" th:text="${time}">8:30</option>
+                    </select>
+                </label>
+                <label class="form-field">
+                    <span>使用車両の指定</span>
+                    <input type="text" th:field="*{vehicleName}" maxlength="100" placeholder="なければ空欄"
+                           th:disabled="${readOnly}">
+                </label>
+            </div>
+        </section>
 
         <section id="normal-work-fields" class="form-section" th:hidden="${form.workType != null and !normalWork}">
+            <div class="form-section-header">
+                <p class="form-section-kicker">現場で困らないための詳細</p>
+                <h2>案件詳細</h2>
+            </div>
+
             <label class="form-field">
                 <span><span class="normal-required required" th:hidden="${!normalWork}">＊必須</span> 依頼内容</span>
                 <textarea th:field="*{requestDetail}" rows="5" maxlength="4000"
