@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const address = document.getElementById("address");
     const addressMarker = document.getElementById("address-required");
     const status = document.getElementById("save-status");
+    const statusRow = form.querySelector(".save-status-row");
     const retryButton = document.getElementById("retry-save");
     const errorSummary = document.getElementById("error-summary");
     const idField = document.getElementById("id");
@@ -37,6 +38,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const isInternalWork = value => value === "RECEIVING" || value === "PRODUCT_MANAGEMENT";
     const isNormalWork = () => workType.value !== "" && !isInternalWork(workType.value);
+    const setStatusState = state => {
+        statusRow.classList.remove("is-idle", "is-saving", "is-saved", "is-failed");
+        statusRow.classList.add(state);
+    };
 
     const clearErrors = () => {
         errorSummary.replaceChildren();
@@ -104,6 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
         retryButton.textContent = "再試行";
         status.textContent = "保存中...";
         status.className = "save-status saving";
+        setStatusState("is-saving");
         const response = await fetch(form.dataset.autosaveUrl, {
             method: "POST",
             body: new FormData(form),
@@ -123,6 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
             staleState = false;
             status.textContent = result.entryState === "PUBLISHED" ? "保存済み・一覧に反映中" : "下書き保存済み";
             status.className = "save-status saved";
+            setStatusState("is-saved");
             const missing = (result.missingFields || []).map(name => `${name}が未入力です`);
             showErrors(missing);
             return true;
@@ -133,6 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 ? "時間重複のため変更されませんでした。元の予定を維持しています"
                 : "下書き保存済み（時間重複）";
             status.className = "save-status failed";
+            setStatusState("is-failed");
             showErrors([result.message]);
             return true;
         }
@@ -140,6 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
             staleState = true;
             status.textContent = "ほかの利用者が先に変更しました";
             status.className = "save-status failed";
+            setStatusState("is-failed");
             retryButton.textContent = "最新内容を読み込む";
             retryButton.hidden = false;
             showErrors([result.message]);
@@ -150,6 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ? "未入力のため変更されませんでした。元の予定を維持しています"
             : "保存できませんでした";
         status.className = "save-status failed";
+        setStatusState("is-failed");
         retryButton.hidden = false;
         const missing = (result.missingFields || []).map(name => `${name}が未入力です`);
         retryButton.hidden = result.entryState === "PUBLISHED" && missing.length > 0;
@@ -169,6 +179,7 @@ document.addEventListener("DOMContentLoaded", () => {
             staleState = false;
             status.textContent = "保存できませんでした。入力欄を変更すると再試行します";
             status.className = "save-status failed";
+            setStatusState("is-failed");
             retryButton.hidden = false;
             showErrors(["通信エラーのため保存できませんでした"]);
             return false;
@@ -241,4 +252,5 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     updateDynamicFields();
+    setStatusState("is-idle");
 });
