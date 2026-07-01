@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>スケジュールシステム</title>
+    <link rel="stylesheet" th:href="@{/css/app.css(v=15)}">
+</head>
+<body class="access-page">
+<main class="access-main">
+    <section class="access-card" aria-labelledby="access-title">
+        <p class="page-kicker">配送・設置案件</p>
+        <h1 id="access-title">スケジュールシステム</h1>
+        <p class="access-lead">共有パスワードを入力してください。</p>
+
+        <form th:action="@{/login}" method="post" class="access-form">
+            <input type="hidden" name="accessUser" th:value="${accessUsername}">
+            <div th:if="${loginError}" class="error-summary" role="alert">
+                <p>パスワードが違います。</p>
+            </div>
+            <label class="form-field" for="access-password">
+                <span>パスワード</span>
+                <input id="access-password" name="accessPassword" type="password"
+                       autocomplete="current-password" required autofocus>
+            </label>
+            <button type="submit" class="access-submit">開く</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>
