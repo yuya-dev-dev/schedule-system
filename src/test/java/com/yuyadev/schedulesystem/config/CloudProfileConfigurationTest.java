@@ -1,11 +1,13 @@
 package com.yuyadev.schedulesystem.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.yuyadev.schedulesystem.retention.ScheduleDataRetentionProperties;
 import jakarta.servlet.http.HttpSession;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
@@ -38,6 +40,9 @@ class CloudProfileConfigurationTest {
 	@Autowired
 	private MockMvc mockMvc;
 
+	@Autowired
+	private ScheduleDataRetentionProperties retentionProperties;
+
 	@DynamicPropertySource
 	static void registerPostgresProperties(DynamicPropertyRegistry registry) {
 		registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
@@ -47,6 +52,8 @@ class CloudProfileConfigurationTest {
 
 	@Test
 	void startsCloudProfileWithPostgresqlAndPasswordAccessGate() throws Exception {
+		assertThat(retentionProperties.enabled()).isTrue();
+
 		mockMvc.perform(get("/schedule"))
 				.andExpect(status().is3xxRedirection())
 				.andExpect(redirectedUrlPattern("**/login"));
