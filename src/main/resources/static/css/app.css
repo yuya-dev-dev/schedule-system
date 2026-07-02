@@ -1450,6 +1450,67 @@ textarea:focus {
     line-height: 1.7;
 }
 
+.access-page {
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at top left, rgba(17, 24, 32, 0.08), transparent 320px),
+        linear-gradient(180deg, #f8f9fa 0, var(--form-bg) 100%);
+    color: var(--form-ink);
+}
+
+.access-main {
+    display: grid;
+    min-height: 100vh;
+    place-items: center;
+    padding: 24px;
+}
+
+.access-card {
+    width: min(440px, 100%);
+    border: 1px solid var(--form-line);
+    border-radius: 12px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 251, 0.97)),
+        var(--form-panel);
+    padding: 30px;
+    box-shadow: var(--form-shadow);
+}
+
+.access-card h1 {
+    margin: 4px 0 8px;
+    color: var(--form-ink);
+    font-size: 30px;
+    line-height: 1.25;
+}
+
+.access-lead {
+    margin: 0 0 24px;
+    color: var(--form-muted);
+    font-weight: 700;
+}
+
+.access-form {
+    display: grid;
+    gap: 16px;
+}
+
+.access-submit {
+    min-height: 50px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--form-accent);
+    color: #ffffff;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 8px 16px rgba(17, 24, 32, 0.16);
+}
+
+.access-submit:hover,
+.access-submit:focus-visible {
+    background: #2a3037;
+    outline: 3px solid var(--form-focus);
+}
+
 @media (max-width: 600px) {
     .page-header,
     .form-header {
@@ -1625,5 +1686,18 @@ textarea:focus {
 
     .range-separator {
         display: none;
+    }
+
+    .access-main {
+        align-items: start;
+        padding: 18px 14px;
+    }
+
+    .access-card {
+        padding: 24px 18px;
+    }
+
+    .access-card h1 {
+        font-size: 25px;
     }
 }
