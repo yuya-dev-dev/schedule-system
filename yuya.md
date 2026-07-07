@@ -13,7 +13,7 @@
 作業前に、ターミナルが対象リポジトリの中にいるか確認します。
 
 ```powershell
-pwd
+
 git status --short --branch
 ```
 
