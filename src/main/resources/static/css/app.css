@@ -787,8 +787,16 @@ main[tabindex="-1"]:focus {
     }
 
     .schedule-table thead th {
-        height: 44px;
-        padding: 4px 7px 3px;
+        width: 146px;
+        min-width: 146px;
+        height: 50px;
+        padding: 5px 8px 4px;
+    }
+
+    .schedule-table .time-heading,
+    .schedule-table .time-cell {
+        width: 104px;
+        min-width: 104px;
     }
 
     .date-label {
@@ -813,11 +821,13 @@ main[tabindex="-1"]:focus {
     }
 
     .schedule-table td {
-        height: 44px;
+        width: 146px;
+        min-width: 146px;
+        height: 50px;
     }
 
     .schedule-cell-link {
-        min-height: 44px;
+        min-height: 50px;
         padding: 2px 6px;
     }
 
@@ -825,7 +835,7 @@ main[tabindex="-1"]:focus {
         margin: 4px;
         width: calc(100% - 8px);
         height: calc(100% - 8px);
-        min-height: 36px;
+        min-height: 42px;
         border-left-width: 4px;
     }
 
