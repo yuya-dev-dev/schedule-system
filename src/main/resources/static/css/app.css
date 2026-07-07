@@ -735,6 +735,124 @@ main[tabindex="-1"]:focus {
     outline: 3px solid var(--schedule-focus);
 }
 
+@media (min-width: 901px) {
+    .schedule-page main {
+        padding-bottom: calc(52px + env(safe-area-inset-bottom));
+    }
+
+    .schedule-page .page-header {
+        gap: 12px 18px;
+        padding: 10px 22px 9px;
+    }
+
+    .schedule-page .page-header h1 {
+        margin-top: 0;
+        font-size: 24px;
+        line-height: 1.12;
+    }
+
+    .schedule-page .page-kicker {
+        font-size: 11px;
+    }
+
+    .schedule-page .month-picker input,
+    .schedule-page .month-picker select,
+    .schedule-page .month-picker button {
+        min-height: 30px;
+        padding: 4px 10px;
+    }
+
+    .draft-panel {
+        margin: 10px 22px 10px;
+        border-radius: 7px;
+    }
+
+    .draft-panel summary {
+        min-height: 42px;
+        padding: 8px 16px;
+    }
+
+    .draft-count {
+        min-width: 24px;
+        min-height: 24px;
+        font-size: 12px;
+    }
+
+    .draft-empty {
+        display: none;
+    }
+
+    .draft-list {
+        padding: 0 16px 14px;
+    }
+
+    .schedule-table thead th {
+        height: 44px;
+        padding: 4px 7px 3px;
+    }
+
+    .date-label {
+        font-size: 17px;
+        line-height: 1;
+    }
+
+    .weekday-label {
+        margin-top: 1px;
+        font-size: 10px;
+    }
+
+    .day-off-actions {
+        margin-top: 1px;
+        font-size: 10px;
+        line-height: 1;
+    }
+
+    .schedule-table .time-cell {
+        padding: 5px 8px;
+        font-size: 11px;
+    }
+
+    .schedule-table td {
+        height: 44px;
+    }
+
+    .schedule-cell-link {
+        min-height: 44px;
+        padding: 2px 6px;
+    }
+
+    .occupied .schedule-cell-link {
+        margin: 4px;
+        width: calc(100% - 8px);
+        height: calc(100% - 8px);
+        min-height: 36px;
+        border-left-width: 4px;
+    }
+
+    .cell-main strong {
+        font-size: 14px;
+    }
+
+    .cell-main small {
+        margin-top: 1px;
+        font-size: 11px;
+    }
+
+    .continuation {
+        font-size: 19px;
+    }
+
+    .month-tabs {
+        gap: 6px;
+        padding: 5px 14px calc(5px + env(safe-area-inset-bottom));
+    }
+
+    .month-tabs a {
+        padding: 6px 8px;
+        font-size: 14px;
+    }
+}
+
 .form-page {
     background: #f5f7f8;
 }
