@@ -17,6 +17,7 @@
 | DBマイグレーション | Flyway | DB変更をSQLファイルとして履歴管理し、H2とPostgreSQLへ同じ順序で適用できる |
 | ローカルDB | H2ファイルDB | 画面開発と通常起動を軽くし、追加サービスなしで動かせる |
 | 本番想定DB | PostgreSQL | 時間範囲の排他制約をDBレベルで表現でき、同時登録を確実に防げる |
+| クラウド試験環境 | Render Free Web Service + Neon Free PostgreSQL | URL共有、共通パスワードゲート、PostgreSQL保存、無料枠制約を低コストで確認できる |
 | 本番相当テスト | Testcontainers PostgreSQL | 実際のPostgreSQLを一時起動し、H2との差異と競合処理を自動検証できる |
 | 自動テスト | JUnit 5、AssertJ、Spring Boot Test | 単体・結合テストをSpring Boot標準の範囲で構成できる |
 | CI | GitHub Actions | Pull Requestとmainへの反映時にJava 21で全テストを再実行できる |
@@ -29,6 +30,19 @@ FlywayのSQLは次の場所へ分ける。
 
 - `db/migration/common`: H2とPostgreSQLで共通のテーブル、チェック制約、索引
 - `db/migration/postgresql`: PostgreSQL固有の時間範囲排他制約
+
+## クラウド試験環境
+
+2026年7月時点では、無料枠での試験環境としてRender Free Web ServiceとNeon Free PostgreSQLを採用している。
+
+- Render URL: `https://schedule-system-hekm.onrender.com`
+- Render側では `SPRING_PROFILES_ACTIVE=cloud` を指定する
+- DB接続情報と共通パスワードはRenderの環境変数へ設定し、Git管理ファイルへ書かない
+- `cloud` profileではPostgreSQLへ接続し、PostgreSQL用Flyway Migrationを適用する
+- URL共有に加えて、共通パスワードゲートで最低限の入口制限をかける
+- Render無料枠はスリープするため、初回アクセスやスリープ復帰時に待ち時間が発生する
+
+Render + Neonは正式運用の最終決定ではなく、社員へ触ってもらう前の無料クラウド試験環境として扱う。実在案件の入力前には、バックアップ取得、復元手順、無料枠継続可否、小額有料構成への切替要否を再評価する。
 
 ## 自動保存方式
 
