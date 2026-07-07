@@ -171,7 +171,7 @@ git push origin --delete docs/update-handoff
 ```text
 ## main...origin/main
  M README.md
-?? 引き継ぎ.md
+?? memo.md
 ```
 
 意味:

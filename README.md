@@ -2,7 +2,7 @@
 
 配送・設置案件をExcelで日付別に管理している現場を想定し、案件情報、依頼者、時間帯、依頼内容、集合情報、車両情報などをWeb上で一元管理するためのポートフォリオ開発プロジェクトです。
 
-**開発状況:** 初期MVP、フェーズ5Bから5Fまでの機能追加とUI改善が完了し、フェーズ6Aでクラウド試験用の共通パスワードゲートとPostgreSQL接続設定を追加し、フェーズ6Bでクラウド向けのスケジュールデータ保持期間制御を追加しました。フェーズ6CではRender Free Web ServiceとNeon Free PostgreSQLを使ったクラウド試験環境を作成し、共有URLで起動できる状態まで進めています。Java 21、H2、PostgreSQL Testcontainers、Playwright Chromiumを含む全122件の自動テストが成功しています。
+**開発状況:** 初期MVP、フェーズ5Aから5Gまでの初回導入機能、UI改善、統合整理が完了し、フェーズ6Aでクラウド試験用の共通パスワードゲートとPostgreSQL接続設定を追加し、フェーズ6Bでクラウド向けのスケジュールデータ保持期間制御を追加しました。フェーズ6CではRender Free Web ServiceとNeon Free PostgreSQLを使ったクラウド試験環境を作成し、共有URLで起動できる状態まで進めています。現在は6C残作業、6D、6Eを優先します。Java 21、H2、PostgreSQL Testcontainers、Playwright Chromiumを含む全122件の自動テストが成功しています。
 
 現行業務では、共有Excel上で「誰が、いつ、どの案件を入れたか」は確認できますが、住所、依頼内容、同行有無、集合場所、車両、作業メモなどの詳細がセル内に収まりにくく、担当者への個別確認が発生しやすい状態です。本システムでは、スケジュール表から案件詳細へ自然に遷移できる構成にし、現場担当者と社員双方の確認コストを減らすことを目的とします。
 
@@ -211,7 +211,6 @@ cloud profileでは、起動時に日本時間の現在日を基準として、`
 - [フェーズ4 手動端末試験結果](docs/phase4-manual-device-results.md)
 - [フェーズ5F UIリニューアル抜き出し計画](docs/phase5f-ui-refresh-plan.md)
 - [Codex 開発チーム運用ルール](docs/codex-agent-team.md)
-- [新スレッド向け引き継ぎ](引き継ぎ.md)
 
 ## 開発ルール
 
@@ -219,7 +218,7 @@ cloud profileでは、起動時に日本時間の現在日を基準として、`
 - 作業ごとにブランチを作成し、Pull Requestで変更する
 - Codexは原則としてブランチ作成、実装、差分確認、ローカル状態確認までを担当し、commit、push、PR作成、マージはユーザーが行う
 - Codexがcommit、push、PR作成を代理実行するのは、ユーザーが明示的に依頼した場合だけとする
-- 作業開始前に `AGENTS.md` と `引き継ぎ.md` を確認する
+- 作業開始前に `AGENTS.md`、`README.md`、`docs/development-roadmap.md` を確認する
 - 必要な場合だけ、agy CLIをレビュー補助として使う。agy CLIには実装、commit、push、PR作成、マージを任せない
 - ドキュメント単独の変更は専用PRに分け、機能実装と対応する単体・結合テストは原則として同じPRに含める
 - 未テストの機能実装だけをmainへ取り込まない
