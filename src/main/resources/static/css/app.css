@@ -737,18 +737,18 @@ main[tabindex="-1"]:focus {
 
 @media (min-width: 901px) {
     .schedule-page main {
-        padding-bottom: calc(52px + env(safe-area-inset-bottom));
+        padding-bottom: calc(42px + env(safe-area-inset-bottom));
     }
 
     .schedule-page .page-header {
-        gap: 12px 18px;
-        padding: 10px 22px 9px;
+        gap: 8px 16px;
+        padding: 7px 18px 6px;
     }
 
     .schedule-page .page-header h1 {
         margin-top: 0;
-        font-size: 24px;
-        line-height: 1.12;
+        font-size: 21px;
+        line-height: 1.08;
     }
 
     .schedule-page .page-kicker {
@@ -758,18 +758,18 @@ main[tabindex="-1"]:focus {
     .schedule-page .month-picker input,
     .schedule-page .month-picker select,
     .schedule-page .month-picker button {
-        min-height: 30px;
-        padding: 4px 10px;
+        min-height: 28px;
+        padding: 3px 9px;
     }
 
     .draft-panel {
-        margin: 10px 22px 10px;
+        margin: 7px 18px 7px;
         border-radius: 7px;
     }
 
     .draft-panel summary {
-        min-height: 42px;
-        padding: 8px 16px;
+        min-height: 34px;
+        padding: 6px 14px;
     }
 
     .draft-count {
@@ -783,14 +783,14 @@ main[tabindex="-1"]:focus {
     }
 
     .draft-list {
-        padding: 0 16px 14px;
+        padding: 0 14px 10px;
     }
 
     .schedule-table thead th {
         width: 146px;
         min-width: 146px;
-        height: 50px;
-        padding: 5px 8px 4px;
+        height: 38px;
+        padding: 3px 7px 2px;
     }
 
     .schedule-table .time-heading,
@@ -800,7 +800,7 @@ main[tabindex="-1"]:focus {
     }
 
     .date-label {
-        font-size: 17px;
+        font-size: 16px;
         line-height: 1;
     }
 
@@ -816,31 +816,31 @@ main[tabindex="-1"]:focus {
     }
 
     .schedule-table .time-cell {
-        padding: 5px 8px;
+        padding: 3px 7px;
         font-size: 11px;
     }
 
     .schedule-table td {
         width: 146px;
         min-width: 146px;
-        height: 50px;
+        height: 36px;
     }
 
     .schedule-cell-link {
-        min-height: 50px;
-        padding: 2px 6px;
+        min-height: 36px;
+        padding: 1px 5px;
     }
 
     .occupied .schedule-cell-link {
         margin: 4px;
         width: calc(100% - 8px);
         height: calc(100% - 8px);
-        min-height: 42px;
+        min-height: 28px;
         border-left-width: 4px;
     }
 
     .cell-main strong {
-        font-size: 14px;
+        font-size: 13px;
     }
 
     .cell-main small {
@@ -849,17 +849,17 @@ main[tabindex="-1"]:focus {
     }
 
     .continuation {
-        font-size: 19px;
+        font-size: 17px;
     }
 
     .month-tabs {
         gap: 6px;
-        padding: 5px 14px calc(5px + env(safe-area-inset-bottom));
+        padding: 3px 14px calc(3px + env(safe-area-inset-bottom));
     }
 
     .month-tabs a {
-        padding: 6px 8px;
-        font-size: 14px;
+        padding: 5px 8px;
+        font-size: 13px;
     }
 }
 
