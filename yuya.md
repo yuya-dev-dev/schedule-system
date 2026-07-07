@@ -4,6 +4,199 @@
 
 今までCodexに任せてきた実装内容を、夏休みを使って少しずつ読める・説明できる・相談できる状態に近づけることを目的にします。
 
+## Git操作早見表
+
+この章は、このシステム開発に限らず、GitHub上のリポジトリへ変更を反映するときの確認用テンプレートです。
+
+### まず現在地を確認する
+
+作業前に、ターミナルが対象リポジトリの中にいるか確認します。
+
+```powershell
+pwd
+git status --short --branch
+```
+
+確認すること:
+
+- 表示されたフォルダが、作業したいリポジトリである
+- どのブランチにいるか分かる
+- 変更済みファイル、未追跡ファイルがあるか分かる
+
+### 最新のmainを取り込む
+
+作業前、またはmainへ直接反映する前に、GitHub上の最新mainを取り込みます。
+
+```powershell
+git switch main
+git pull origin main
+```
+
+`git pull origin main` は、「GitHub上のmainの最新状態を、手元のmainへ取り込む」という意味です。
+
+### ドキュメント変更だけをmainへ直接反映する場合
+
+軽いドキュメント修正だけなら、PRを作らずmainへ直接反映してよい方針です。
+
+```powershell
+git switch main
+git pull origin main
+git status --short
+git add <変更したファイル>
+git commit -m "docs: 変更内容を短く書く"
+git push origin main
+```
+
+例:
+
+```powershell
+git add README.md yuya.md
+git commit -m "docs: update learning notes"
+git push origin main
+```
+
+確認すること:
+
+- `git add` には、今回変更したファイルだけを書く
+- コミットメッセージは、何を変えたか分かる短い英語にする
+- `git push origin main` を実行すると、GitHubのmainへ直接反映される
+
+注意:
+
+- コード変更、DB変更、設定変更、デプロイに影響する変更では、直接mainへpushしない
+- 迷った場合はPRを作る
+
+### PRを作成してmainへ反映する場合
+
+コード変更や影響範囲が広い変更は、作業ブランチを作ってPR経由でmainへ入れます。
+
+```powershell
+git switch main
+git pull origin main
+git switch -c <作業ブランチ名>
+```
+
+例:
+
+```powershell
+git switch -c fix/schedule-density
+```
+
+変更後:
+
+```powershell
+git status --short
+git add <変更したファイル>
+git commit -m "fix: 変更内容を短く書く"
+git push -u origin <作業ブランチ名>
+```
+
+例:
+
+```powershell
+git add src/main/resources/static/css/schedule.css
+git commit -m "fix: adjust desktop schedule density"
+git push -u origin fix/schedule-density
+```
+
+GitHub CLIでPRを作る場合:
+
+```powershell
+gh pr create --base main --head <作業ブランチ名> --title "PRタイトル" --body "PR説明"
+```
+
+例:
+
+```powershell
+gh pr create --base main --head fix/schedule-density --title "fix: adjust desktop schedule density" --body "## Summary
+- adjust desktop schedule density
+
+## Test
+- not run"
+```
+
+その後、GitHub上でPRを確認し、問題なければマージします。
+
+### すでに作業ブランチへpushしてしまった後、PRを作らずmainへ直接入れたい場合
+
+作業ブランチの変更をmainへ取り込んで、そのままpushできます。
+
+```powershell
+git switch main
+git pull origin main
+git merge <作業ブランチ名>
+git push origin main
+```
+
+例:
+
+```powershell
+git switch main
+git pull origin main
+git merge docs/update-handoff
+git push origin main
+```
+
+これは、「作業ブランチのコミットを手元のmainへ取り込み、そのmainをGitHubへpushする」という意味です。
+
+### 使い終わった作業ブランチを削除する
+
+mainへ反映済みで不要になったブランチは、消してもよいです。
+
+手元のブランチを削除:
+
+```powershell
+git branch -d <作業ブランチ名>
+```
+
+GitHub上のブランチを削除:
+
+```powershell
+git push origin --delete <作業ブランチ名>
+```
+
+例:
+
+```powershell
+git branch -d docs/update-handoff
+git push origin --delete docs/update-handoff
+```
+
+削除は必須ではありません。残っていてもすぐに壊れるわけではありませんが、増えすぎると分かりにくくなります。
+
+### よく見る表示の意味
+
+`git status --short --branch` の例:
+
+```text
+## main...origin/main
+ M README.md
+?? 引き継ぎ.md
+```
+
+意味:
+
+- `M`: 変更済みファイル
+- `??`: Gitがまだ管理していない新規ファイル
+- `main...origin/main`: 手元のmainとGitHub上のmainを比較している
+
+### 迷ったときの安全確認
+
+何をコミットするか不安なときは、先にこれを確認します。
+
+```powershell
+git status --short
+git diff --stat
+```
+
+見ること:
+
+- 変更ファイルが今回の作業と関係あるか
+- 予想外のファイルが混ざっていないか
+- 変更量が極端に多くないか
+
+予想外の変更がある場合は、無理に `git add .` しないで止まります。
+
 ## まず結論
 
 Java入門とSQL入門を一通りやれば、Codexとの技術的な会話はかなりしやすくなります。
