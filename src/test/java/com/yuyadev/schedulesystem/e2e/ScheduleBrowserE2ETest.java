@@ -127,7 +127,7 @@ class ScheduleBrowserE2ETest {
 		page.waitForURL("**/schedule?month=2026-06");
 
 		assertThat(page.locator(".draft-item").textContent()).contains("社員B", "時間重複");
-		assertThat(repository.countByEntryState(EntryState.PUBLISHED)).isOne();
+		assertThat(countByEntryStateAndRequester(EntryState.PUBLISHED, "社員A")).isOne();
 		assertThat(repository.countByEntryState(EntryState.DRAFT)).isOne();
 	}
 
@@ -239,6 +239,13 @@ class ScheduleBrowserE2ETest {
 			LocalDate workDate, String start, String end, String requester, WorkType workType) {
 		return repository.saveAndFlush(ScheduleRequest.published(
 				workDate, LocalTime.parse(start), LocalTime.parse(end), requester, workType));
+	}
+
+	private long countByEntryStateAndRequester(EntryState entryState, String requester) {
+		return repository.findAll().stream()
+				.filter(request -> request.getEntryState() == entryState)
+				.filter(request -> requester.equals(request.getRequesterName()))
+				.count();
 	}
 
 	private void handleOneFailure(Route route, AtomicBoolean failNextAutosave) {

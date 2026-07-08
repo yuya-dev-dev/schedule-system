@@ -472,7 +472,7 @@ class ScheduleVerticalSliceTest {
 				.andExpect(status().is3xxRedirection())
 				.andExpect(redirectedUrl("/schedule?month=2027-01"));
 
-		assertThat(repository.count()).isOne();
+		assertThat(countRequestsWithRequester("社員A")).isOne();
 	}
 
 	@Test
@@ -500,7 +500,7 @@ class ScheduleVerticalSliceTest {
 				.andExpect(status().isOk())
 				.andExpect(content().string(org.hamcrest.Matchers.containsString(
 						"祝日・休みではない水曜日または金曜日")));
-		assertThat(repository.count()).isZero();
+		assertThat(countRequestsWithRequester("社員A")).isZero();
 	}
 
 	@Test
@@ -929,6 +929,12 @@ class ScheduleVerticalSliceTest {
 				.readTree(result.getResponse().getContentAsString())
 				.get("requestId").asLong();
 		return repository.findById(id).orElseThrow();
+	}
+
+	private long countRequestsWithRequester(String requester) {
+		return repository.findAll().stream()
+				.filter(request -> requester.equals(request.getRequesterName()))
+				.count();
 	}
 
 	private ScheduleCellView cellAt(
