@@ -36,7 +36,7 @@ class ScheduleRequestAutosaveServiceTest {
 
 	@Test
 	void updatesOneDraftUntilListRequirementsArePresent() {
-		AutosaveResult first = service.save(null, 0, input(null, null, null, null));
+		AutosaveResult first = service.save(null, 0, input("社員A", null, null, null));
 		AutosaveResult second = service.save(
 				first.requestId(), first.version(), input("社員A", null, "9:00", "10:00"));
 
@@ -47,6 +47,17 @@ class ScheduleRequestAutosaveServiceTest {
 		assertThat(second.missingFields()).isEmpty();
 		assertThat(repository.findById(second.requestId()).orElseThrow().hasMissingRequiredFields())
 				.isFalse();
+	}
+
+	@Test
+	void skipsCompletelyEmptyNewInputWithoutCreatingDraft() {
+		AutosaveResult result = service.save(null, 0, input(null, null, null, null));
+
+		assertThat(result.status()).isEqualTo(AutosaveResult.Status.SAVED);
+		assertThat(result.requestId()).isNull();
+		assertThat(result.entryState()).isNull();
+		assertThat(result.message()).isEqualTo("入力がないため保存していません");
+		assertThat(repository.count()).isZero();
 	}
 
 	@Test

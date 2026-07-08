@@ -127,7 +127,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (result.status === "SAVED") {
             staleState = false;
-            status.textContent = result.entryState === "PUBLISHED" ? "保存済み・一覧に反映中" : "下書き保存済み";
+            status.textContent = result.requestId === null
+                ? result.message
+                : (result.entryState === "PUBLISHED" ? "保存済み・一覧に反映中" : "下書き保存済み");
             status.className = "save-status saved";
             setStatusState("is-saved");
             const missing = (result.missingFields || []).map(name => `${name}が未入力です`);
