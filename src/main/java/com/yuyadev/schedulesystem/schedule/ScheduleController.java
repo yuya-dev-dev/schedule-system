@@ -1,6 +1,7 @@
 package com.yuyadev.schedulesystem.schedule;
 
 import com.yuyadev.schedulesystem.request.DraftManagementService;
+import com.yuyadev.schedulesystem.request.RecurringFixedRequestService;
 import java.time.DateTimeException;
 import java.time.YearMonth;
 import org.springframework.stereotype.Controller;
@@ -14,12 +15,15 @@ public class ScheduleController {
 
 	private final MonthScheduleService monthScheduleService;
 	private final DraftManagementService draftManagementService;
+	private final RecurringFixedRequestService recurringFixedRequestService;
 
 	public ScheduleController(
 			MonthScheduleService monthScheduleService,
-			DraftManagementService draftManagementService) {
+			DraftManagementService draftManagementService,
+			RecurringFixedRequestService recurringFixedRequestService) {
 		this.monthScheduleService = monthScheduleService;
 		this.draftManagementService = draftManagementService;
+		this.recurringFixedRequestService = recurringFixedRequestService;
 	}
 
 	@GetMapping("/")
@@ -34,6 +38,7 @@ public class ScheduleController {
 			@RequestParam(required = false) String monthNumber,
 			Model model) {
 		String requestedMonth = resolveRequestedMonth(month, year, monthNumber, model);
+		recurringFixedRequestService.ensureCurrentAndNextMonth();
 		model.addAttribute("schedule", monthScheduleService.getMonth(requestedMonth));
 		model.addAttribute("drafts", draftManagementService.activeDrafts());
 		return "schedule/month";

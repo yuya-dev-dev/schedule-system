@@ -80,7 +80,7 @@ class ScheduleBrowserRecoveryE2ETest {
 		page.locator(".back-submit").click();
 		page.waitForURL("**/schedule?month=2026-06");
 
-		assertThat(repository.count()).isZero();
+		assertThat(repository.countByEntryState(EntryState.DRAFT)).isZero();
 		assertThat(page.locator(".draft-count").textContent()).isEqualTo("0");
 	}
 
@@ -93,7 +93,7 @@ class ScheduleBrowserRecoveryE2ETest {
 		page.locator(".back-submit").click();
 		page.waitForURL("**/schedule?month=2026-06");
 
-		assertThat(repository.count()).isOne();
+		assertThat(repository.countByEntryState(EntryState.DRAFT)).isOne();
 		page.locator(".draft-item a").click();
 		assertThat(page.locator("#startTime").inputValue()).isEqualTo("09:00");
 		assertThat(page.locator("#endTime").inputValue()).isEqualTo("10:00");
@@ -101,7 +101,7 @@ class ScheduleBrowserRecoveryE2ETest {
 		page.onceDialog(dialog -> dialog.accept());
 		page.locator("#draft-delete-form button").click();
 		page.waitForURL("**/schedule?month=2026-06");
-		assertThat(repository.count()).isZero();
+		assertThat(repository.countByEntryState(EntryState.DRAFT)).isZero();
 	}
 
 	@Test
@@ -124,7 +124,7 @@ class ScheduleBrowserRecoveryE2ETest {
 		page.locator("#requestDetail").focus();
 		waitForText(page, "#error-summary", "その時間はすでに埋まっています");
 
-		assertThat(repository.countByEntryState(EntryState.PUBLISHED)).isOne();
+		assertThat(countByEntryStateAndRequester(EntryState.PUBLISHED, "社員A")).isOne();
 		assertThat(repository.countByEntryState(EntryState.DRAFT)).isOne();
 	}
 
@@ -196,7 +196,7 @@ class ScheduleBrowserRecoveryE2ETest {
 		page.getByText("キャンセルを実行", new Page.GetByTextOptions().setExact(true)).click();
 		page.waitForURL("**/schedule?month=2026-06");
 
-		assertThat(repository.count()).isZero();
+		assertThat(countByEntryStateAndRequester(EntryState.PUBLISHED, "社員A")).isZero();
 		assertThat(page.locator("a[href='/requests/new?date=2026-06-24']").count()).isPositive();
 	}
 
@@ -388,6 +388,13 @@ class ScheduleBrowserRecoveryE2ETest {
 			LocalDate workDate, String start, String end, String requester, WorkType workType) {
 		return repository.saveAndFlush(ScheduleRequest.published(
 				workDate, LocalTime.parse(start), LocalTime.parse(end), requester, workType));
+	}
+
+	private long countByEntryStateAndRequester(EntryState entryState, String requester) {
+		return repository.findAll().stream()
+				.filter(request -> request.getEntryState() == entryState)
+				.filter(request -> requester.equals(request.getRequesterName()))
+				.count();
 	}
 
 	private void waitForRequest(Page target, java.util.function.Predicate<ScheduleRequest> predicate) {

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
+import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.yuyadev.schedulesystem.request.DraftReason;
@@ -104,7 +105,9 @@ class Phase4PerformanceTest {
 
 		PageMetrics metrics = measurePage("/schedule?month=2026-06");
 
-		assertThat(page.locator(".occupied .schedule-cell-link").count()).isEqualTo(50);
+		assertThat(page.locator(".occupied .schedule-cell-link")
+				.filter(new Locator.FilterOptions().setHasText("架空社員"))
+				.count()).isEqualTo(50);
 		metrics.print("PERF-001", "1か月50案件");
 	}
 
@@ -136,9 +139,14 @@ class Phase4PerformanceTest {
 		repository.flush();
 		PageMetrics metrics = measurePage("/schedule?month=2026-06");
 
-		assertThat(page.locator(".occupied .cell-main").count()).isEqualTo(6);
+		assertThat(page.locator(".occupied .cell-main")
+				.filter(new Locator.FilterOptions().setHasText("架空社員"))
+				.count()).isEqualTo(6);
 		long startedAt = System.nanoTime();
-		page.locator("a[aria-label='案件を開く']").first().click();
+		page.locator("a[aria-label='案件を開く']")
+				.filter(new Locator.FilterOptions().setHasText("架空社員"))
+				.first()
+				.click();
 		page.waitForLoadState();
 		long openMillis = Duration.ofNanos(System.nanoTime() - startedAt).toMillis();
 		assertThat(page.locator("#requesterName").inputValue()).startsWith("架空社員");

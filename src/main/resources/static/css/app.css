@@ -31,11 +31,13 @@
     --schedule-color-3: #dce8da;
     --schedule-color-4: #ece3ca;
     --schedule-color-5: #e1dce9;
+    --schedule-color-internal: #d9f3f0;
     --schedule-bar-1: #547f96;
     --schedule-bar-2: #9a675f;
     --schedule-bar-3: #6d8f66;
     --schedule-bar-4: #9a854b;
     --schedule-bar-5: #7c6b91;
+    --schedule-bar-internal: #00736b;
     --form-bg: #eef1f3;
     --form-panel: #ffffff;
     --form-panel-soft: #f8f9fa;
@@ -544,6 +546,7 @@ main[tabindex="-1"]:focus {
 .schedule-table td.color-3 { --entry-bg: var(--schedule-color-3); --entry-bar: var(--schedule-bar-3); }
 .schedule-table td.color-4 { --entry-bg: var(--schedule-color-4); --entry-bar: var(--schedule-bar-4); }
 .schedule-table td.color-5 { --entry-bg: var(--schedule-color-5); --entry-bar: var(--schedule-bar-5); }
+.schedule-table td.color-6 { --entry-bg: var(--schedule-color-internal); --entry-bar: var(--schedule-bar-internal); }
 
 .schedule-table .day-off-date,
 .schedule-table td.day-off-cell {

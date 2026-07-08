@@ -36,9 +36,6 @@ public class ScheduleRequestAutosaveService {
 	public AutosaveResult save(Long id, long expectedVersion, ScheduleRequestInput input) {
 		try {
 			datePolicy.requireRegistrable(input.workDate());
-			if (id == null && isEmptyNewInput(input)) {
-				return AutosaveResult.skippedEmptyInput();
-			}
 			SaveResult saved = transactionTemplate.execute(
 					status -> saveInTransaction(id, expectedVersion, input));
 			return toAutosaveResult(saved);
@@ -140,27 +137,6 @@ public class ScheduleRequestAutosaveService {
 		}
 		return ScheduleRequest.isInternalWork(input.workType())
 				|| (input.requesterName() != null && !input.requesterName().isBlank());
-	}
-
-	private boolean isEmptyNewInput(ScheduleRequestInput input) {
-		return input.startTime() == null
-				&& input.endTime() == null
-				&& input.workType() == null
-				&& isBlank(input.requesterName())
-				&& isBlank(input.requestDetail())
-				&& isBlank(input.address())
-				&& isBlank(input.desiredArrivalTime())
-				&& !input.companionRequired()
-				&& isBlank(input.meetingPlace())
-				&& input.departureTime() == null
-				&& isBlank(input.vehicleName())
-				&& (input.dispatchStatus() == null
-						|| input.dispatchStatus() == DispatchStatus.UNANSWERED)
-				&& isBlank(input.note());
-	}
-
-	private boolean isBlank(String value) {
-		return value == null || value.isBlank();
 	}
 
 	private AutosaveResult toAutosaveResult(SaveResult result) {

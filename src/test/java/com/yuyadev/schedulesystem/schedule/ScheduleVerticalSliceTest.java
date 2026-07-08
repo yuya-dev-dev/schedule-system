@@ -197,7 +197,10 @@ class ScheduleVerticalSliceTest {
 				.andExpect(status().is3xxRedirection())
 				.andExpect(redirectedUrl("/schedule?month=2026-06"));
 
-		ScheduleRequest saved = repository.findAll().getFirst();
+		ScheduleRequest saved = repository.findAll().stream()
+				.filter(request -> "山本".equals(request.getRequesterName()))
+				.findFirst()
+				.orElseThrow();
 		assertThat(saved.getEntryState()).isEqualTo(EntryState.PUBLISHED);
 
 		mockMvc.perform(get("/schedule").param("month", "2026-06"))
@@ -235,7 +238,10 @@ class ScheduleVerticalSliceTest {
 				.andExpect(status().isOk())
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("2026年6月 スケジュール")));
 
-		assertThat(repository.countByEntryState(EntryState.PUBLISHED)).isOne();
+		assertThat(repository.findAll().stream()
+				.filter(request -> request.getEntryState() == EntryState.PUBLISHED)
+				.filter(request -> "社員A".equals(request.getRequesterName())))
+				.hasSize(1);
 		assertThat(repository.countByEntryState(EntryState.DRAFT)).isOne();
 	}
 
@@ -304,6 +310,26 @@ class ScheduleVerticalSliceTest {
 				.mapToObj(index -> cellAt(
 						view, dateIndex, LocalTime.of(8, 30).plusMinutes(index * 30L)).colorIndex()))
 				.containsExactly(1, 2, 3, 4, 5, 1);
+	}
+
+	@Test
+	void givesInternalWorkTypesDedicatedColorWithoutAdvancingNormalColorRotation() {
+		LocalDate workDate = LocalDate.of(2026, 6, 24);
+		repository.saveAndFlush(ScheduleRequest.published(
+				workDate, LocalTime.of(13, 0), LocalTime.of(13, 30),
+				null, WorkType.RECEIVING));
+		repository.saveAndFlush(ScheduleRequest.published(
+				workDate, LocalTime.of(14, 0), LocalTime.of(14, 30),
+				"社員A", WorkType.INSTALL));
+
+		MonthScheduleView view = monthScheduleService.getMonth("2026-06");
+		int dateIndex = java.util.stream.IntStream.range(0, view.workDates().size())
+				.filter(index -> view.workDates().get(index).date().equals(workDate))
+				.findFirst()
+				.orElseThrow();
+
+		assertThat(cellAt(view, dateIndex, LocalTime.of(13, 0)).colorIndex()).isEqualTo(6);
+		assertThat(cellAt(view, dateIndex, LocalTime.of(14, 0)).colorIndex()).isEqualTo(1);
 	}
 
 	@Test
@@ -446,7 +472,7 @@ class ScheduleVerticalSliceTest {
 				.andExpect(status().is3xxRedirection())
 				.andExpect(redirectedUrl("/schedule?month=2027-01"));
 
-		assertThat(repository.count()).isOne();
+		assertThat(countRequestsWithRequester("社員A")).isOne();
 	}
 
 	@Test
@@ -474,7 +500,7 @@ class ScheduleVerticalSliceTest {
 				.andExpect(status().isOk())
 				.andExpect(content().string(org.hamcrest.Matchers.containsString(
 						"祝日・休みではない水曜日または金曜日")));
-		assertThat(repository.count()).isZero();
+		assertThat(countRequestsWithRequester("社員A")).isZero();
 	}
 
 	@Test
@@ -903,6 +929,12 @@ class ScheduleVerticalSliceTest {
 				.readTree(result.getResponse().getContentAsString())
 				.get("requestId").asLong();
 		return repository.findById(id).orElseThrow();
+	}
+
+	private long countRequestsWithRequester(String requester) {
+		return repository.findAll().stream()
+				.filter(request -> requester.equals(request.getRequesterName()))
+				.count();
 	}
 
 	private ScheduleCellView cellAt(

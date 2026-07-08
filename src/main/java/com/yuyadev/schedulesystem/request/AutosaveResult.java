@@ -21,16 +21,6 @@ public record AutosaveResult(
 		return from(Status.SAVED, request, "保存しました");
 	}
 
-	public static AutosaveResult skippedEmptyInput() {
-		return new AutosaveResult(
-				Status.SAVED,
-				null,
-				0,
-				null,
-				"入力がないため保存していません",
-				List.of());
-	}
-
 	public static AutosaveResult timeConflict(ScheduleRequest request) {
 		return from(Status.TIME_CONFLICT, request, "その時間はすでに埋まっています");
 	}

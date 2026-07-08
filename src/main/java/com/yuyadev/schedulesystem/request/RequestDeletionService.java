@@ -20,11 +20,15 @@ public class RequestDeletionService {
 
 	private final ScheduleRequestRepository repository;
 	private final ScheduleDatePolicy datePolicy;
+	private final RecurringFixedRequestService recurringFixedRequestService;
 
 	public RequestDeletionService(
-			ScheduleRequestRepository repository, ScheduleDatePolicy datePolicy) {
+			ScheduleRequestRepository repository,
+			ScheduleDatePolicy datePolicy,
+			RecurringFixedRequestService recurringFixedRequestService) {
 		this.repository = repository;
 		this.datePolicy = datePolicy;
+		this.recurringFixedRequestService = recurringFixedRequestService;
 	}
 
 	@Transactional(readOnly = true)
@@ -49,6 +53,7 @@ public class RequestDeletionService {
 		if (request.getVersion() != expectedVersion) {
 			return new CancellationResult(CancellationStatus.CHANGED, workDate);
 		}
+		recurringFixedRequestService.recordSkipIfFixed(request);
 		repository.delete(request);
 		return new CancellationResult(CancellationStatus.DELETED, workDate);
 	}
