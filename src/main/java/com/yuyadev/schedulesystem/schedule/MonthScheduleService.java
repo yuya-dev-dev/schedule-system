@@ -4,6 +4,7 @@ import com.yuyadev.schedulesystem.holiday.HolidayCalendarService;
 import com.yuyadev.schedulesystem.request.EntryState;
 import com.yuyadev.schedulesystem.request.ScheduleRequest;
 import com.yuyadev.schedulesystem.request.ScheduleRequestRepository;
+import com.yuyadev.schedulesystem.request.WorkType;
 import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -25,6 +26,7 @@ public class MonthScheduleService {
 	private static final LocalTime CLOSING_TIME = LocalTime.of(17, 30);
 	private static final int SLOT_MINUTES = 30;
 	private static final int COLOR_COUNT = 5;
+	private static final int INTERNAL_WORK_COLOR = 6;
 
 	private final ScheduleRequestRepository repository;
 	private final HolidayCalendarService holidayCalendarService;
@@ -207,11 +209,22 @@ public class MonthScheduleService {
 		for (List<ScheduleRequest> sameDay : byDate.values()) {
 			sameDay.sort(Comparator.comparing(ScheduleRequest::getStartTime)
 					.thenComparing(ScheduleRequest::getId));
-			for (int index = 0; index < sameDay.size(); index++) {
-				colors.put(sameDay.get(index).getId(), (index % COLOR_COUNT) + 1);
+			int normalIndex = 0;
+			for (ScheduleRequest request : sameDay) {
+				if (isInternalWorkRequest(request)) {
+					colors.put(request.getId(), INTERNAL_WORK_COLOR);
+				} else {
+					colors.put(request.getId(), (normalIndex % COLOR_COUNT) + 1);
+					normalIndex++;
+				}
 			}
 		}
 		return colors;
+	}
+
+	private boolean isInternalWorkRequest(ScheduleRequest request) {
+		return request.getWorkType() == WorkType.RECEIVING
+				|| request.getWorkType() == WorkType.PRODUCT_MANAGEMENT;
 	}
 
 	private String timeLabel(LocalTime start, LocalTime end) {
