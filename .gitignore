@@ -30,6 +30,11 @@ target/
 # Local application data
 data/
 
+# Database backups and encrypted local backup configuration
+*.dump
+*.dump.sha256
+*.clixml
+
 # IDEs
 .idea/
 *.iml
