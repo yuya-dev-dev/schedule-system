@@ -1,18 +1,17 @@
 package com.yuyadev.schedulesystem.request;
 
+import static com.yuyadev.schedulesystem.schedule.SchedulePageSupport.dateTitle;
+
 import com.yuyadev.schedulesystem.schedule.MonthScheduleService;
 import com.yuyadev.schedulesystem.schedule.MonthScheduleView;
-import java.time.DateTimeException;
+import com.yuyadev.schedulesystem.schedule.SchedulePageSupport;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Locale;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,9 +22,6 @@ import org.springframework.web.server.ResponseStatusException;
 @Controller
 @RequestMapping("/requests/{sourceId}/copy")
 public class RequestCopyController {
-
-	private static final DateTimeFormatter DATE_TITLE =
-			DateTimeFormatter.ofPattern("yyyy年M月d日（E）", Locale.JAPANESE);
 
 	private final RequestCopyService copyService;
 	private final MonthScheduleService monthScheduleService;
@@ -82,7 +78,7 @@ public class RequestCopyController {
 			Model model) {
 		MonthScheduleView schedule = monthScheduleService.getMonth(requestedMonth);
 		model.addAttribute("source", source);
-		model.addAttribute("sourceDateTitle", source.getWorkDate().format(DATE_TITLE));
+		model.addAttribute("sourceDateTitle", dateTitle(source.getWorkDate()));
 		model.addAttribute("schedule", schedule);
 		model.addAttribute("targetDateError", targetDateError);
 		return "request/copy-destination";
@@ -94,25 +90,12 @@ public class RequestCopyController {
 			String monthNumber,
 			LocalDate sourceDate,
 			Model model) {
-		if (!StringUtils.hasText(month)
-				&& !StringUtils.hasText(year)
-				&& !StringUtils.hasText(monthNumber)) {
-			return YearMonth.from(sourceDate).toString();
+		SchedulePageSupport.MonthSelection selection = SchedulePageSupport.resolveMonth(
+				month, year, monthNumber, YearMonth.from(sourceDate).toString());
+		if (selection.error() != null) {
+			model.addAttribute("monthSelectionError", selection.error());
 		}
-		if (!StringUtils.hasText(year) && !StringUtils.hasText(monthNumber)) {
-			return month;
-		}
-		try {
-			int selectedYear = Integer.parseInt(year);
-			int selectedMonth = Integer.parseInt(monthNumber);
-			if (selectedYear < 1) {
-				throw new DateTimeException("Year must be positive");
-			}
-			return YearMonth.of(selectedYear, selectedMonth).toString();
-		} catch (DateTimeException | NumberFormatException exception) {
-			model.addAttribute("monthSelectionError", "正しい年と月を入力してください");
-			return month == null ? YearMonth.from(sourceDate).toString() : month;
-		}
+		return selection.requestedMonth();
 	}
 
 	private ScheduleRequest source(Long sourceId) {

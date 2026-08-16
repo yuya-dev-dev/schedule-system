@@ -620,7 +620,31 @@ class ScheduleVerticalSliceTest {
 		assertThat(copied.getMeetingPlace()).isEqualTo("名古屋支店");
 		assertThat(copied.getDepartureTime()).isEqualTo(LocalTime.of(9, 30));
 		assertThat(copied.getVehicleName()).isEqualTo("車両A");
+		assertThat(copied.getDispatchStatus()).isEqualTo(
+				com.yuyadev.schedulesystem.request.DispatchStatus.DISPATCHED);
 		assertThat(copied.getNote()).isEqualTo("架空の注意事項");
+	}
+
+	@Test
+	void selectsCopyMonthAndFallsBackToSourceMonthAfterInvalidSelection() throws Exception {
+		ScheduleRequest source = createDetailedRequest(
+				LocalDate.of(2026, 6, 24), "10:00", "12:00", "社員A");
+
+		mockMvc.perform(get("/requests/{id}/copy", source.getId())
+					.param("year", "2027")
+					.param("monthNumber", "1"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"2027年1月 スケジュール")));
+
+		mockMvc.perform(get("/requests/{id}/copy", source.getId())
+					.param("year", "2027")
+					.param("monthNumber", "13"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"正しい年と月を入力してください")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"2026年6月 スケジュール")));
 	}
 
 	@Test
@@ -916,6 +940,7 @@ class ScheduleVerticalSliceTest {
 					.param("meetingPlace", "名古屋支店")
 					.param("departureTime", "09:30")
 					.param("vehicleName", "車両A")
+					.param("dispatchStatus", "DISPATCHED")
 					.param("note", "架空の注意事項"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value("SAVED"))

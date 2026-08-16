@@ -40,7 +40,8 @@ class DraftManagementServiceTest {
 	}
 
 	@Test
-	void keepsTodaysDraftAndListsAllFutureMonthsByLatestUpdate() {
+	void deletesYesterdaysDraftAndListsTodayAndFutureByLatestUpdate() {
+		ScheduleRequest yesterday = saveDraft(LocalDate.of(2026, 6, 19), "社員Z");
 		ScheduleRequest today = saveDraft(LocalDate.of(2026, 6, 20), "社員A");
 		ScheduleRequest june = saveDraft(LocalDate.of(2026, 6, 24), "社員B");
 		ScheduleRequest july = saveDraft(LocalDate.of(2026, 7, 1), "社員C");
@@ -48,11 +49,12 @@ class DraftManagementServiceTest {
 		setUpdatedAt(june.getId(), LocalDateTime.of(2026, 6, 20, 10, 0));
 		setUpdatedAt(july.getId(), LocalDateTime.of(2026, 6, 20, 11, 0));
 
-		List<DraftListItem> drafts = service.activeDrafts();
+		List<DraftListItem> drafts = service.deleteExpiredAndFindActiveDrafts();
 
 		assertThat(drafts).extracting(DraftListItem::id)
 				.containsExactly(july.getId(), june.getId(), today.getId());
 		assertThat(repository.existsById(today.getId())).isTrue();
+		assertThat(repository.existsById(yesterday.getId())).isFalse();
 	}
 
 	private ScheduleRequest saveDraft(LocalDate date, String requester) {

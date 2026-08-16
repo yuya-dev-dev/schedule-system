@@ -18,4 +18,23 @@ public record ScheduleRequestInput(
 		String vehicleName,
 		DispatchStatus dispatchStatus,
 		String note) {
+
+	public static ScheduleRequestInput forCopy(
+			ScheduleRequest source, LocalDate targetDate) {
+		return new ScheduleRequestInput(
+				targetDate,
+				source.getStartTime(),
+				source.getEndTime(),
+				source.getWorkType(),
+				source.getRequesterName(),
+				source.getRequestDetail(),
+				source.getAddress(),
+				source.getDesiredArrivalTime(),
+				source.isCompanionRequired(),
+				source.getMeetingPlace(),
+				source.getDepartureTime(),
+				source.getVehicleName(),
+				source.getDispatchStatus(),
+				source.getNote());
+	}
 }
