@@ -22,7 +22,7 @@ flowchart LR
     JPA --> PG
 ```
 
-利用者はインストールせず、同じURLをブラウザで開く。個人別ログインや権限差は設けず、約10人が1つのスケジュールを共同利用する。クラウド配置時だけ、URL漏洩時の最低限の入口制限として共通パスワードゲートを使う。
+利用者はインストールせず、同じURLをブラウザで開く。個人別ログインや権限差は設けず、5人が1つのスケジュールを共同利用する。クラウド配置時だけ、URL漏洩時の最低限の入口制限として共通パスワードゲートを使う。
 
 ## アプリケーション内の責務
 
@@ -31,28 +31,39 @@ flowchart TD
     CONTROLLER["Controller\nHTTP・画面遷移"]
     POLICY["ScheduleDatePolicy\n曜日・登録可否"]
     TIME_SLOTS["ScheduleTimeSlots\n営業時間・30分刻み"]
-    AUTOSAVE["AutosaveService\n下書き・公開・重複判定"]
+    AUTOSAVE["ScheduleRequestAutosaveService\n下書き・公開・重複判定"]
     REQUEST["ScheduleRequest\n案件・時刻検証"]
-    OPERATIONS["Copy / Deletion Service\nコピー・物理削除"]
+    COPY["RequestCopyService\n案件コピー"]
+    DELETE["RequestDeletionService\n案件削除"]
+    DRAFT["DraftManagementService\n下書き一覧・期限切れ削除"]
+    RECURRING["RecurringFixedRequestService\n固定予定"]
     MONTH["MonthScheduleService\n対象月・日付列"]
     GRID["ScheduleGridBuilder\nセル・色・矢印"]
-    REPOSITORY["Repository"]
-    DB[("schedule_requests")]
+    REPOSITORY["Spring Data Repository"]
+    DB[("PostgreSQL / H2")]
 
     CONTROLLER --> POLICY
     CONTROLLER --> AUTOSAVE
-    CONTROLLER --> OPERATIONS
+    CONTROLLER --> COPY
+    CONTROLLER --> DELETE
+    CONTROLLER --> DRAFT
+    CONTROLLER --> RECURRING
     CONTROLLER --> MONTH
     AUTOSAVE --> POLICY
     AUTOSAVE --> REQUEST
     REQUEST --> TIME_SLOTS
     AUTOSAVE --> REPOSITORY
-    OPERATIONS --> REPOSITORY
+    COPY --> REPOSITORY
+    DELETE --> REPOSITORY
+    DRAFT --> REPOSITORY
+    RECURRING --> REPOSITORY
     MONTH --> REPOSITORY
     MONTH --> GRID
     GRID --> TIME_SLOTS
     REPOSITORY --> DB
 ```
+
+主要なDBテーブルは、案件と下書きの`schedule_requests`、祝日の`calendar_holidays`、休みの`schedule_day_offs`、削除した固定予定を再作成しないための`recurring_fixed_request_skips`である。
 
 ## 保存と競合制御
 
@@ -71,5 +82,4 @@ flowchart TD
 | デモ | 専用H2ファイル | 架空案件6件を使ったポートフォリオ説明 |
 | 自動テスト | H2メモリ | 単体、結合、ブラウザE2E、性能・容量確認 |
 | DB競合試験 | PostgreSQL Testcontainers | 排他制約、同時登録、トランザクション確認 |
-| クラウド試験 | Render Free Web Service + Neon Free PostgreSQL | URL共有、共通パスワードゲート、PostgreSQL保存、無料枠制約の確認 |
-| 正式運用候補 | PostgreSQL | 実在案件の入力前に、バックアップ、復元方法、無料枠継続可否を決定 |
+| 5人限定運用 | Render Free Web Service + Neon Free PostgreSQL | 共通パスワードゲート、PostgreSQL保存、日次バックアップ。速度改善要望が出た場合だけ有料化を検討 |

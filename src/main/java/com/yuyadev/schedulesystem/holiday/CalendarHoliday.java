@@ -39,14 +39,6 @@ public class CalendarHoliday {
 		return holidayDate;
 	}
 
-	public String getHolidayName() {
-		return holidayName;
-	}
-
-	public String getSource() {
-		return source;
-	}
-
 	public LocalDateTime getSyncedAt() {
 		return syncedAt;
 	}
