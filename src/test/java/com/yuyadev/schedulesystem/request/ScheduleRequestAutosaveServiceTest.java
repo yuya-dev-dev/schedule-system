@@ -1,6 +1,7 @@
 package com.yuyadev.schedulesystem.request;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static com.yuyadev.schedulesystem.testsupport.ScheduleRequestInputTestBuilder.requestInput;
 
 import com.yuyadev.schedulesystem.TestClockConfiguration;
 import java.sql.SQLException;
@@ -145,10 +146,17 @@ class ScheduleRequestAutosaveServiceTest {
 	void savesDetailChangesWithoutReleasingPublishedSlot() {
 		AutosaveResult created = service.save(
 				null, 0, input("社員A", WorkType.INSTALL, "15:00", "16:00"));
-		ScheduleRequestInput changed = new ScheduleRequestInput(
-				WORK_DATE, LocalTime.of(15, 0), LocalTime.of(16, 0), WorkType.INSTALL,
-				"社員A", "更新後の作業内容", "愛知県豊田市架空町", "17時まで",
-				false, null, null, null, DispatchStatus.REQUIRED, "更新後の備考");
+		ScheduleRequestInput changed = requestInput()
+				.workDate(WORK_DATE)
+				.startTime(LocalTime.of(15, 0))
+				.endTime(LocalTime.of(16, 0))
+				.requesterName("社員A")
+				.requestDetail("更新後の作業内容")
+				.address("愛知県豊田市架空町")
+				.desiredArrivalTime("17時まで")
+				.dispatchStatus(DispatchStatus.REQUIRED)
+				.note("更新後の備考")
+				.build();
 
 		AutosaveResult edited = service.save(
 				created.requestId(), created.version(), changed);
@@ -180,20 +188,15 @@ class ScheduleRequestAutosaveServiceTest {
 
 	private ScheduleRequestInput input(
 			String requester, WorkType workType, String start, String end) {
-		return new ScheduleRequestInput(
-				WORK_DATE,
-				start == null ? null : LocalTime.parse(start, TIME_FORMAT),
-				end == null ? null : LocalTime.parse(end, TIME_FORMAT),
-				workType,
-				requester,
-				workType == null ? null : "架空の作業内容",
-				workType == null ? null : "愛知県名古屋市中区架空町1-1",
-				workType == null ? null : "午後",
-				false,
-				null,
-				null,
-				null,
-				DispatchStatus.UNANSWERED,
-				null);
+		return requestInput()
+				.workDate(WORK_DATE)
+				.startTime(start == null ? null : LocalTime.parse(start, TIME_FORMAT))
+				.endTime(end == null ? null : LocalTime.parse(end, TIME_FORMAT))
+				.workType(workType)
+				.requesterName(requester)
+				.requestDetail(workType == null ? null : "架空の作業内容")
+				.address(workType == null ? null : "愛知県名古屋市中区架空町1-1")
+				.desiredArrivalTime(workType == null ? null : "午後")
+				.build();
 	}
 }

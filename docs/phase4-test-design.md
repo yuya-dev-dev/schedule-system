@@ -120,7 +120,7 @@ E2EはPlaywright for Javaと `@SpringBootTest(webEnvironment = RANDOM_PORT)` を
 | `PostgreSqlConcurrencyTest` | 実AutosaveServiceの同時登録、隣接時間、排他制約、楽観ロック | P0ゲートとして必須 |
 | `MonthScheduleServiceTest` | 月生成、過去日、初期表示対象日 | 月境界ケースを追加 |
 | `ScheduleDatePolicyTest` | 日付、曜日、表示月の登録可否 | 月末・年末境界を追加 |
-| `ScheduleVerticalSliceTest` | HTTPからDBまでの主要経路 | HTML/Controller回帰として維持 |
+| `RequestWorkflowVerticalSliceTest`、`MonthScheduleVerticalSliceTest`、`DayOffVerticalSliceTest`、`RequestCopyVerticalSliceTest` | HTTPからDBまでの案件、月間表示、休み、コピーの主要経路 | HTML/Controller回帰として責務別に維持 |
 | `ApplicationRestartPersistenceTest` | Spring Boot再起動、H2ファイル再接続、一覧・詳細、Flyway履歴 | REC-007、REC-008の回帰試験として維持 |
 
 実ブラウザJavaScript、通信障害後の復旧、2画面同時操作、ローカルアプリ再起動後のファイルDB保持は自動化済みであり、個人iPhone Safariの実機確認も完了した。残る主な確認は共有環境決定後の社用端末と共有DB再起動である。
@@ -391,10 +391,10 @@ E2Eは1ケース内で多数の分岐を検証せず、失敗箇所を特定で�
 | DOM-003、DOM-005、DOM-007、DOM-008、DOM-014 | `ScheduleRequestTest` | `validatesBoundaryAndNormalizesInput` ほか | ローカル・CI |
 | DATE-002、DATE-005〜006 | `ScheduleDatePolicyTest`、`MonthScheduleServiceTest` | `handlesTodayAndVisibleMonthBoundaries`、`buildsTabsAcrossYearBoundary` | ローカル・CI |
 | SAVE-008、SAVE-012、SAVE-015 | `ScheduleRequestAutosaveServiceTest` | `keepsPublishedSlotWhileListFieldsAreTemporarilyMissing` ほか | ローカル・CI |
-| SAVE-013、LIST-001、LIST-004 | `ScheduleVerticalSliceTest` | `rendersDraftFallbackAndScheduleFallbacks` ほか | ローカル・CI |
+| SAVE-013、LIST-001、LIST-004 | `RequestWorkflowVerticalSliceTest`、`MonthScheduleVerticalSliceTest` | `rendersDraftFallbackAndScheduleFallbacks` ほか | ローカル・CI |
 | CON-007、CON-011〜013 | `PostgreSqlConcurrencyTest` | `keepsPublishedSlotAndRejectsIncompleteOverlap` ほか | ローカル・CI |
-| LIST-008、LIST-011 | `ScheduleVerticalSliceTest`、`MonthScheduleServiceTest` | `linksEveryOccupiedCellAndReassignsColors` | ローカル・CI |
-| FORM-008〜010、FORM-013 | `ScheduleVerticalSliceTest` | `rendersAndPersistsOptionalFormValues` ほか | ローカル・CI |
+| LIST-008、LIST-011 | `MonthScheduleVerticalSliceTest`、`MonthScheduleServiceTest` | `linksEveryOccupiedCellAndReassignsColors` | ローカル・CI |
+| FORM-008〜010、FORM-013 | `RequestWorkflowVerticalSliceTest` | `rendersAndPersistsOptionalFormValues` ほか | ローカル・CI |
 | E2E-001、E2E-004、E2E-007〜008、E2E-010〜011 | `ScheduleBrowserE2ETest` | 対応する業務経路名 | 実装済み、ローカル・CI |
 | E2E-002〜003、E2E-005〜006、E2E-009、E2E-012〜015 | `ScheduleBrowserRecoveryE2ETest` | 対応する業務経路名 | 実装済み、ローカル・CI |
 
