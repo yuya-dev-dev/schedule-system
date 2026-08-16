@@ -103,4 +103,16 @@ class DayOffVerticalSliceTest extends ScheduleVerticalSliceTestSupport {
 				.andExpect(content().string(org.hamcrest.Matchers.containsString(
 						"/requests/new?date=2026-06-24")));
 	}
+
+	@Test
+	void rejectsPastDayOffChangesAsBadRequest() throws Exception {
+		mockMvc.perform(get("/schedule/day-offs/new").param("date", "2026-06-19"))
+				.andExpect(status().isBadRequest());
+
+		mockMvc.perform(post("/schedule/day-offs").param("date", "2026-06-19"))
+				.andExpect(status().isBadRequest());
+
+		mockMvc.perform(post("/schedule/day-offs/2026-06-19/delete"))
+				.andExpect(status().isBadRequest());
+	}
 }

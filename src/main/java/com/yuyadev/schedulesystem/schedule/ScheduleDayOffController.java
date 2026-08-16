@@ -4,7 +4,6 @@ import static com.yuyadev.schedulesystem.schedule.SchedulePageSupport.dateTitle;
 import static com.yuyadev.schedulesystem.schedule.SchedulePageSupport.scheduleUrl;
 
 import java.time.LocalDate;
-import java.util.function.Supplier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -40,10 +39,14 @@ public class ScheduleDayOffController {
 	public String setDayOff(
 			@RequestParam LocalDate date,
 			RedirectAttributes redirectAttributes) {
-		DayOffService.DayOffResult result = withBadRequest(() -> dayOffService.setDayOff(date));
-		redirectAttributes.addFlashAttribute(
-				"notice", "休みにしました。削除件数: " + result.deletedCount() + "件");
-		return "redirect:" + scheduleUrl(result.workDate());
+		try {
+			DayOffService.DayOffResult result = dayOffService.setDayOff(date);
+			redirectAttributes.addFlashAttribute(
+					"notice", "休みにしました。削除件数: " + result.deletedCount() + "件");
+			return "redirect:" + scheduleUrl(result.workDate());
+		} catch (IllegalArgumentException exception) {
+			throw badRequest(exception);
+		}
 	}
 
 	@GetMapping("/{date}/delete")
@@ -59,36 +62,33 @@ public class ScheduleDayOffController {
 	public String unset(
 			@PathVariable LocalDate date,
 			RedirectAttributes redirectAttributes) {
-		runWithBadRequest(() -> dayOffService.unsetDayOff(date));
-		redirectAttributes.addFlashAttribute("notice", "休みを解除しました");
-		return "redirect:" + scheduleUrl(date);
+		try {
+			dayOffService.unsetDayOff(date);
+			redirectAttributes.addFlashAttribute("notice", "休みを解除しました");
+			return "redirect:" + scheduleUrl(date);
+		} catch (IllegalArgumentException exception) {
+			throw badRequest(exception);
+		}
 	}
 
 	private String renderSetConfirmation(LocalDate date, boolean secondStep, Model model) {
-		DayOffConfirmation confirmation = withBadRequest(() ->
-				dayOffService.confirmation(date, dateTitle(date)));
-		model.addAttribute("mode", "SET");
-		model.addAttribute("confirmation", confirmation);
-		model.addAttribute("date", date);
-		model.addAttribute("dateTitle", confirmation.dateTitle());
-		model.addAttribute("secondStep", secondStep);
-		model.addAttribute("scheduleUrl", scheduleUrl(date));
-		return "schedule/day-off-confirmation";
-	}
-
-	private <T> T withBadRequest(Supplier<T> operation) {
 		try {
-			return operation.get();
+			DayOffConfirmation confirmation =
+					dayOffService.confirmation(date, dateTitle(date));
+			model.addAttribute("mode", "SET");
+			model.addAttribute("confirmation", confirmation);
+			model.addAttribute("date", date);
+			model.addAttribute("dateTitle", confirmation.dateTitle());
+			model.addAttribute("secondStep", secondStep);
+			model.addAttribute("scheduleUrl", scheduleUrl(date));
+			return "schedule/day-off-confirmation";
 		} catch (IllegalArgumentException exception) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage(), exception);
+			throw badRequest(exception);
 		}
 	}
 
-	private void runWithBadRequest(Runnable operation) {
-		try {
-			operation.run();
-		} catch (IllegalArgumentException exception) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage(), exception);
-		}
+	private ResponseStatusException badRequest(IllegalArgumentException exception) {
+		return new ResponseStatusException(
+				HttpStatus.BAD_REQUEST, exception.getMessage(), exception);
 	}
 }
