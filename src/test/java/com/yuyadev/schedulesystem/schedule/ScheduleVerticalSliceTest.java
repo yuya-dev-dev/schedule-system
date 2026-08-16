@@ -22,8 +22,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import com.yuyadev.schedulesystem.request.ScheduleRequestPublishingService;
-import com.yuyadev.schedulesystem.request.PublishCommand;
 import com.yuyadev.schedulesystem.request.WorkType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -55,9 +53,6 @@ class ScheduleVerticalSliceTest {
 
 	@Autowired
 	private ScheduleDayOffRepository dayOffRepository;
-
-	@Autowired
-	private ScheduleRequestPublishingService publishingService;
 
 	@Autowired
 	private MonthScheduleService monthScheduleService;
@@ -270,9 +265,9 @@ class ScheduleVerticalSliceTest {
 	@Test
 	void mapsThirtyMinuteRequestsToCellsWithColorsAndContinuationArrows() {
 		LocalDate workDate = LocalDate.of(2026, 6, 24);
-		publishingService.publish(new PublishCommand(
+		repository.saveAndFlush(ScheduleRequest.published(
 				workDate, LocalTime.of(10, 0), LocalTime.of(11, 0), "社員A", WorkType.INSTALL));
-		publishingService.publish(new PublishCommand(
+		repository.saveAndFlush(ScheduleRequest.published(
 				workDate, LocalTime.of(14, 0), LocalTime.of(15, 0), "社員B", WorkType.DELIVERY));
 
 		MonthScheduleView view = monthScheduleService.getMonth("2026-06");
@@ -711,7 +706,7 @@ class ScheduleVerticalSliceTest {
 
 	@Test
 	void requesterIsOptionalForReceiving() throws Exception {
-		publishingService.publish(new PublishCommand(
+		repository.saveAndFlush(ScheduleRequest.published(
 				LocalDate.of(2026, 6, 24),
 				LocalTime.of(8, 30),
 				LocalTime.of(9, 0),

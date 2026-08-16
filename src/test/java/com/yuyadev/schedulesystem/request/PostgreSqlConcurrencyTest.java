@@ -45,9 +45,6 @@ class PostgreSqlConcurrencyTest {
 			new PostgreSQLContainer<>("postgres:17-alpine").withStartupTimeout(Duration.ofMinutes(2));
 
 	@Autowired
-	private ScheduleRequestPublishingService publishingService;
-
-	@Autowired
 	private ScheduleRequestAutosaveService autosaveService;
 
 	@Autowired
@@ -56,66 +53,6 @@ class PostgreSqlConcurrencyTest {
 	@AfterEach
 	void deleteRequests() {
 		repository.deleteAll();
-	}
-
-	@Test
-	void onlyOneOverlappingRequestIsPublishedWhenSavedConcurrently() throws Exception {
-		PublishCommand firstCommand = new PublishCommand(
-				WORK_DATE,
-				LocalTime.of(10, 0),
-				LocalTime.of(12, 0),
-				"社員A",
-				WorkType.INSTALL);
-		PublishCommand overlappingCommand = new PublishCommand(
-				WORK_DATE,
-				LocalTime.of(11, 0),
-				LocalTime.of(13, 0),
-				"社員B",
-				WorkType.DELIVERY);
-		CountDownLatch ready = new CountDownLatch(2);
-		CountDownLatch start = new CountDownLatch(1);
-
-		try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
-			Future<PublishResult> first =
-					executor.submit(() -> publishAfterSignal(firstCommand, ready, start));
-			Future<PublishResult> second =
-					executor.submit(() -> publishAfterSignal(overlappingCommand, ready, start));
-
-			assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
-			start.countDown();
-
-			List<PublishResult> results = List.of(first.get(), second.get());
-			List<PublishResult.Status> statuses =
-					results.stream().map(PublishResult::status).toList();
-
-			assertThat(statuses)
-					.containsExactlyInAnyOrder(
-							PublishResult.Status.PUBLISHED, PublishResult.Status.TIME_CONFLICT);
-			assertThat(results)
-					.filteredOn(result -> result.status() == PublishResult.Status.TIME_CONFLICT)
-					.singleElement()
-					.extracting(PublishResult::requestId)
-					.isNotNull();
-			assertThat(repository.count()).isEqualTo(2);
-			assertThat(repository.countByEntryState(EntryState.PUBLISHED)).isOne();
-			assertThat(repository.countByEntryState(EntryState.DRAFT)).isOne();
-			ScheduleRequest conflictDraft = repository.findAll().stream()
-					.filter(request -> request.getEntryState() == EntryState.DRAFT)
-					.findFirst()
-					.orElseThrow();
-			assertThat(repository.findAll())
-					.extracting(ScheduleRequest::getRequesterName)
-					.containsExactlyInAnyOrder("社員A", "社員B");
-			assertThat(conflictDraft.getDraftReason()).isEqualTo(DraftReason.TIME_CONFLICT);
-			assertThat(conflictDraft.getDraftErrorDetail()).contains("既存案件", "と重複");
-			if (conflictDraft.getRequesterName().equals("社員A")) {
-				assertThat(conflictDraft.getStartTime()).isEqualTo(LocalTime.of(10, 0));
-				assertThat(conflictDraft.getEndTime()).isEqualTo(LocalTime.of(12, 0));
-			} else {
-				assertThat(conflictDraft.getStartTime()).isEqualTo(LocalTime.of(11, 0));
-				assertThat(conflictDraft.getEndTime()).isEqualTo(LocalTime.of(13, 0));
-			}
-		}
 	}
 
 	@Test
@@ -191,35 +128,27 @@ class PostgreSqlConcurrencyTest {
 
 	@Test
 	void allowsARequestToStartWhenThePreviousRequestEnds() {
-		PublishResult first = publishingService.publish(new PublishCommand(
-				WORK_DATE,
-				LocalTime.of(12, 0),
-				LocalTime.of(14, 0),
-				"社員A",
-				WorkType.INSTALL));
-		PublishResult next = publishingService.publish(new PublishCommand(
-				WORK_DATE,
-				LocalTime.of(14, 0),
-				LocalTime.of(15, 0),
-				"社員B",
-				WorkType.COLLECT));
+		AutosaveResult first = autosaveService.save(
+				null, 0, input(LocalTime.of(12, 0), LocalTime.of(14, 0), "社員A", WorkType.INSTALL));
+		AutosaveResult next = autosaveService.save(
+				null, 0, input(LocalTime.of(14, 0), LocalTime.of(15, 0), "社員B", WorkType.COLLECT));
 
-		assertThat(first.status()).isEqualTo(PublishResult.Status.PUBLISHED);
-		assertThat(next.status()).isEqualTo(PublishResult.Status.PUBLISHED);
+		assertThat(first.status()).isEqualTo(AutosaveResult.Status.SAVED);
+		assertThat(next.status()).isEqualTo(AutosaveResult.Status.SAVED);
 		assertThat(repository.count()).isEqualTo(2);
 	}
 
 	@Test
 	void rejectsUpdateFromAStaleEntityVersion() {
-		PublishResult result = publishingService.publish(new PublishCommand(
+		ScheduleRequest saved = repository.saveAndFlush(ScheduleRequest.published(
 				WORK_DATE,
 				LocalTime.of(13, 0),
 				LocalTime.of(14, 0),
 				"社員A",
 				WorkType.COLLECT));
 
-		ScheduleRequest firstCopy = repository.findById(result.requestId()).orElseThrow();
-		ScheduleRequest staleCopy = repository.findById(result.requestId()).orElseThrow();
+		ScheduleRequest firstCopy = repository.findById(saved.getId()).orElseThrow();
+		ScheduleRequest staleCopy = repository.findById(saved.getId()).orElseThrow();
 		firstCopy.changeRequesterName("社員B");
 		repository.saveAndFlush(firstCopy);
 		staleCopy.changeRequesterName("社員C");
@@ -230,17 +159,17 @@ class PostgreSqlConcurrencyTest {
 
 	@Test
 	void keepsPublishedRequestWhenAnotherRequestTargetsItsSlotDuringEditing() throws Exception {
-		PublishResult existingResult = publishingService.publish(new PublishCommand(
-				WORK_DATE, LocalTime.of(9, 0), LocalTime.of(10, 0),
-				"社員A", WorkType.INSTALL));
+		AutosaveResult existingResult = autosaveService.save(
+				null,
+				0,
+				input(LocalTime.of(9, 0), LocalTime.of(10, 0), "社員A", WorkType.INSTALL));
 		ScheduleRequest existing = repository.findById(existingResult.requestId()).orElseThrow();
 		ScheduleRequestInput edit = new ScheduleRequestInput(
 				WORK_DATE, LocalTime.of(9, 0), LocalTime.of(10, 0), WorkType.INSTALL,
 				"社員A", "更新後の作業内容", "愛知県名古屋市架空町", "午前中",
 				false, null, null, null, DispatchStatus.UNANSWERED, null);
-		PublishCommand newcomer = new PublishCommand(
-				WORK_DATE, LocalTime.of(9, 30), LocalTime.of(10, 30),
-				"社員B", WorkType.DELIVERY);
+		ScheduleRequestInput newcomer = input(
+				LocalTime.of(9, 30), LocalTime.of(10, 30), "社員B", WorkType.DELIVERY);
 		CountDownLatch ready = new CountDownLatch(2);
 		CountDownLatch start = new CountDownLatch(1);
 
@@ -252,14 +181,14 @@ class PostgreSqlConcurrencyTest {
 				}
 				return autosaveService.save(existing.getId(), existing.getVersion(), edit);
 			});
-			Future<PublishResult> competing =
-					executor.submit(() -> publishAfterSignal(newcomer, ready, start));
+			Future<AutosaveResult> competing =
+					executor.submit(() -> autosaveAfterSignal(newcomer, ready, start));
 
 			assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
 			start.countDown();
 
 			assertThat(edited.get().status()).isEqualTo(AutosaveResult.Status.SAVED);
-			assertThat(competing.get().status()).isEqualTo(PublishResult.Status.TIME_CONFLICT);
+			assertThat(competing.get().status()).isEqualTo(AutosaveResult.Status.TIME_CONFLICT);
 		}
 
 		ScheduleRequest unchangedSlot = repository.findById(existing.getId()).orElseThrow();
@@ -284,52 +213,18 @@ class PostgreSqlConcurrencyTest {
 	}
 
 	@Test
-	void publishesDifferentSlotsConcurrently() throws Exception {
-		PublishCommand firstCommand = new PublishCommand(
-				WORK_DATE, LocalTime.of(13, 0), LocalTime.of(14, 0),
-				"社員A", WorkType.INSTALL);
-		PublishCommand secondCommand = new PublishCommand(
-				WORK_DATE, LocalTime.of(14, 0), LocalTime.of(15, 0),
-				"社員B", WorkType.COLLECT);
-		CountDownLatch ready = new CountDownLatch(2);
-		CountDownLatch start = new CountDownLatch(1);
-
-		try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
-			Future<PublishResult> first =
-					executor.submit(() -> publishAfterSignal(firstCommand, ready, start));
-			Future<PublishResult> second =
-					executor.submit(() -> publishAfterSignal(secondCommand, ready, start));
-
-			assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
-			start.countDown();
-
-			assertThat(List.of(first.get().status(), second.get().status()))
-					.containsOnly(PublishResult.Status.PUBLISHED);
-		}
-		assertThat(repository.countByEntryState(EntryState.PUBLISHED)).isEqualTo(2);
-	}
-
-	@Test
 	void incompletePublishedRequestStillReservesItsSlot() {
 		repository.saveAndFlush(ScheduleRequest.published(
 				WORK_DATE, LocalTime.of(15, 0), LocalTime.of(16, 0), "社員A", null));
 
-		PublishResult result = publishingService.publish(new PublishCommand(
-				WORK_DATE, LocalTime.of(15, 30), LocalTime.of(16, 30),
-				"社員B", WorkType.DELIVERY));
+		AutosaveResult result = autosaveService.save(
+				null,
+				0,
+				input(LocalTime.of(15, 30), LocalTime.of(16, 30), "社員B", WorkType.DELIVERY));
 
-		assertThat(result.status()).isEqualTo(PublishResult.Status.TIME_CONFLICT);
+		assertThat(result.status()).isEqualTo(AutosaveResult.Status.TIME_CONFLICT);
 		assertThat(repository.countByEntryState(EntryState.PUBLISHED)).isOne();
 		assertThat(repository.countByEntryState(EntryState.DRAFT)).isOne();
-	}
-
-	private PublishResult publishAfterSignal(
-			PublishCommand command, CountDownLatch ready, CountDownLatch start) throws InterruptedException {
-		ready.countDown();
-		if (!start.await(10, TimeUnit.SECONDS)) {
-			throw new IllegalStateException("Concurrent publish did not start in time");
-		}
-		return publishingService.publish(command);
 	}
 
 	private AutosaveResult autosaveAfterSignal(

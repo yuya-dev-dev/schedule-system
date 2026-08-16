@@ -58,10 +58,6 @@ public class ScheduleRequestForm {
 		return form;
 	}
 
-	public PublishCommand toCommand() {
-		return new PublishCommand(workDate, startTime, endTime, requesterName, workType);
-	}
-
 	public ScheduleRequestInput toInput() {
 		return new ScheduleRequestInput(
 				workDate, startTime, endTime, workType, requesterName, requestDetail,

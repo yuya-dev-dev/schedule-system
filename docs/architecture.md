@@ -31,17 +31,17 @@ flowchart TD
     CONTROLLER["Controller\nHTTP・画面遷移"]
     POLICY["ScheduleDatePolicy\n日付・編集可否"]
     AUTOSAVE["AutosaveService\n下書き・公開・重複判定"]
-    EDIT["Editing / Deletion Service\n同時編集・物理削除"]
+    OPERATIONS["Copy / Deletion Service\nコピー・物理削除"]
     MONTH["MonthScheduleService\n月間セル・色・矢印"]
     REPOSITORY["Repository"]
     DB[("schedule_requests")]
 
     CONTROLLER --> POLICY
     CONTROLLER --> AUTOSAVE
-    CONTROLLER --> EDIT
+    CONTROLLER --> OPERATIONS
     CONTROLLER --> MONTH
     AUTOSAVE --> REPOSITORY
-    EDIT --> REPOSITORY
+    OPERATIONS --> REPOSITORY
     MONTH --> REPOSITORY
     REPOSITORY --> DB
 ```

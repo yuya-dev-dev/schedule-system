@@ -20,7 +20,7 @@ class ScheduleRequestWorkflowTest {
 	private static final LocalDate WORK_DATE = LocalDate.of(2026, 6, 24);
 
 	@Autowired
-	private ScheduleRequestPublishingService publishingService;
+	private ScheduleRequestAutosaveService autosaveService;
 
 	@Autowired
 	private ScheduleRequestRepository repository;
@@ -32,12 +32,12 @@ class ScheduleRequestWorkflowTest {
 
 	@Test
 	void savesAnOverlappingRequestAsDraftOnH2() {
-		publishingService.publish(command(10, 0, 12, 0, "社員A"));
+		autosaveService.save(null, 0, input(10, 0, 12, 0, "社員A"));
 
-		PublishResult result =
-				publishingService.publish(command(11, 0, 13, 0, "社員B"));
+		AutosaveResult result =
+				autosaveService.save(null, 0, input(11, 0, 13, 0, "社員B"));
 
-		assertThat(result.status()).isEqualTo(PublishResult.Status.TIME_CONFLICT);
+		assertThat(result.status()).isEqualTo(AutosaveResult.Status.TIME_CONFLICT);
 		assertThat(result.requestId()).isNotNull();
 		assertThat(repository.countByEntryState(EntryState.PUBLISHED)).isOne();
 		assertThat(repository.countByEntryState(EntryState.DRAFT)).isOne();
@@ -51,38 +51,57 @@ class ScheduleRequestWorkflowTest {
 
 	@Test
 	void draftDoesNotReserveTimeAndIsRecheckedBeforePublishing() {
-		Long draftId = publishingService.saveDraft(command(9, 0, 11, 0, "社員A"));
+		AutosaveResult initialDraft =
+				autosaveService.save(null, 0, input(9, 0, 11, 0, null));
 
-		PublishResult published =
-				publishingService.publish(command(10, 0, 12, 0, "社員B"));
-		PublishResult draftResult = publishingService.publishDraft(draftId);
+		AutosaveResult published =
+				autosaveService.save(null, 0, input(10, 0, 12, 0, "社員B"));
+		AutosaveResult draftResult = autosaveService.save(
+				initialDraft.requestId(), initialDraft.version(), input(9, 0, 11, 0, "社員A"));
 
-		assertThat(published.status()).isEqualTo(PublishResult.Status.PUBLISHED);
-		assertThat(draftResult.status()).isEqualTo(PublishResult.Status.TIME_CONFLICT);
-		ScheduleRequest draft = repository.findById(draftId).orElseThrow();
+		assertThat(published.status()).isEqualTo(AutosaveResult.Status.SAVED);
+		assertThat(draftResult.status()).isEqualTo(AutosaveResult.Status.TIME_CONFLICT);
+		assertThat(draftResult.requestId()).isEqualTo(initialDraft.requestId());
+		assertThat(repository.count()).isEqualTo(2);
+		ScheduleRequest draft = repository.findById(initialDraft.requestId()).orElseThrow();
 		assertThat(draft.getEntryState()).isEqualTo(EntryState.DRAFT);
 		assertThat(draft.getDraftReason()).isEqualTo(DraftReason.TIME_CONFLICT);
 	}
 
 	@Test
 	void publishesACompleteDraftWhenThereIsNoConflict() {
-		Long draftId = publishingService.saveDraft(command(14, 0, 15, 0, "社員A"));
+		AutosaveResult initialDraft =
+				autosaveService.save(null, 0, input(14, 0, 15, 0, null));
 
-		PublishResult result = publishingService.publishDraft(draftId);
+		AutosaveResult result = autosaveService.save(
+				initialDraft.requestId(),
+				initialDraft.version(),
+				input(14, 0, 15, 0, "社員A"));
 
-		assertThat(result.status()).isEqualTo(PublishResult.Status.PUBLISHED);
-		ScheduleRequest request = repository.findById(draftId).orElseThrow();
+		assertThat(result.status()).isEqualTo(AutosaveResult.Status.SAVED);
+		assertThat(result.requestId()).isEqualTo(initialDraft.requestId());
+		assertThat(repository.count()).isOne();
+		ScheduleRequest request = repository.findById(initialDraft.requestId()).orElseThrow();
 		assertThat(request.getEntryState()).isEqualTo(EntryState.PUBLISHED);
 		assertThat(request.getDraftReason()).isNull();
 	}
 
-	private PublishCommand command(
+	private ScheduleRequestInput input(
 			int startHour, int startMinute, int endHour, int endMinute, String requesterName) {
-		return new PublishCommand(
+		return new ScheduleRequestInput(
 				WORK_DATE,
 				LocalTime.of(startHour, startMinute),
 				LocalTime.of(endHour, endMinute),
+				WorkType.INSTALL,
 				requesterName,
-				WorkType.INSTALL);
+				"架空の作業内容",
+				"愛知県名古屋市中区架空町1-1",
+				"午後",
+				false,
+				null,
+				null,
+				null,
+				DispatchStatus.UNANSWERED,
+				null);
 	}
 }
