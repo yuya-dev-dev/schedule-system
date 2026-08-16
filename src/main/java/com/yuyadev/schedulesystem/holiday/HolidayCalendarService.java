@@ -16,33 +16,33 @@ public class HolidayCalendarService {
 
 	static final String SOURCE_NAME = "CABINET_OFFICE_JAPAN";
 
-	private final CalendarHolidayRepository repository;
+	private final CalendarHolidayRepository holidayRepository;
 	private final Clock clock;
-	private final Duration maxAge;
+	private final Duration cacheMaxAge;
 
 	public HolidayCalendarService(
-			CalendarHolidayRepository repository,
+			CalendarHolidayRepository holidayRepository,
 			Clock clock,
 			@Value("${schedule.holidays.cache-days:7}") long cacheDays) {
-		this.repository = repository;
+		this.holidayRepository = holidayRepository;
 		this.clock = clock;
-		this.maxAge = Duration.ofDays(cacheDays);
+		this.cacheMaxAge = Duration.ofDays(cacheDays);
 	}
 
 	public boolean isHoliday(LocalDate date) {
-		return date != null && repository.existsById(date);
+		return date != null && holidayRepository.existsById(date);
 	}
 
 	public Set<LocalDate> holidayDatesBetween(LocalDate startDate, LocalDate endDate) {
-		return repository.findByHolidayDateBetween(startDate, endDate).stream()
+		return holidayRepository.findByHolidayDateBetween(startDate, endDate).stream()
 				.map(CalendarHoliday::getHolidayDate)
 				.collect(Collectors.toUnmodifiableSet());
 	}
 
 	public boolean cacheIsFresh() {
 		LocalDateTime threshold = LocalDateTime.ofInstant(
-				clock.instant().minus(maxAge), clock.getZone());
-		return repository.findTopByOrderBySyncedAtDesc()
+				clock.instant().minus(cacheMaxAge), clock.getZone());
+		return holidayRepository.findTopByOrderBySyncedAtDesc()
 				.map(CalendarHoliday::getSyncedAt)
 				.filter(syncedAt -> !syncedAt.isBefore(threshold))
 				.isPresent();
@@ -55,7 +55,7 @@ public class HolidayCalendarService {
 				.map(definition -> new CalendarHoliday(
 						definition.date(), definition.name(), SOURCE_NAME, syncedAt))
 				.toList();
-		repository.deleteAllInBatch();
-		repository.saveAll(holidays);
+		holidayRepository.deleteAllInBatch();
+		holidayRepository.saveAll(holidays);
 	}
 }

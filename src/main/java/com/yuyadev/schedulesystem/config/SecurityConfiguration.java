@@ -24,26 +24,33 @@ public class SecurityConfiguration {
 			AccessGateProperties accessGateProperties) throws Exception {
 		http.csrf(AbstractHttpConfigurer::disable);
 		if (accessGateProperties.enabled()) {
-			http.authorizeHttpRequests(auth -> auth
-							.requestMatchers("/login", "/css/**", "/js/**", "/error", "/favicon.ico").permitAll()
-							.anyRequest().authenticated())
-					.formLogin(form -> form
-							.loginPage("/login")
-							.loginProcessingUrl("/login")
-							.usernameParameter("accessUser")
-							.passwordParameter("accessPassword")
-							.defaultSuccessUrl("/schedule", true)
-							.failureUrl("/login?error"))
-					.httpBasic(AbstractHttpConfigurer::disable)
-					.logout(AbstractHttpConfigurer::disable);
-		}
-		else {
-			http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-					.httpBasic(AbstractHttpConfigurer::disable)
-					.formLogin(AbstractHttpConfigurer::disable)
-					.logout(AbstractHttpConfigurer::disable);
+			configurePasswordAccessGate(http);
+		} else {
+			configureOpenAccess(http);
 		}
 		return http.build();
+	}
+
+	private void configurePasswordAccessGate(HttpSecurity http) throws Exception {
+		http.authorizeHttpRequests(auth -> auth
+						.requestMatchers("/login", "/css/**", "/js/**", "/error", "/favicon.ico").permitAll()
+						.anyRequest().authenticated())
+				.formLogin(form -> form
+						.loginPage("/login")
+						.loginProcessingUrl("/login")
+						.usernameParameter("accessUser")
+						.passwordParameter("accessPassword")
+						.defaultSuccessUrl("/schedule", true)
+						.failureUrl("/login?error"))
+				.httpBasic(AbstractHttpConfigurer::disable)
+				.logout(AbstractHttpConfigurer::disable);
+	}
+
+	private void configureOpenAccess(HttpSecurity http) throws Exception {
+		http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+				.httpBasic(AbstractHttpConfigurer::disable)
+				.formLogin(AbstractHttpConfigurer::disable)
+				.logout(AbstractHttpConfigurer::disable);
 	}
 
 	@Bean

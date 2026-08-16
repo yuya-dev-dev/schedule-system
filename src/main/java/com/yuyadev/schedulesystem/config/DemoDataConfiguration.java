@@ -22,36 +22,45 @@ public class DemoDataConfiguration {
 
 	@Bean
 	ApplicationRunner demoDataLoader(
-			ScheduleRequestRepository repository,
+			ScheduleRequestRepository requestRepository,
 			ScheduleDatePolicy datePolicy,
 			Clock clock) {
-		return args -> {
-			if (repository.count() > 0) {
-				return;
-			}
-			List<LocalDate> workDates = nextWorkDates(LocalDate.now(clock), datePolicy);
-			repository.saveAll(List.of(
-					complete(normalInput(
-							workDates.get(0), LocalTime.of(9, 0), WorkType.INSTALL,
-							"架空社員A", "架空のコーヒーサーバー1台を設置",
-							"愛知県名古屋市中区架空町1-1", "10時頃")),
-					complete(normalInput(
-							workDates.get(0), LocalTime.of(11, 0), WorkType.COLLECT,
-							"架空社員B", "架空のウォーターサーバー1台を回収",
-							"愛知県豊田市架空町2-2", "午前中")),
-					complete(normalInput(
-							workDates.get(0), LocalTime.of(14, 0), WorkType.EXCHANGE,
-							"架空社員C", "架空機器の交換作業",
-							"愛知県岡崎市架空町3-3", "午後かつ16時まで")),
-					complete(normalInput(
-							workDates.get(1), LocalTime.of(9, 30), WorkType.DELIVERY,
-							"架空社員D", "架空の商品を3箱配達",
-							"愛知県刈谷市架空町4-4", "10時以降")),
-					complete(internalInput(
-							workDates.get(1), LocalTime.of(12, 0), WorkType.RECEIVING)),
-					complete(internalInput(
-							workDates.get(1), LocalTime.of(15, 0), WorkType.PRODUCT_MANAGEMENT))));
-		};
+		return args -> loadDemoDataWhenEmpty(requestRepository, datePolicy, clock);
+	}
+
+	private void loadDemoDataWhenEmpty(
+			ScheduleRequestRepository requestRepository,
+			ScheduleDatePolicy datePolicy,
+			Clock clock) {
+		if (requestRepository.count() > 0) {
+			return;
+		}
+		List<LocalDate> workDates = nextWorkDates(LocalDate.now(clock), datePolicy);
+		requestRepository.saveAll(demoRequests(workDates));
+	}
+
+	private List<ScheduleRequest> demoRequests(List<LocalDate> workDates) {
+		return List.of(
+				published(normalInput(
+						workDates.get(0), LocalTime.of(9, 0), WorkType.INSTALL,
+						"架空社員A", "架空のコーヒーサーバー1台を設置",
+						"愛知県名古屋市中区架空町1-1", "10時頃")),
+				published(normalInput(
+						workDates.get(0), LocalTime.of(11, 0), WorkType.COLLECT,
+						"架空社員B", "架空のウォーターサーバー1台を回収",
+						"愛知県豊田市架空町2-2", "午前中")),
+				published(normalInput(
+						workDates.get(0), LocalTime.of(14, 0), WorkType.EXCHANGE,
+						"架空社員C", "架空機器の交換作業",
+						"愛知県岡崎市架空町3-3", "午後かつ16時まで")),
+				published(normalInput(
+						workDates.get(1), LocalTime.of(9, 30), WorkType.DELIVERY,
+						"架空社員D", "架空の商品を3箱配達",
+						"愛知県刈谷市架空町4-4", "10時以降")),
+				published(internalInput(
+						workDates.get(1), LocalTime.of(12, 0), WorkType.RECEIVING)),
+				published(internalInput(
+						workDates.get(1), LocalTime.of(15, 0), WorkType.PRODUCT_MANAGEMENT)));
 	}
 
 	private List<LocalDate> nextWorkDates(
@@ -87,7 +96,7 @@ public class DemoDataConfiguration {
 				DispatchStatus.UNANSWERED, null);
 	}
 
-	private ScheduleRequest complete(ScheduleRequestInput input) {
+	private ScheduleRequest published(ScheduleRequestInput input) {
 		ScheduleRequest request = ScheduleRequest.draft(input);
 		request.publish();
 		return request;

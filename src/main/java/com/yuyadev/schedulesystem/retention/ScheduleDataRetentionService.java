@@ -31,17 +31,25 @@ public class ScheduleDataRetentionService {
 	@Transactional
 	public RetentionCleanupResult deleteExpiredScheduleData() {
 		LocalDate cutoffDate = LocalDate.now(clock).minusMonths(1);
+		RetentionCleanupResult result = deleteScheduleDataBefore(cutoffDate);
+		logCleanupResult(result);
+		return result;
+	}
+
+	private RetentionCleanupResult deleteScheduleDataBefore(LocalDate cutoffDate) {
 		long publishedRequests = requestRepository.deleteByEntryStateAndWorkDateBefore(
 				EntryState.PUBLISHED, cutoffDate);
 		long drafts = requestRepository.deleteByEntryStateAndWorkDateBefore(
 				EntryState.DRAFT, cutoffDate);
 		long dayOffs = dayOffRepository.deleteByWorkDateBefore(cutoffDate);
-		RetentionCleanupResult result = new RetentionCleanupResult(
+		return new RetentionCleanupResult(
 				publishedRequests, drafts, dayOffs);
+	}
+
+	private void logCleanupResult(RetentionCleanupResult result) {
 		log.info(
 				"Expired schedule data cleanup completed: publishedRequests={}, drafts={}, dayOffs={}",
 				result.publishedRequests(), result.drafts(), result.dayOffs());
-		return result;
 	}
 
 	public record RetentionCleanupResult(
