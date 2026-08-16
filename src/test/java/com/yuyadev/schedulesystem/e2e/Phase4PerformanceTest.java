@@ -86,7 +86,9 @@ class Phase4PerformanceTest {
 
 	@AfterAll
 	void closeBrowser() {
-		browserSession.close();
+		if (browserSession != null) {
+			browserSession.close();
+		}
 	}
 
 	@Test

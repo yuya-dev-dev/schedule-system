@@ -68,7 +68,9 @@ class ScheduleBrowserRecoveryE2ETest {
 
 	@AfterAll
 	void closeBrowser() {
-		browserSession.close();
+		if (browserSession != null) {
+			browserSession.close();
+		}
 	}
 
 	@Test
