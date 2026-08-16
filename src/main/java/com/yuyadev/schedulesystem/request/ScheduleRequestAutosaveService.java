@@ -73,13 +73,14 @@ public class ScheduleRequestAutosaveService {
 			if (request.getVersion() != expectedVersion) {
 				return SaveResult.stale(request.getId());
 			}
+			boolean canAppearOnSchedule = canAppearOnSchedule(input);
 			if (request.getEntryState() == EntryState.PUBLISHED
-					&& !canAppearOnSchedule(input)) {
+					&& !canAppearOnSchedule) {
 				return SaveResult.invalidInput(
 						request.getId(), ScheduleRequest.missingRequiredFields(input));
 			}
 			if (request.getEntryState() == EntryState.PUBLISHED
-					&& canAppearOnSchedule(input)
+					&& canAppearOnSchedule
 					&& findConflict(id, input).isPresent()) {
 				return SaveResult.conflict(request.getId());
 			}
@@ -122,13 +123,11 @@ public class ScheduleRequestAutosaveService {
 
 	private Optional<ScheduleRequest> findConflict(Long id, ScheduleRequestInput input) {
 		if (id == null) {
-			return repository
-					.findFirstByWorkDateAndEntryStateAndStartTimeLessThanAndEndTimeGreaterThanOrderByStartTime(
-							input.workDate(), EntryState.PUBLISHED, input.endTime(), input.startTime());
+			return repository.findPublishedOverlaps(
+					input.workDate(), input.startTime(), input.endTime()).stream().findFirst();
 		}
-		return repository
-				.findFirstByIdNotAndWorkDateAndEntryStateAndStartTimeLessThanAndEndTimeGreaterThanOrderByStartTime(
-						id, input.workDate(), EntryState.PUBLISHED, input.endTime(), input.startTime());
+		return repository.findOtherPublishedOverlaps(
+				id, input.workDate(), input.startTime(), input.endTime()).stream().findFirst();
 	}
 
 	private boolean canAppearOnSchedule(ScheduleRequestInput input) {
@@ -141,16 +140,13 @@ public class ScheduleRequestAutosaveService {
 
 	private AutosaveResult toAutosaveResult(SaveResult result) {
 		ScheduleRequest request = find(result.requestId());
-		if (result.stale()) {
-			return AutosaveResult.stale(request);
-		}
-		if (result.invalidInput()) {
-			return AutosaveResult.invalidPublishedEdit(request, result.missingFields());
-		}
-		if (result.conflict()) {
-			return AutosaveResult.timeConflict(request);
-		}
-		return AutosaveResult.saved(request);
+		return switch (result.status()) {
+			case SAVED -> AutosaveResult.saved(request);
+			case STALE -> AutosaveResult.stale(request);
+			case CONFLICT -> AutosaveResult.timeConflict(request);
+			case INVALID_INPUT ->
+					AutosaveResult.invalidPublishedEdit(request, result.missingFields());
+		};
 	}
 
 	private ScheduleRequest find(Long id) {
@@ -178,26 +174,28 @@ public class ScheduleRequestAutosaveService {
 		return hasSqlState(throwable, POSTGRES_DEADLOCK_DETECTED);
 	}
 
-	private record SaveResult(
-			Long requestId,
-			boolean stale,
-			boolean conflict,
-			boolean invalidInput,
-			List<String> missingFields) {
+	private enum SaveStatus {
+		SAVED,
+		STALE,
+		CONFLICT,
+		INVALID_INPUT
+	}
+
+	private record SaveResult(Long requestId, SaveStatus status, List<String> missingFields) {
 		private static SaveResult saved(Long id) {
-			return new SaveResult(id, false, false, false, List.of());
+			return new SaveResult(id, SaveStatus.SAVED, List.of());
 		}
 
 		private static SaveResult stale(Long id) {
-			return new SaveResult(id, true, false, false, List.of());
+			return new SaveResult(id, SaveStatus.STALE, List.of());
 		}
 
 		private static SaveResult conflict(Long id) {
-			return new SaveResult(id, false, true, false, List.of());
+			return new SaveResult(id, SaveStatus.CONFLICT, List.of());
 		}
 
 		private static SaveResult invalidInput(Long id, List<String> missingFields) {
-			return new SaveResult(id, false, false, true, List.copyOf(missingFields));
+			return new SaveResult(id, SaveStatus.INVALID_INPUT, List.copyOf(missingFields));
 		}
 	}
 }

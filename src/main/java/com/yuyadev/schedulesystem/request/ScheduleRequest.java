@@ -297,16 +297,24 @@ public class ScheduleRequest {
 		Objects.requireNonNull(input);
 		Objects.requireNonNull(input.workDate());
 		validateDraftTime(input.startTime(), input.endTime());
+		applyScheduleFields(input);
+		if (isInternalWork(input.workType())) {
+			clearNormalWorkDetails();
+		} else {
+			applyNormalWorkDetails(input);
+		}
+		markIncompleteDraft();
+	}
+
+	private void applyScheduleFields(ScheduleRequestInput input) {
 		this.workDate = input.workDate();
 		this.startTime = input.startTime();
 		this.endTime = input.endTime();
 		this.workType = input.workType();
 		this.requesterName = normalize(input.requesterName());
-		if (isInternalWork(input.workType())) {
-			clearNormalWorkDetails();
-			markIncompleteDraft();
-			return;
-		}
+	}
+
+	private void applyNormalWorkDetails(ScheduleRequestInput input) {
 		this.requestDetail = normalize(input.requestDetail());
 		this.address = normalize(input.address());
 		this.desiredArrivalTime = normalize(input.desiredArrivalTime());
@@ -317,7 +325,6 @@ public class ScheduleRequest {
 		this.dispatchStatus = input.dispatchStatus() == null
 				? DispatchStatus.UNANSWERED : input.dispatchStatus();
 		this.note = normalize(input.note());
-		markIncompleteDraft();
 	}
 
 	private void clearNormalWorkDetails() {
