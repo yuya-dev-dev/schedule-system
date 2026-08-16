@@ -45,7 +45,7 @@ public class RequestCopyService {
 			return RequestCopyResult.invalid(exception.getMessage());
 		}
 
-		ScheduleRequestInput input = copyInput(source, targetDate);
+		ScheduleRequestInput input = ScheduleRequestInput.forCopy(source, targetDate);
 		Optional<ScheduleRequest> conflict = findConflict(input);
 		if (conflict.isPresent()) {
 			return RequestCopyResult.timeConflict(
@@ -66,24 +66,6 @@ public class RequestCopyService {
 	private Optional<ScheduleRequest> findConflict(ScheduleRequestInput input) {
 		return repository.findPublishedOverlaps(
 				input.workDate(), input.startTime(), input.endTime()).stream().findFirst();
-	}
-
-	private ScheduleRequestInput copyInput(ScheduleRequest source, LocalDate targetDate) {
-		return new ScheduleRequestInput(
-				targetDate,
-				source.getStartTime(),
-				source.getEndTime(),
-				source.getWorkType(),
-				source.getRequesterName(),
-				source.getRequestDetail(),
-				source.getAddress(),
-				source.getDesiredArrivalTime(),
-				source.isCompanionRequired(),
-				source.getMeetingPlace(),
-				source.getDepartureTime(),
-				source.getVehicleName(),
-				source.getDispatchStatus(),
-				source.getNote());
 	}
 
 	private ScheduleRequestForm copiedForm(ScheduleRequest source, LocalDate targetDate) {

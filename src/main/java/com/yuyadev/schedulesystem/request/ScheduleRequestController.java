@@ -1,10 +1,11 @@
 package com.yuyadev.schedulesystem.request;
 
+import static com.yuyadev.schedulesystem.schedule.SchedulePageSupport.dateTitle;
+import static com.yuyadev.schedulesystem.schedule.SchedulePageSupport.scheduleUrl;
+
 import com.yuyadev.schedulesystem.schedule.ScheduleDatePolicy;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Locale;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
@@ -23,10 +24,6 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/requests")
 public class ScheduleRequestController {
 
-	private static final DateTimeFormatter DATE_TITLE =
-			DateTimeFormatter.ofPattern("yyyy年M月d日（E）", Locale.JAPANESE);
-
-	private final ScheduleRequestRepository repository;
 	private final ScheduleRequestAutosaveService autosaveService;
 	private final ScheduleDatePolicy datePolicy;
 	private final DraftManagementService draftManagementService;
@@ -34,13 +31,11 @@ public class ScheduleRequestController {
 	private final RequestFormPageBuilder formPageBuilder;
 
 	public ScheduleRequestController(
-			ScheduleRequestRepository repository,
 			ScheduleRequestAutosaveService autosaveService,
 			ScheduleDatePolicy datePolicy,
 			DraftManagementService draftManagementService,
 			RequestDeletionService deletionService,
 			RequestFormPageBuilder formPageBuilder) {
-		this.repository = repository;
 		this.autosaveService = autosaveService;
 		this.datePolicy = datePolicy;
 		this.draftManagementService = draftManagementService;
@@ -59,7 +54,7 @@ public class ScheduleRequestController {
 
 	@GetMapping("/{id}")
 	public String existingRequest(@PathVariable Long id, Model model) {
-		ScheduleRequest request = publishedRequest(id);
+		ScheduleRequest request = deletionService.findPublished(id);
 		return renderForm(ScheduleRequestForm.from(request), List.of(), model);
 	}
 
@@ -85,7 +80,7 @@ public class ScheduleRequestController {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "過去案件はキャンセルできません");
 		}
 		model.addAttribute("request", request);
-		model.addAttribute("dateTitle", request.getWorkDate().format(DATE_TITLE));
+		model.addAttribute("dateTitle", dateTitle(request.getWorkDate()));
 		model.addAttribute("scheduleUrl", scheduleUrl(request.getWorkDate()));
 		return "request/cancel-confirmation";
 	}
@@ -145,17 +140,4 @@ public class ScheduleRequestController {
 		return formPageBuilder.render(form, errors, model, returnOnly);
 	}
 
-	private String scheduleUrl(LocalDate date) {
-		return "/schedule?month=" + date.getYear()
-				+ "-" + String.format("%02d", date.getMonthValue());
-	}
-
-	private ScheduleRequest publishedRequest(Long id) {
-		ScheduleRequest request = repository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-		if (request.getEntryState() != EntryState.PUBLISHED) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-		}
-		return request;
-	}
 }
