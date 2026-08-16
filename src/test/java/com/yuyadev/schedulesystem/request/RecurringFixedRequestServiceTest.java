@@ -111,7 +111,7 @@ class RecurringFixedRequestServiceTest {
 		assertThat(skipRepository.existsById(LocalDate.of(2026, 6, 24))).isFalse();
 
 		dayOffService.unsetDayOff(LocalDate.of(2026, 6, 24));
-		service.ensureCurrentAndNextMonth();
+		service.ensureDateAfterDayOffUnset(LocalDate.of(2026, 6, 24));
 
 		assertFixedRequest(LocalDate.of(2026, 6, 24), WorkType.RECEIVING);
 	}

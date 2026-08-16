@@ -33,6 +33,10 @@ public record AutosaveResult(
 		return new AutosaveResult(Status.INVALID, null, 0, null, message, List.of());
 	}
 
+	public static AutosaveResult invalid(ScheduleRequest request, String message) {
+		return from(Status.INVALID, request, message);
+	}
+
 	public static AutosaveResult invalidPublishedEdit(
 			ScheduleRequest request, List<String> missingFields) {
 		return new AutosaveResult(

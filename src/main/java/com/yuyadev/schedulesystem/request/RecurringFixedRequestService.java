@@ -18,9 +18,6 @@ public class RecurringFixedRequestService {
 
 	private static final LocalTime FIXED_START_TIME = ScheduleTimeSlots.OPENING_TIME;
 	private static final LocalTime FIXED_END_TIME = LocalTime.of(10, 0);
-	private static final String PUBLISHED_TIME_CONSTRAINT =
-			"ex_schedule_requests_published_time";
-
 	private final ScheduleRequestRepository requestRepository;
 	private final RecurringFixedRequestSkipRepository skipRepository;
 	private final ScheduleDatePolicy datePolicy;
@@ -47,6 +44,14 @@ public class RecurringFixedRequestService {
 		ensureMonth(currentMonth.plusMonths(1));
 	}
 
+	public void ensureDateAfterDayOffUnset(LocalDate date) {
+		YearMonth currentMonth = YearMonth.now(clock);
+		YearMonth targetMonth = YearMonth.from(date);
+		if (targetMonth.equals(currentMonth) || targetMonth.equals(currentMonth.plusMonths(1))) {
+			ensureDate(date);
+		}
+	}
+
 	public void recordSkipIfFixed(ScheduleRequest request) {
 		if (isFixedRequest(request) && !skipRepository.existsById(request.getWorkDate())) {
 			skipRepository.save(new RecurringFixedRequestSkip(request.getWorkDate()));
@@ -63,7 +68,7 @@ public class RecurringFixedRequestService {
 		try {
 			transactionTemplate.executeWithoutResult(status -> ensureDateInTransaction(date));
 		} catch (DataIntegrityViolationException exception) {
-			if (!isPublishedTimeOverlapViolation(exception)) {
+			if (!PostgreSqlConflictDetector.isPublishedTimeOverlap(exception)) {
 				throw exception;
 			}
 			// Another request may have claimed the slot after the pre-check.
@@ -79,18 +84,6 @@ public class RecurringFixedRequestService {
 		}
 		requestRepository.saveAndFlush(ScheduleRequest.published(
 				date, FIXED_START_TIME, FIXED_END_TIME, null, fixedWorkType(date)));
-	}
-
-	private boolean isPublishedTimeOverlapViolation(DataIntegrityViolationException exception) {
-		Throwable current = exception;
-		while (current != null) {
-			String message = current.getMessage();
-			if (message != null && message.contains(PUBLISHED_TIME_CONSTRAINT)) {
-				return true;
-			}
-			current = current.getCause();
-		}
-		return false;
 	}
 
 	private boolean hasPublishedConflict(LocalDate date) {

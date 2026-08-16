@@ -34,7 +34,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 		properties = {
 			"spring.flyway.locations=classpath:db/migration/common,classpath:db/migration/postgresql",
 			"spring.jpa.hibernate.ddl-auto=validate",
-			"spring.jpa.open-in-view=false"
+			"spring.jpa.open-in-view=false",
+			"schedule.holidays.sync-enabled=false",
+			"schedule.maintenance.enabled=false"
 		})
 class PostgreSqlConcurrencyTest {
 

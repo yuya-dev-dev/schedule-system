@@ -143,6 +143,23 @@ class ScheduleRequestAutosaveServiceTest {
 	}
 
 	@Test
+	void keepsDraftIdentityWhenAnExistingDraftReceivesAnInvalidDate() {
+		AutosaveResult created = service.save(null, 0, input(null, null, null, null));
+		ScheduleRequestInput invalidDateInput = requestInput()
+				.workDate(LocalDate.of(2026, 6, 25))
+				.build();
+
+		AutosaveResult rejected = service.save(
+				created.requestId(), created.version(), invalidDateInput);
+
+		assertThat(rejected.status()).isEqualTo(AutosaveResult.Status.INVALID);
+		assertThat(rejected.requestId()).isEqualTo(created.requestId());
+		assertThat(rejected.entryState()).isEqualTo(EntryState.DRAFT);
+		assertThat(repository.findById(created.requestId()).orElseThrow().getWorkDate())
+				.isEqualTo(WORK_DATE);
+	}
+
+	@Test
 	void savesDetailChangesWithoutReleasingPublishedSlot() {
 		AutosaveResult created = service.save(
 				null, 0, input("社員A", WorkType.INSTALL, "15:00", "16:00"));

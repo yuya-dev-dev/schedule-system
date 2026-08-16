@@ -1,7 +1,6 @@
 package com.yuyadev.schedulesystem.schedule;
 
 import com.yuyadev.schedulesystem.request.ScheduleRequest;
-import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -19,21 +18,16 @@ public class ScheduleGridBuilder {
 	private static final int COLOR_COUNT = 5;
 	private static final int INTERNAL_WORK_COLOR = 6;
 
-	private final Clock clock;
-
-	public ScheduleGridBuilder(Clock clock) {
-		this.clock = clock;
-	}
-
 	public List<TimeRowView> build(
 			List<LocalDate> workDates,
 			Set<LocalDate> dayOffDates,
-			List<ScheduleRequest> requests) {
+			List<ScheduleRequest> requests,
+			LocalDate today) {
 		Map<LocalDate, List<ScheduleRequest>> requestsByDate = groupByDate(requests);
 		Map<Long, Integer> colors = assignColors(requestsByDate);
 		List<TimeRowView> rows = new ArrayList<>();
 		for (LocalTime start : ScheduleTimeSlots.startTimes()) {
-			rows.add(buildRow(start, workDates, dayOffDates, requestsByDate, colors));
+			rows.add(buildRow(start, workDates, dayOffDates, requestsByDate, colors, today));
 		}
 		return List.copyOf(rows);
 	}
@@ -43,7 +37,8 @@ public class ScheduleGridBuilder {
 			List<LocalDate> workDates,
 			Set<LocalDate> dayOffDates,
 			Map<LocalDate, List<ScheduleRequest>> requestsByDate,
-			Map<Long, Integer> colors) {
+			Map<Long, Integer> colors,
+			LocalDate today) {
 		LocalTime end = start.plusMinutes(ScheduleTimeSlots.SLOT_MINUTES);
 		List<ScheduleCellView> cells = workDates.stream()
 				.map(date -> buildCell(
@@ -52,7 +47,8 @@ public class ScheduleGridBuilder {
 						end,
 						dayOffDates.contains(date),
 						requestsByDate.getOrDefault(date, List.of()),
-						colors))
+						colors,
+						today))
 				.toList();
 		return new TimeRowView(start, end, timeLabel(start, end), cells);
 	}
@@ -63,7 +59,8 @@ public class ScheduleGridBuilder {
 			LocalTime slotEnd,
 			boolean dayOff,
 			List<ScheduleRequest> requests,
-			Map<Long, Integer> colors) {
+			Map<Long, Integer> colors,
+			LocalDate today) {
 		if (dayOff) {
 			return ScheduleCellView.dayOff(slotStart.equals(ScheduleTimeSlots.OPENING_TIME));
 		}
@@ -72,7 +69,7 @@ public class ScheduleGridBuilder {
 				.filter(candidate -> overlaps(candidate, slotStart, slotEnd))
 				.findFirst()
 				.orElse(null);
-		boolean readOnly = date.isBefore(LocalDate.now(clock));
+		boolean readOnly = date.isBefore(today);
 		if (request == null) {
 			return ScheduleCellView.available(readOnly, newRequestUrl(date, readOnly));
 		}

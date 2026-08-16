@@ -1,7 +1,9 @@
 package com.yuyadev.schedulesystem.holiday;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.nio.charset.Charset;
@@ -27,5 +29,66 @@ class CabinetOfficeHolidayClientTest {
 		assertThat(holidays)
 				.extracting(HolidayDefinition::name)
 				.containsExactly("元日", "建国記念の日");
+	}
+
+	@Test
+	void rejectsMalformedDataRowInsteadOfReplacingCacheWithPartialData() {
+		CabinetOfficeHolidayClient client = client();
+		String csv = "国民の祝日・休日月日,国民の祝日・休日名称\n"
+				+ "2026/1/1,元日\n"
+				+ "invalid-date,架空の祝日\n";
+
+		assertThatThrownBy(() -> client.parse(csv.getBytes(Charset.forName("MS932"))))
+				.isInstanceOf(IOException.class)
+				.hasMessageContaining("3行目")
+				.hasMessageContaining("日付形式");
+	}
+
+	@Test
+	void rejectsUnexpectedHeader() {
+		CabinetOfficeHolidayClient client = client();
+		String csv = "date,name\n2026/1/1,元日\n";
+
+		assertThatThrownBy(() -> client.parse(csv.getBytes(Charset.forName("MS932"))))
+				.isInstanceOf(IOException.class)
+				.hasMessageContaining("ヘッダ形式");
+	}
+
+	@Test
+	void rejectsRowsWithMissingColumns() {
+		assertInvalidRow("2026/1/1", "列数が2ではありません");
+	}
+
+	@Test
+	void rejectsRowsWithBlankNames() {
+		assertInvalidRow("2026/1/1,", "祝日名が空です");
+	}
+
+	@Test
+	void rejectsDuplicateDates() {
+		CabinetOfficeHolidayClient client = client();
+		String csv = "国民の祝日・休日月日,国民の祝日・休日名称\n"
+				+ "2026/1/1,元日\n"
+				+ "2026/1/1,重複した祝日\n";
+
+		assertThatThrownBy(() -> client.parse(csv.getBytes(Charset.forName("MS932"))))
+				.isInstanceOf(IOException.class)
+				.hasMessageContaining("3行目")
+				.hasMessageContaining("日付が重複");
+	}
+
+	private void assertInvalidRow(String row, String expectedMessage) {
+		CabinetOfficeHolidayClient client = client();
+		String csv = "国民の祝日・休日月日,国民の祝日・休日名称\n" + row + "\n";
+
+		assertThatThrownBy(() -> client.parse(csv.getBytes(Charset.forName("MS932"))))
+				.isInstanceOf(IOException.class)
+				.hasMessageContaining("2行目")
+				.hasMessageContaining(expectedMessage);
+	}
+
+	private CabinetOfficeHolidayClient client() {
+		return new CabinetOfficeHolidayClient(
+				HttpClient.newHttpClient(), URI.create("https://example.invalid/holidays.csv"));
 	}
 }

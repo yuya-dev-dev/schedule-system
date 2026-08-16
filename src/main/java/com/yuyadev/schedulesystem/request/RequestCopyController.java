@@ -62,7 +62,7 @@ public class RequestCopyController {
 		}
 		if (result.status() == RequestCopyResult.Status.TIME_CONFLICT) {
 			return formPageBuilder.render(
-					result.form(), List.of(result.message()), model, true);
+					result.form(), null, List.of(result.message()), model, true);
 		}
 		ScheduleRequest source = source(sourceId);
 		String requestedMonth = targetDate == null

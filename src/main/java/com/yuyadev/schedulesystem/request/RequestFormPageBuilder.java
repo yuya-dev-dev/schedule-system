@@ -12,27 +12,28 @@ import org.springframework.ui.Model;
 @Component
 public class RequestFormPageBuilder {
 
-	private final ScheduleRequestRepository repository;
 	private final ScheduleDatePolicy datePolicy;
 
-	public RequestFormPageBuilder(
-			ScheduleRequestRepository repository,
-			ScheduleDatePolicy datePolicy) {
-		this.repository = repository;
+	public RequestFormPageBuilder(ScheduleDatePolicy datePolicy) {
 		this.datePolicy = datePolicy;
-	}
-
-	public String render(ScheduleRequestForm form, List<String> errors, Model model) {
-		return render(form, errors, model, false);
 	}
 
 	public String render(
 			ScheduleRequestForm form,
+			EntryState entryState,
+			List<String> errors,
+			Model model) {
+		return render(form, entryState, errors, model, false);
+	}
+
+	public String render(
+			ScheduleRequestForm form,
+			EntryState entryState,
 			List<String> errors,
 			Model model,
 			boolean returnOnly) {
 		addSelectionOptions(model);
-		addFormState(form, errors, returnOnly, model);
+		addFormState(form, entryState, errors, returnOnly, model);
 		return "request/form";
 	}
 
@@ -45,6 +46,7 @@ public class RequestFormPageBuilder {
 
 	private void addFormState(
 			ScheduleRequestForm form,
+			EntryState entryState,
 			List<String> errors,
 			boolean returnOnly,
 			Model model) {
@@ -52,7 +54,7 @@ public class RequestFormPageBuilder {
 		model.addAttribute("errors", errors);
 		model.addAttribute("dateTitle", dateTitle(form.getWorkDate()));
 		model.addAttribute("editing", form.getId() != null);
-		boolean draft = isDraft(form);
+		boolean draft = entryState == EntryState.DRAFT;
 		model.addAttribute("draft", draft);
 		model.addAttribute("requesterRequired", ScheduleRequest.requiresRequester(form.getWorkType()));
 		model.addAttribute("normalWork", form.getWorkType() != null
@@ -62,13 +64,6 @@ public class RequestFormPageBuilder {
 		model.addAttribute("returnOnly", returnOnly || readOnly);
 		model.addAttribute("copyAllowed", form.getId() != null && !draft && !readOnly);
 		model.addAttribute("scheduleUrl", scheduleUrl(form.getWorkDate()));
-	}
-
-	private boolean isDraft(ScheduleRequestForm form) {
-		return form.getId() != null
-				&& repository.findById(form.getId())
-						.map(request -> request.getEntryState() == EntryState.DRAFT)
-						.orElse(false);
 	}
 
 }

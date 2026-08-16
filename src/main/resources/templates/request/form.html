@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${dateTitle + ' 案件入力'}">案件入力</title>
     <link rel="stylesheet" th:href="@{/css/app.css(v=14)}">
-    <script defer="defer" th:src="@{/js/request-form.js(v=14)}"></script>
+    <script defer="defer" th:src="@{/js/request-form.js(v=15)}"></script>
 </head>
 <body class="form-page request-form-page">
 <a class="skip-link" href="#main-content">本文へ移動</a>
@@ -25,7 +25,8 @@
 
     <form id="request-form" th:action="@{/requests/save}" th:object="${form}" method="post" class="request-form"
           data-autosave-url="/requests/autosave" th:data-schedule-url="${scheduleUrl}"
-          th:data-read-only="${readOnly}">
+          th:data-read-only="${readOnly}"
+          th:data-csrf-header="${_csrf.headerName}" th:data-csrf-token="${_csrf.token}">
         <input type="hidden" th:field="*{id}">
         <input type="hidden" th:field="*{version}">
         <input type="hidden" th:field="*{workDate}">

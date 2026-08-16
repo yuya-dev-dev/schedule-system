@@ -15,7 +15,9 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -25,6 +27,8 @@ public class CabinetOfficeHolidayClient implements HolidayDataSource {
 
 	private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy/M/d");
 	private static final Charset WINDOWS_31J = Charset.forName("MS932");
+	private static final String DATE_HEADER = "国民の祝日・休日月日";
+	private static final String NAME_HEADER = "国民の祝日・休日名称";
 
 	private final HttpClient httpClient;
 	private final URI sourceUri;
@@ -58,29 +62,52 @@ public class CabinetOfficeHolidayClient implements HolidayDataSource {
 
 	List<HolidayDefinition> parse(byte[] content) throws IOException {
 		String csv = decode(content);
+		List<String> lines = csv.lines().filter(line -> !line.isBlank()).toList();
+		if (lines.isEmpty()) {
+			throw new IOException("祝日データが空です");
+		}
+		validateHeader(lines.getFirst());
+
 		List<HolidayDefinition> holidays = new ArrayList<>();
-		for (String line : csv.split("\\R")) {
-			if (line.isBlank()) {
-				continue;
-			}
-			String[] columns = line.split(",", 2);
+		Set<LocalDate> dates = new HashSet<>();
+		for (int index = 1; index < lines.size(); index++) {
+			int lineNumber = index + 1;
+			String[] columns = lines.get(index).split(",", -1);
 			if (columns.length != 2) {
-				continue;
+				throw invalidRow(lineNumber, "列数が2ではありません", null);
 			}
 			try {
 				LocalDate date = LocalDate.parse(unquote(columns[0]), DATE_FORMAT);
 				String name = unquote(columns[1]);
-				if (!name.isBlank()) {
-					holidays.add(new HolidayDefinition(date, name));
+				if (name.isBlank()) {
+					throw invalidRow(lineNumber, "祝日名が空です", null);
 				}
-			} catch (DateTimeParseException ignored) {
-				// The official CSV starts with a header row.
+				if (!dates.add(date)) {
+					throw invalidRow(lineNumber, "日付が重複しています", null);
+				}
+				holidays.add(new HolidayDefinition(date, name));
+			} catch (DateTimeParseException exception) {
+				throw invalidRow(lineNumber, "日付形式が不正です", exception);
 			}
 		}
 		if (holidays.isEmpty()) {
 			throw new IOException("祝日データに有効な日付がありません");
 		}
 		return List.copyOf(holidays);
+	}
+
+	private void validateHeader(String line) throws IOException {
+		String[] columns = line.split(",", -1);
+		if (columns.length != 2
+				|| !DATE_HEADER.equals(unquote(columns[0]))
+				|| !NAME_HEADER.equals(unquote(columns[1]))) {
+			throw new IOException("祝日データのヘッダ形式が不正です");
+		}
+	}
+
+	private IOException invalidRow(int lineNumber, String detail, Exception cause) {
+		return new IOException(
+				"祝日データの" + lineNumber + "行目が不正です: " + detail, cause);
 	}
 
 	private String decode(byte[] content) {

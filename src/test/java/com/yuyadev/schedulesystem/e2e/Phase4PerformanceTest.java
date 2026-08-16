@@ -15,6 +15,7 @@ import com.yuyadev.schedulesystem.request.ScheduleRequestRepository;
 import com.yuyadev.schedulesystem.request.WorkType;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.net.CookieManager;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -26,6 +27,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -57,9 +60,8 @@ class Phase4PerformanceTest {
 	private ScheduleRequestRepository repository;
 
 	private final ObjectMapper objectMapper = new ObjectMapper();
-	private final HttpClient httpClient = HttpClient.newBuilder()
-			.connectTimeout(Duration.ofSeconds(5))
-			.build();
+	private static final Pattern CSRF_TOKEN = Pattern.compile(
+			"name=\"_csrf\"[^>]*value=\"([^\"]+)\"");
 	private PlaywrightBrowserSession browserSession;
 	private Browser browser;
 	private BrowserContext context;
@@ -154,6 +156,8 @@ class Phase4PerformanceTest {
 
 	@Test
 	void perf004KeepsOneRecordAfterTenConsecutiveAutosaves() throws Exception {
+		HttpClient csrfClient = csrfClient();
+		String csrfToken = loadCsrfToken(csrfClient);
 		Long requestId = null;
 		long version = 0;
 		List<Long> durations = new ArrayList<>();
@@ -171,9 +175,10 @@ class Phase4PerformanceTest {
 			form.put("requestDetail", "架空の設置作業 " + index);
 			form.put("address", "愛知県名古屋市中区架空町1-1");
 			form.put("desiredArrivalTime", "午後");
+			form.put("_csrf", csrfToken);
 
 			long startedAt = System.nanoTime();
-			HttpResponse<String> response = httpClient.send(
+			HttpResponse<String> response = csrfClient.send(
 					HttpRequest.newBuilder(URI.create(url("/requests/autosave")))
 							.header("Content-Type", "application/x-www-form-urlencoded")
 							.POST(HttpRequest.BodyPublishers.ofString(formBody(form)))
@@ -190,6 +195,25 @@ class Phase4PerformanceTest {
 		assertThat(repository.count()).isOne();
 		assertThat(repository.countByEntryState(EntryState.PUBLISHED)).isOne();
 		printDurations("PERF-004", "10回連続自動保存", durations);
+	}
+
+	private HttpClient csrfClient() {
+		return HttpClient.newBuilder()
+				.connectTimeout(Duration.ofSeconds(5))
+				.cookieHandler(new CookieManager())
+				.build();
+	}
+
+	private String loadCsrfToken(HttpClient client) throws Exception {
+		HttpResponse<String> response = client.send(
+				HttpRequest.newBuilder(URI.create(url("/requests/new?date=2026-06-24")))
+						.GET()
+						.build(),
+				HttpResponse.BodyHandlers.ofString());
+		assertThat(response.statusCode()).isEqualTo(200);
+		Matcher matcher = CSRF_TOKEN.matcher(response.body());
+		assertThat(matcher.find()).isTrue();
+		return matcher.group(1);
 	}
 
 	private PageMetrics measurePage(String path) {

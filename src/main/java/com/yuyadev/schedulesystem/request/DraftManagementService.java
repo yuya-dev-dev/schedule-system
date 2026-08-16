@@ -22,9 +22,14 @@ public class DraftManagementService {
 	}
 
 	@Transactional
-	public List<DraftListItem> deleteExpiredAndFindActiveDrafts() {
+	public void deleteExpiredDrafts() {
 		LocalDate today = LocalDate.now(clock);
 		repository.deleteByEntryStateAndWorkDateBefore(EntryState.DRAFT, today);
+	}
+
+	@Transactional(readOnly = true)
+	public List<DraftListItem> findActiveDrafts() {
+		LocalDate today = LocalDate.now(clock);
 		return repository
 				.findByEntryStateAndWorkDateGreaterThanEqualOrderByUpdatedAtDesc(
 						EntryState.DRAFT, today)

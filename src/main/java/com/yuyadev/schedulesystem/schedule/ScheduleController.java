@@ -1,7 +1,6 @@
 package com.yuyadev.schedulesystem.schedule;
 
 import com.yuyadev.schedulesystem.request.DraftManagementService;
-import com.yuyadev.schedulesystem.request.RecurringFixedRequestService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,15 +11,12 @@ public class ScheduleController {
 
 	private final MonthScheduleService monthScheduleService;
 	private final DraftManagementService draftManagementService;
-	private final RecurringFixedRequestService recurringFixedRequestService;
 
 	public ScheduleController(
 			MonthScheduleService monthScheduleService,
-			DraftManagementService draftManagementService,
-			RecurringFixedRequestService recurringFixedRequestService) {
+			DraftManagementService draftManagementService) {
 		this.monthScheduleService = monthScheduleService;
 		this.draftManagementService = draftManagementService;
-		this.recurringFixedRequestService = recurringFixedRequestService;
 	}
 
 	@GetMapping("/")
@@ -39,10 +35,9 @@ public class ScheduleController {
 		if (selection.error() != null) {
 			model.addAttribute("monthSelectionError", selection.error());
 		}
-		recurringFixedRequestService.ensureCurrentAndNextMonth();
 		model.addAttribute("schedule", monthScheduleService.getMonth(selection.requestedMonth()));
 		model.addAttribute(
-				"drafts", draftManagementService.deleteExpiredAndFindActiveDrafts());
+				"drafts", draftManagementService.findActiveDrafts());
 		return "schedule/month";
 	}
 }

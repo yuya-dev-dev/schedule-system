@@ -58,6 +58,9 @@ public class RequestCopyService {
 			ScheduleRequest saved = repository.saveAndFlush(copied);
 			return RequestCopyResult.copied(saved.getId());
 		} catch (DataIntegrityViolationException exception) {
+			if (!PostgreSqlConflictDetector.isPublishedTimeOverlap(exception)) {
+				throw exception;
+			}
 			return RequestCopyResult.timeConflict(
 					copiedForm(source, targetDate), "その時間はすでに埋まっています");
 		}

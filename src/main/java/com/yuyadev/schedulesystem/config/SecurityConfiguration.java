@@ -3,6 +3,8 @@ package com.yuyadev.schedulesystem.config;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.userdetails.User;
@@ -22,7 +24,6 @@ public class SecurityConfiguration {
 	SecurityFilterChain securityFilterChain(
 			HttpSecurity http,
 			AccessGateProperties accessGateProperties) throws Exception {
-		http.csrf(AbstractHttpConfigurer::disable);
 		if (accessGateProperties.enabled()) {
 			configurePasswordAccessGate(http);
 		} else {
@@ -56,8 +57,10 @@ public class SecurityConfiguration {
 	@Bean
 	UserDetailsService userDetailsService(
 			AccessGateProperties accessGateProperties,
-			PasswordEncoder passwordEncoder) {
-		accessGateProperties.validateIfEnabled();
+			PasswordEncoder passwordEncoder,
+			Environment environment) {
+		accessGateProperties.validate(
+				environment.acceptsProfiles(Profiles.of("cloud")));
 		String password = accessGateProperties.enabled()
 				? accessGateProperties.password()
 				: "disabled-access-gate-password";

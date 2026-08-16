@@ -119,7 +119,9 @@ class ApplicationRestartPersistenceTest {
 						"--spring.datasource.password=",
 						"--spring.jpa.hibernate.ddl-auto=validate",
 						"--spring.flyway.locations=classpath:db/migration/common",
-						"--spring.thymeleaf.cache=false");
+						"--spring.thymeleaf.cache=false",
+						"--schedule.holidays.sync-enabled=false",
+						"--schedule.maintenance.enabled=false");
 	}
 
 	private int successfulMigrationCount(ConfigurableApplicationContext application) {

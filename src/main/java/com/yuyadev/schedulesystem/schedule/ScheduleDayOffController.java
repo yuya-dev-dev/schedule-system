@@ -3,6 +3,7 @@ package com.yuyadev.schedulesystem.schedule;
 import static com.yuyadev.schedulesystem.schedule.SchedulePageSupport.dateTitle;
 import static com.yuyadev.schedulesystem.schedule.SchedulePageSupport.scheduleUrl;
 
+import com.yuyadev.schedulesystem.request.RecurringFixedRequestService;
 import java.time.LocalDate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -20,9 +21,13 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class ScheduleDayOffController {
 
 	private final DayOffService dayOffService;
+	private final RecurringFixedRequestService recurringFixedRequestService;
 
-	public ScheduleDayOffController(DayOffService dayOffService) {
+	public ScheduleDayOffController(
+			DayOffService dayOffService,
+			RecurringFixedRequestService recurringFixedRequestService) {
 		this.dayOffService = dayOffService;
+		this.recurringFixedRequestService = recurringFixedRequestService;
 	}
 
 	@GetMapping("/new")
@@ -64,6 +69,7 @@ public class ScheduleDayOffController {
 			RedirectAttributes redirectAttributes) {
 		try {
 			dayOffService.unsetDayOff(date);
+			recurringFixedRequestService.ensureDateAfterDayOffUnset(date);
 			redirectAttributes.addFlashAttribute("notice", "休みを解除しました");
 			return "redirect:" + scheduleUrl(date);
 		} catch (IllegalArgumentException exception) {

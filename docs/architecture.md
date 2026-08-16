@@ -37,6 +37,7 @@ flowchart TD
     DELETE["RequestDeletionService\n案件削除"]
     DRAFT["DraftManagementService\n下書き一覧・期限切れ削除"]
     RECURRING["RecurringFixedRequestService\n固定予定"]
+    MAINTENANCE["ScheduleMaintenance\n祝日同期・固定予定・下書き整理"]
     MONTH["MonthScheduleService\n対象月・日付列"]
     GRID["ScheduleGridBuilder\nセル・色・矢印"]
     REPOSITORY["Spring Data Repository"]
@@ -57,6 +58,8 @@ flowchart TD
     DELETE --> REPOSITORY
     DRAFT --> REPOSITORY
     RECURRING --> REPOSITORY
+    MAINTENANCE --> RECURRING
+    MAINTENANCE --> DRAFT
     MONTH --> REPOSITORY
     MONTH --> GRID
     GRID --> TIME_SLOTS
@@ -73,6 +76,12 @@ flowchart TD
 4. 重複がなければ公開し、重複時は理由付き下書きとして入力値を保持する
 5. PostgreSQLでは排他制約を最終防衛線とし、同時登録でも先着案件だけを公開する
 6. 編集は楽観ロック、キャンセルは確認時のバージョン照合により他者の更新を保護する
+
+状態変更POSTはSpring SecurityのCSRF防御を通す。通常フォームにはThymeleafがトークンを追加し、自動保存JavaScriptは同じトークンをHTTPヘッダーへ設定する。PostgreSQLの時間重複はSQLSTATE `23P01`だけを競合として扱い、ほかのDB整合性エラーは障害として伝播させる。
+
+## 定期保守
+
+`ScheduleMaintenance`は起動時と、アプリ稼働中の毎日3時（日本時間）に、祝日同期、今月・翌月の固定予定作成、期限切れ下書き削除を順番に実行する。停止中に3時を過ぎた場合は、次回起動時に実行する。祝日同期が失敗し、既存キャッシュもない場合は固定予定を作らない。月間一覧のGETは表示データの取得だけを行う。休み解除時は、現在月または翌月の対象日だけ固定予定を即時補充する。
 
 ## 環境の使い分け
 

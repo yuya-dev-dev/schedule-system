@@ -8,6 +8,7 @@ import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Set;
 import org.springframework.stereotype.Service;
@@ -38,7 +39,8 @@ public class MonthScheduleService {
 	}
 
 	public MonthScheduleView getMonth(String requestedMonth) {
-		YearMonth currentMonth = YearMonth.now(clock);
+		LocalDate today = LocalDate.now(clock);
+		YearMonth currentMonth = YearMonth.from(today);
 		YearMonth selectedMonth = selectMonth(requestedMonth, currentMonth);
 		List<LocalDate> workDates = workDates(selectedMonth);
 		Set<LocalDate> dayOffDates = dayOffCalendarService.dayOffDatesBetween(
@@ -51,18 +53,19 @@ public class MonthScheduleService {
 				selectedMonth.toString(),
 				selectedMonth.getYear(),
 				selectedMonth.getMonthValue(),
-				initialFocusDate(currentMonth, selectedMonth, workDates),
+				initialFocusDate(today, selectedMonth, workDates),
 				monthTabs(currentMonth, selectedMonth),
-				workDates.stream().map(date -> toWorkDateView(date, dayOffDates.contains(date))).toList(),
-				gridBuilder.build(workDates, dayOffDates, requests));
+				workDates.stream()
+						.map(date -> toWorkDateView(date, dayOffDates.contains(date), today))
+						.toList(),
+				gridBuilder.build(workDates, dayOffDates, requests, today));
 	}
 
 	private String initialFocusDate(
-			YearMonth currentMonth, YearMonth selectedMonth, List<LocalDate> workDates) {
-		if (!selectedMonth.equals(currentMonth)) {
+			LocalDate today, YearMonth selectedMonth, List<LocalDate> workDates) {
+		if (!selectedMonth.equals(YearMonth.from(today))) {
 			return null;
 		}
-		LocalDate today = LocalDate.now(clock);
 		return workDates.stream()
 				.filter(date -> !date.isBefore(today))
 				.findFirst()
@@ -77,7 +80,7 @@ public class MonthScheduleService {
 		YearMonth parsed;
 		try {
 			parsed = YearMonth.parse(requestedMonth);
-		} catch (RuntimeException exception) {
+		} catch (DateTimeParseException exception) {
 			return currentMonth;
 		}
 		return parsed;
@@ -106,13 +109,13 @@ public class MonthScheduleService {
 				.toList();
 	}
 
-	private WorkDateView toWorkDateView(LocalDate date, boolean dayOff) {
+	private WorkDateView toWorkDateView(LocalDate date, boolean dayOff, LocalDate today) {
 		String weekday = date.getDayOfWeek() == DayOfWeek.WEDNESDAY ? "水" : "金";
 		return new WorkDateView(
 				date,
 				date.getMonthValue() + "/" + date.getDayOfMonth(),
 				weekday,
-				date.isBefore(LocalDate.now(clock)),
+				date.isBefore(today),
 				dayOff);
 	}
 }

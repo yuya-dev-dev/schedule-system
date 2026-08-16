@@ -49,7 +49,8 @@ class DraftManagementServiceTest {
 		setUpdatedAt(june.getId(), LocalDateTime.of(2026, 6, 20, 10, 0));
 		setUpdatedAt(july.getId(), LocalDateTime.of(2026, 6, 20, 11, 0));
 
-		List<DraftListItem> drafts = service.deleteExpiredAndFindActiveDrafts();
+		service.deleteExpiredDrafts();
+		List<DraftListItem> drafts = service.findActiveDrafts();
 
 		assertThat(drafts).extracting(DraftListItem::id)
 				.containsExactly(july.getId(), june.getId(), today.getId());
