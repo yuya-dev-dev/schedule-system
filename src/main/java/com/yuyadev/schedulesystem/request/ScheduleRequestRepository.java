@@ -3,7 +3,6 @@ package com.yuyadev.schedulesystem.request;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -11,20 +10,33 @@ import org.springframework.data.repository.query.Param;
 
 public interface ScheduleRequestRepository extends JpaRepository<ScheduleRequest, Long> {
 
-	Optional<ScheduleRequest>
-			findFirstByWorkDateAndEntryStateAndStartTimeLessThanAndEndTimeGreaterThanOrderByStartTime(
-					LocalDate workDate,
-					EntryState entryState,
-					LocalTime requestedEndTime,
-					LocalTime requestedStartTime);
+	@Query("""
+			select request from ScheduleRequest request
+			where request.workDate = :workDate
+			  and request.entryState = com.yuyadev.schedulesystem.request.EntryState.PUBLISHED
+			  and request.startTime < :requestedEndTime
+			  and request.endTime > :requestedStartTime
+			order by request.startTime
+			""")
+	List<ScheduleRequest> findPublishedOverlaps(
+			@Param("workDate") LocalDate workDate,
+			@Param("requestedStartTime") LocalTime requestedStartTime,
+			@Param("requestedEndTime") LocalTime requestedEndTime);
 
-	Optional<ScheduleRequest>
-			findFirstByIdNotAndWorkDateAndEntryStateAndStartTimeLessThanAndEndTimeGreaterThanOrderByStartTime(
-					Long id,
-					LocalDate workDate,
-					EntryState entryState,
-					LocalTime requestedEndTime,
-					LocalTime requestedStartTime);
+	@Query("""
+			select request from ScheduleRequest request
+			where request.id <> :excludedId
+			  and request.workDate = :workDate
+			  and request.entryState = com.yuyadev.schedulesystem.request.EntryState.PUBLISHED
+			  and request.startTime < :requestedEndTime
+			  and request.endTime > :requestedStartTime
+			order by request.startTime
+			""")
+	List<ScheduleRequest> findOtherPublishedOverlaps(
+			@Param("excludedId") Long excludedId,
+			@Param("workDate") LocalDate workDate,
+			@Param("requestedStartTime") LocalTime requestedStartTime,
+			@Param("requestedEndTime") LocalTime requestedEndTime);
 
 	long countByEntryState(EntryState entryState);
 

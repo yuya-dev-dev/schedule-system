@@ -64,9 +64,8 @@ public class RequestCopyService {
 	}
 
 	private Optional<ScheduleRequest> findConflict(ScheduleRequestInput input) {
-		return repository
-				.findFirstByWorkDateAndEntryStateAndStartTimeLessThanAndEndTimeGreaterThanOrderByStartTime(
-						input.workDate(), EntryState.PUBLISHED, input.endTime(), input.startTime());
+		return repository.findPublishedOverlaps(
+				input.workDate(), input.startTime(), input.endTime()).stream().findFirst();
 	}
 
 	private ScheduleRequestInput copyInput(ScheduleRequest source, LocalDate targetDate) {

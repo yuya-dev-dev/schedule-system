@@ -93,10 +93,8 @@ public class RecurringFixedRequestService {
 	}
 
 	private boolean hasPublishedConflict(LocalDate date) {
-		return requestRepository
-				.findFirstByWorkDateAndEntryStateAndStartTimeLessThanAndEndTimeGreaterThanOrderByStartTime(
-						date, EntryState.PUBLISHED, FIXED_END_TIME, FIXED_START_TIME)
-				.isPresent();
+		return !requestRepository.findPublishedOverlaps(
+				date, FIXED_START_TIME, FIXED_END_TIME).isEmpty();
 	}
 
 	private boolean isFixedRequest(ScheduleRequest request) {
