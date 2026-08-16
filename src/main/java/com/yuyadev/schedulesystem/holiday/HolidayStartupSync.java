@@ -8,20 +8,24 @@ import org.springframework.stereotype.Component;
 @Component
 public class HolidayStartupSync implements ApplicationRunner {
 
-	private final HolidaySyncService syncService;
-	private final boolean enabled;
+	private final HolidaySyncService holidaySyncService;
+	private final boolean syncEnabled;
 
 	public HolidayStartupSync(
-			HolidaySyncService syncService,
-			@Value("${schedule.holidays.sync-enabled:true}") boolean enabled) {
-		this.syncService = syncService;
-		this.enabled = enabled;
+			HolidaySyncService holidaySyncService,
+			@Value("${schedule.holidays.sync-enabled:true}") boolean syncEnabled) {
+		this.holidaySyncService = holidaySyncService;
+		this.syncEnabled = syncEnabled;
 	}
 
 	@Override
 	public void run(ApplicationArguments args) {
-		if (enabled) {
-			syncService.syncIfStale();
+		syncHolidaysWhenEnabled();
+	}
+
+	private void syncHolidaysWhenEnabled() {
+		if (syncEnabled) {
+			holidaySyncService.syncIfStale();
 		}
 	}
 }

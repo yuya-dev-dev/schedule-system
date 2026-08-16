@@ -11,12 +11,16 @@ public class ScheduleDataRetentionConfiguration {
 
 	@Bean
 	ApplicationRunner scheduleDataRetentionRunner(
-			ScheduleDataRetentionProperties properties,
-			ScheduleDataRetentionService service) {
-		return args -> {
-			if (properties.enabled()) {
-				service.deleteExpiredScheduleData();
-			}
-		};
+			ScheduleDataRetentionProperties retentionProperties,
+			ScheduleDataRetentionService retentionService) {
+		return args -> deleteExpiredDataWhenEnabled(retentionProperties, retentionService);
+	}
+
+	private void deleteExpiredDataWhenEnabled(
+			ScheduleDataRetentionProperties retentionProperties,
+			ScheduleDataRetentionService retentionService) {
+		if (retentionProperties.enabled()) {
+			retentionService.deleteExpiredScheduleData();
+		}
 	}
 }

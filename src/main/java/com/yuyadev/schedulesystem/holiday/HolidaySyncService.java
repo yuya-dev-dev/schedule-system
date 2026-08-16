@@ -10,21 +10,22 @@ public class HolidaySyncService {
 
 	private static final Logger logger = LoggerFactory.getLogger(HolidaySyncService.class);
 
-	private final HolidayDataSource dataSource;
-	private final HolidayCalendarService calendarService;
+	private final HolidayDataSource holidayDataSource;
+	private final HolidayCalendarService holidayCalendarService;
 
 	public HolidaySyncService(
-			HolidayDataSource dataSource, HolidayCalendarService calendarService) {
-		this.dataSource = dataSource;
-		this.calendarService = calendarService;
+			HolidayDataSource holidayDataSource,
+			HolidayCalendarService holidayCalendarService) {
+		this.holidayDataSource = holidayDataSource;
+		this.holidayCalendarService = holidayCalendarService;
 	}
 
 	public SyncResult syncIfStale() {
-		if (calendarService.cacheIsFresh()) {
+		if (holidayCalendarService.cacheIsFresh()) {
 			return SyncResult.FRESH_CACHE;
 		}
 		try {
-			calendarService.replaceAll(dataSource.fetch());
+			holidayCalendarService.replaceAll(holidayDataSource.fetch());
 			return SyncResult.UPDATED;
 		} catch (InterruptedException exception) {
 			Thread.currentThread().interrupt();
