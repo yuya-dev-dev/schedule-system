@@ -6,7 +6,7 @@ param(
     [Parameter(Mandatory)]
     [string]$OutputDirectory,
 
-    [string]$ClientImage = "postgres:17-alpine",
+    [string]$ClientImage = "postgres:18-alpine",
 
     [switch]$ApprovedStorage
 )

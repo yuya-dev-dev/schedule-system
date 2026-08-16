@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory)]
     [string]$BackupFile,
 
-    [string]$ClientImage = "postgres:17-alpine"
+    [string]$ClientImage = "postgres:18-alpine"
 )
 
 Set-StrictMode -Version Latest
