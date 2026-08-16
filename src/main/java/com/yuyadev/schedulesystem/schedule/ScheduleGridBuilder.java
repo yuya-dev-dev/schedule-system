@@ -16,9 +16,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 @Component
 public class ScheduleGridBuilder {
 
-	private static final LocalTime OPENING_TIME = LocalTime.of(8, 30);
-	private static final LocalTime CLOSING_TIME = LocalTime.of(17, 30);
-	private static final int SLOT_MINUTES = 30;
 	private static final int COLOR_COUNT = 5;
 	private static final int INTERNAL_WORK_COLOR = 6;
 
@@ -35,9 +32,7 @@ public class ScheduleGridBuilder {
 		Map<LocalDate, List<ScheduleRequest>> requestsByDate = groupByDate(requests);
 		Map<Long, Integer> colors = assignColors(requestsByDate);
 		List<TimeRowView> rows = new ArrayList<>();
-		for (LocalTime start = OPENING_TIME;
-				start.isBefore(CLOSING_TIME);
-				start = start.plusMinutes(SLOT_MINUTES)) {
+		for (LocalTime start : ScheduleTimeSlots.startTimes()) {
 			rows.add(buildRow(start, workDates, dayOffDates, requestsByDate, colors));
 		}
 		return List.copyOf(rows);
@@ -49,7 +44,7 @@ public class ScheduleGridBuilder {
 			Set<LocalDate> dayOffDates,
 			Map<LocalDate, List<ScheduleRequest>> requestsByDate,
 			Map<Long, Integer> colors) {
-		LocalTime end = start.plusMinutes(SLOT_MINUTES);
+		LocalTime end = start.plusMinutes(ScheduleTimeSlots.SLOT_MINUTES);
 		List<ScheduleCellView> cells = workDates.stream()
 				.map(date -> buildCell(
 						date,
@@ -70,7 +65,7 @@ public class ScheduleGridBuilder {
 			List<ScheduleRequest> requests,
 			Map<Long, Integer> colors) {
 		if (dayOff) {
-			return ScheduleCellView.dayOff(slotStart.equals(OPENING_TIME));
+			return ScheduleCellView.dayOff(slotStart.equals(ScheduleTimeSlots.OPENING_TIME));
 		}
 
 		ScheduleRequest request = requests.stream()
@@ -82,8 +77,11 @@ public class ScheduleGridBuilder {
 			return ScheduleCellView.available(readOnly, newRequestUrl(date, readOnly));
 		}
 
-		boolean firstCell = slotStart.equals(OPENING_TIME)
-				|| !overlaps(request, slotStart.minusMinutes(SLOT_MINUTES), slotStart);
+		boolean firstCell = slotStart.equals(ScheduleTimeSlots.OPENING_TIME)
+				|| !overlaps(
+						request,
+						slotStart.minusMinutes(ScheduleTimeSlots.SLOT_MINUTES),
+						slotStart);
 		return ScheduleCellView.occupied(
 				request, firstCell, colors.get(request.getId()), readOnly);
 	}

@@ -1,5 +1,10 @@
 package com.yuyadev.schedulesystem.request;
 
+import static com.yuyadev.schedulesystem.schedule.ScheduleTimeSlots.CLOSING_TIME;
+import static com.yuyadev.schedulesystem.schedule.ScheduleTimeSlots.OPENING_TIME;
+import static com.yuyadev.schedulesystem.schedule.ScheduleTimeSlots.SLOT_MINUTES;
+
+import com.yuyadev.schedulesystem.schedule.ScheduleTimeSlots;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.EnumType;
@@ -21,10 +26,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Entity
 @Table(name = "schedule_requests")
 public class ScheduleRequest {
-	private static final LocalTime OPENING_TIME = LocalTime.of(8, 30);
-	private static final LocalTime CLOSING_TIME = LocalTime.of(17, 30);
-	private static final LocalTime LATEST_START_TIME = CLOSING_TIME.minusMinutes(30);
-	private static final LocalTime EARLIEST_END_TIME = OPENING_TIME.plusMinutes(30);
+	private static final LocalTime LATEST_START_TIME = CLOSING_TIME.minusMinutes(SLOT_MINUTES);
+	private static final LocalTime EARLIEST_END_TIME = OPENING_TIME.plusMinutes(SLOT_MINUTES);
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -182,28 +185,24 @@ public class ScheduleRequest {
 		if (!endTime.isAfter(startTime)) {
 			throw new IllegalArgumentException("終了時間は開始時間より後にしてください");
 		}
-		if (!isScheduleSlot(startTime) || !isScheduleSlot(endTime)
+		if (!ScheduleTimeSlots.isAligned(startTime) || !ScheduleTimeSlots.isAligned(endTime)
 				|| startTime.isBefore(OPENING_TIME) || endTime.isAfter(CLOSING_TIME)) {
 			throw new IllegalArgumentException("時間は8:30から17:30の範囲で30分単位で入力してください");
 		}
 	}
 
 	private static void validateDraftTime(LocalTime startTime, LocalTime endTime) {
-		if (startTime != null && (!isScheduleSlot(startTime)
+		if (startTime != null && (!ScheduleTimeSlots.isAligned(startTime)
 				|| startTime.isBefore(OPENING_TIME) || startTime.isAfter(LATEST_START_TIME))) {
 			throw new IllegalArgumentException("開始時間は8:30から17:00の範囲で30分単位で入力してください");
 		}
-		if (endTime != null && (!isScheduleSlot(endTime)
+		if (endTime != null && (!ScheduleTimeSlots.isAligned(endTime)
 				|| endTime.isBefore(EARLIEST_END_TIME) || endTime.isAfter(CLOSING_TIME))) {
 			throw new IllegalArgumentException("終了時間は9:00から17:30の範囲で30分単位で入力してください");
 		}
 		if (startTime != null && endTime != null && !endTime.isAfter(startTime)) {
 			throw new IllegalArgumentException("終了時間は開始時間より後にしてください");
 		}
-	}
-
-	private static boolean isScheduleSlot(LocalTime time) {
-		return time.getMinute() % 30 == 0 && time.getSecond() == 0 && time.getNano() == 0;
 	}
 
 	public Long getId() {

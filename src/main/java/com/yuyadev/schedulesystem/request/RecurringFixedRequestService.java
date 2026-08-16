@@ -1,6 +1,7 @@
 package com.yuyadev.schedulesystem.request;
 
 import com.yuyadev.schedulesystem.schedule.ScheduleDatePolicy;
+import com.yuyadev.schedulesystem.schedule.ScheduleTimeSlots;
 import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -15,7 +16,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class RecurringFixedRequestService {
 
-	private static final LocalTime FIXED_START_TIME = LocalTime.of(8, 30);
+	private static final LocalTime FIXED_START_TIME = ScheduleTimeSlots.OPENING_TIME;
 	private static final LocalTime FIXED_END_TIME = LocalTime.of(10, 0);
 	private static final String PUBLISHED_TIME_CONSTRAINT =
 			"ex_schedule_requests_published_time";
@@ -54,7 +55,7 @@ public class RecurringFixedRequestService {
 
 	private void ensureMonth(YearMonth month) {
 		month.atDay(1).datesUntil(month.plusMonths(1).atDay(1))
-				.filter(this::isFixedWorkday)
+				.filter(datePolicy::isScheduleWeekday)
 				.forEach(this::ensureDate);
 	}
 
@@ -101,13 +102,8 @@ public class RecurringFixedRequestService {
 		return request.getEntryState() == EntryState.PUBLISHED
 				&& request.getStartTime().equals(FIXED_START_TIME)
 				&& request.getEndTime().equals(FIXED_END_TIME)
-				&& isFixedWorkday(request.getWorkDate())
+				&& datePolicy.isScheduleWeekday(request.getWorkDate())
 				&& request.getWorkType() == fixedWorkType(request.getWorkDate());
-	}
-
-	private boolean isFixedWorkday(LocalDate date) {
-		return date.getDayOfWeek() == DayOfWeek.WEDNESDAY
-				|| date.getDayOfWeek() == DayOfWeek.FRIDAY;
 	}
 
 	private WorkType fixedWorkType(LocalDate date) {
