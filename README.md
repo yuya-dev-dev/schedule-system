@@ -211,6 +211,7 @@ cloud profileでは、起動時に日本時間の現在日を基準として、`
 - [フェーズ4 手動端末試験結果](docs/phase4-manual-device-results.md)
 - [フェーズ5F UIリニューアル抜き出し計画](docs/phase5f-ui-refresh-plan.md)
 - [Codex 開発チーム運用ルール](docs/codex-agent-team.md)
+- [Java可読性リファクタリング計画](docs/java-readability-refactoring-plan.md)
 
 ## 開発ルール
 
