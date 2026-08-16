@@ -39,7 +39,11 @@ class MonthScheduleServiceTest {
 		Clock clock = Clock.fixed(
 				Instant.parse("2026-06-20T03:00:00Z"), ZoneId.of("Asia/Tokyo"));
 		service = new MonthScheduleService(
-				repository, holidayCalendarService, dayOffCalendarService, clock);
+				repository,
+				holidayCalendarService,
+				dayOffCalendarService,
+				new ScheduleGridBuilder(clock),
+				clock);
 		when(holidayCalendarService.holidayDatesBetween(any(), any())).thenReturn(Set.of());
 		when(dayOffCalendarService.dayOffDatesBetween(any(), any())).thenReturn(Set.of());
 		when(repository.findByWorkDateBetweenAndEntryStateOrderByWorkDateAscStartTimeAsc(
@@ -98,11 +102,16 @@ class MonthScheduleServiceTest {
 				.orElseThrow();
 		assertThat(dayOff.dayOff()).isTrue();
 		int dateIndex = view.workDates().indexOf(dayOff);
-		assertThat(view.timeRows())
-				.extracting(row -> row.cells().get(dateIndex))
+		List<ScheduleCellView> dayOffCells = view.timeRows().stream()
+				.map(row -> row.cells().get(dateIndex))
+				.toList();
+		assertThat(dayOffCells)
 				.allMatch(ScheduleCellView::dayOff)
+				.allMatch(ScheduleCellView::readOnly)
 				.allMatch(cell -> cell.destinationUrl() == null);
-		assertThat(view.timeRows().getFirst().cells().get(dateIndex).firstCell()).isTrue();
+		assertThat(dayOffCells.getFirst().firstCell()).isTrue();
+		assertThat(dayOffCells.subList(1, dayOffCells.size()))
+				.noneMatch(ScheduleCellView::firstCell);
 	}
 
 	@Test
