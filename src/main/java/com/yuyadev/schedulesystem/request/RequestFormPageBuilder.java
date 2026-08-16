@@ -4,8 +4,7 @@ import static com.yuyadev.schedulesystem.schedule.SchedulePageSupport.dateTitle;
 import static com.yuyadev.schedulesystem.schedule.SchedulePageSupport.scheduleUrl;
 
 import com.yuyadev.schedulesystem.schedule.ScheduleDatePolicy;
-import java.time.LocalTime;
-import java.util.ArrayList;
+import com.yuyadev.schedulesystem.schedule.ScheduleTimeSlots;
 import java.util.List;
 import org.springframework.stereotype.Component;
 import org.springframework.ui.Model;
@@ -13,8 +12,6 @@ import org.springframework.ui.Model;
 @Component
 public class RequestFormPageBuilder {
 
-	private static final LocalTime OPENING_TIME = LocalTime.of(8, 30);
-	private static final LocalTime CLOSING_TIME = LocalTime.of(17, 30);
 	private final ScheduleRequestRepository repository;
 	private final ScheduleDatePolicy datePolicy;
 
@@ -42,9 +39,8 @@ public class RequestFormPageBuilder {
 	private void addSelectionOptions(Model model) {
 		model.addAttribute("workTypes", WorkType.values());
 		model.addAttribute("dispatchStatuses", DispatchStatus.values());
-		model.addAttribute(
-				"startTimeOptions", timeOptions(OPENING_TIME, CLOSING_TIME.minusMinutes(30)));
-		model.addAttribute("endTimeOptions", timeOptions(OPENING_TIME.plusMinutes(30), CLOSING_TIME));
+		model.addAttribute("startTimeOptions", ScheduleTimeSlots.startTimes());
+		model.addAttribute("endTimeOptions", ScheduleTimeSlots.endTimes());
 	}
 
 	private void addFormState(
@@ -75,11 +71,4 @@ public class RequestFormPageBuilder {
 						.orElse(false);
 	}
 
-	private List<LocalTime> timeOptions(LocalTime first, LocalTime last) {
-		List<LocalTime> options = new ArrayList<>();
-		for (LocalTime time = first; !time.isAfter(last); time = time.plusMinutes(30)) {
-			options.add(time);
-		}
-		return List.copyOf(options);
-	}
 }

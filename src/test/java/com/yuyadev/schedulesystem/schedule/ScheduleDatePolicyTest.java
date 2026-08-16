@@ -1,6 +1,7 @@
 package com.yuyadev.schedulesystem.schedule;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.yuyadev.schedulesystem.holiday.HolidayCalendarService;
@@ -31,6 +32,16 @@ class ScheduleDatePolicyTest {
 				Instant.parse("2026-06-20T03:00:00Z"), ZoneId.of("Asia/Tokyo")),
 				holidayCalendarService,
 				dayOffCalendarService);
+	}
+
+	@Test
+	void identifiesScheduleWeekdaysWithoutCalendarRules() {
+		assertThat(policy.isScheduleWeekday(LocalDate.of(2026, 6, 17))).isTrue();
+		assertThat(policy.isScheduleWeekday(LocalDate.of(2026, 6, 24))).isTrue();
+		assertThat(policy.isScheduleWeekday(LocalDate.of(2026, 6, 26))).isTrue();
+		assertThat(policy.isScheduleWeekday(LocalDate.of(2026, 6, 23))).isFalse();
+		assertThat(policy.isScheduleWeekday(null)).isFalse();
+		verifyNoInteractions(holidayCalendarService, dayOffCalendarService);
 	}
 
 	@Test

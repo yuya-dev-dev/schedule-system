@@ -5,8 +5,8 @@ import com.yuyadev.schedulesystem.request.ScheduleRequest;
 import com.yuyadev.schedulesystem.request.ScheduleRequestInput;
 import com.yuyadev.schedulesystem.request.ScheduleRequestRepository;
 import com.yuyadev.schedulesystem.request.WorkType;
+import com.yuyadev.schedulesystem.schedule.ScheduleDatePolicy;
 import java.time.Clock;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -23,12 +23,13 @@ public class DemoDataConfiguration {
 	@Bean
 	ApplicationRunner demoDataLoader(
 			ScheduleRequestRepository repository,
+			ScheduleDatePolicy datePolicy,
 			Clock clock) {
 		return args -> {
 			if (repository.count() > 0) {
 				return;
 			}
-			List<LocalDate> workDates = nextWorkDates(LocalDate.now(clock));
+			List<LocalDate> workDates = nextWorkDates(LocalDate.now(clock), datePolicy);
 			repository.saveAll(List.of(
 					complete(normalInput(
 							workDates.get(0), LocalTime.of(9, 0), WorkType.INSTALL,
@@ -53,10 +54,11 @@ public class DemoDataConfiguration {
 		};
 	}
 
-	private List<LocalDate> nextWorkDates(LocalDate from) {
+	private List<LocalDate> nextWorkDates(
+			LocalDate from,
+			ScheduleDatePolicy datePolicy) {
 		return Stream.iterate(from, date -> date.plusDays(1))
-				.filter(date -> date.getDayOfWeek() == DayOfWeek.WEDNESDAY
-						|| date.getDayOfWeek() == DayOfWeek.FRIDAY)
+				.filter(datePolicy::isScheduleWeekday)
 				.limit(2)
 				.toList();
 	}

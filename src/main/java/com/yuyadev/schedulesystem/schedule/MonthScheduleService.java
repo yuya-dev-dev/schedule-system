@@ -18,6 +18,7 @@ public class MonthScheduleService {
 	private final ScheduleRequestRepository repository;
 	private final HolidayCalendarService holidayCalendarService;
 	private final DayOffCalendarService dayOffCalendarService;
+	private final ScheduleDatePolicy datePolicy;
 	private final ScheduleGridBuilder gridBuilder;
 	private final Clock clock;
 
@@ -25,11 +26,13 @@ public class MonthScheduleService {
 			ScheduleRequestRepository repository,
 			HolidayCalendarService holidayCalendarService,
 			DayOffCalendarService dayOffCalendarService,
+			ScheduleDatePolicy datePolicy,
 			ScheduleGridBuilder gridBuilder,
 			Clock clock) {
 		this.repository = repository;
 		this.holidayCalendarService = holidayCalendarService;
 		this.dayOffCalendarService = dayOffCalendarService;
+		this.datePolicy = datePolicy;
 		this.gridBuilder = gridBuilder;
 		this.clock = clock;
 	}
@@ -98,8 +101,7 @@ public class MonthScheduleService {
 		Set<LocalDate> holidays = holidayCalendarService.holidayDatesBetween(
 				month.atDay(1), month.atEndOfMonth());
 		return month.atDay(1).datesUntil(month.plusMonths(1).atDay(1))
-				.filter(date -> date.getDayOfWeek() == DayOfWeek.WEDNESDAY
-						|| date.getDayOfWeek() == DayOfWeek.FRIDAY)
+				.filter(datePolicy::isScheduleWeekday)
 				.filter(date -> !holidays.contains(date))
 				.toList();
 	}

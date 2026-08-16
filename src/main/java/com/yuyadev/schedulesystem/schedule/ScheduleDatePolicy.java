@@ -23,7 +23,7 @@ public class ScheduleDatePolicy {
 	}
 
 	public boolean isRegistrable(LocalDate date) {
-		if (date == null || isPast(date) || !isWorkday(date)
+		if (date == null || isPast(date) || !isScheduleWeekday(date)
 				|| holidayCalendarService.isHoliday(date)
 				|| dayOffCalendarService.isDayOff(date)) {
 			return false;
@@ -42,8 +42,9 @@ public class ScheduleDatePolicy {
 		return date != null && date.isBefore(LocalDate.now(clock));
 	}
 
-	private boolean isWorkday(LocalDate date) {
-		return date.getDayOfWeek() == DayOfWeek.WEDNESDAY
-				|| date.getDayOfWeek() == DayOfWeek.FRIDAY;
+	public boolean isScheduleWeekday(LocalDate date) {
+		return date != null
+				&& (date.getDayOfWeek() == DayOfWeek.WEDNESDAY
+						|| date.getDayOfWeek() == DayOfWeek.FRIDAY);
 	}
 }

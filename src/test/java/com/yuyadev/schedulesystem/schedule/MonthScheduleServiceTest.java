@@ -42,6 +42,7 @@ class MonthScheduleServiceTest {
 				repository,
 				holidayCalendarService,
 				dayOffCalendarService,
+				new ScheduleDatePolicy(clock, holidayCalendarService, dayOffCalendarService),
 				new ScheduleGridBuilder(clock),
 				clock);
 		when(holidayCalendarService.holidayDatesBetween(any(), any())).thenReturn(Set.of());

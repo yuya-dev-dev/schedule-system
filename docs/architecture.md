@@ -29,10 +29,13 @@ flowchart LR
 ```mermaid
 flowchart TD
     CONTROLLER["Controller\nHTTP・画面遷移"]
-    POLICY["ScheduleDatePolicy\n日付・編集可否"]
+    POLICY["ScheduleDatePolicy\n曜日・登録可否"]
+    TIME_SLOTS["ScheduleTimeSlots\n営業時間・30分刻み"]
     AUTOSAVE["AutosaveService\n下書き・公開・重複判定"]
+    REQUEST["ScheduleRequest\n案件・時刻検証"]
     OPERATIONS["Copy / Deletion Service\nコピー・物理削除"]
-    MONTH["MonthScheduleService\n月間セル・色・矢印"]
+    MONTH["MonthScheduleService\n対象月・日付列"]
+    GRID["ScheduleGridBuilder\nセル・色・矢印"]
     REPOSITORY["Repository"]
     DB[("schedule_requests")]
 
@@ -40,9 +43,14 @@ flowchart TD
     CONTROLLER --> AUTOSAVE
     CONTROLLER --> OPERATIONS
     CONTROLLER --> MONTH
+    AUTOSAVE --> POLICY
+    AUTOSAVE --> REQUEST
+    REQUEST --> TIME_SLOTS
     AUTOSAVE --> REPOSITORY
     OPERATIONS --> REPOSITORY
     MONTH --> REPOSITORY
+    MONTH --> GRID
+    GRID --> TIME_SLOTS
     REPOSITORY --> DB
 ```
 
