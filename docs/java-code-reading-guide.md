@@ -43,7 +43,7 @@ JavaScriptが使えない場合の通常送信は`ScheduleRequestController.save
 | --- | --- | --- |
 | `schedule` | 月間一覧、セル生成、日付規則、休み | `ScheduleController` |
 | `request` | 案件入力、自動保存、コピー、削除、固定予定 | `ScheduleRequestController` |
-| `holiday` | 祝日CSV取得と祝日キャッシュ | `HolidayStartupSync` |
+| `holiday` | 祝日CSV取得と祝日キャッシュ | `HolidaySyncService` |
 | `retention` | 保存期限を過ぎたデータの削除 | `ScheduleDataRetentionConfiguration` |
 | `config` | 時刻、デモデータ、共通パスワードゲート | `TimeConfiguration` |
 
@@ -54,9 +54,8 @@ JavaScriptが使えない場合の通常送信は`ScheduleRequestController.save
 ```mermaid
 flowchart LR
     HTTP["GET /schedule"] --> C["ScheduleController.month"]
-    C --> F["RecurringFixedRequestService.ensureCurrentAndNextMonth"]
     C --> M["MonthScheduleService.getMonth"]
-    C --> D["DraftManagementService.deleteExpiredAndFindActiveDrafts"]
+    C --> D["DraftManagementService.findActiveDrafts"]
     M --> R["ScheduleRequestRepository"]
     M --> G["ScheduleGridBuilder.build"]
     G --> V["ScheduleCellView / TimeRowView"]
@@ -67,7 +66,6 @@ flowchart LR
 
 1. `ScheduleController.month()`
    - URLの年月を解決する
-   - 今月・翌月の固定予定を不足分だけ作成する
    - 月間表示と有効な下書きをModelへ渡す
 2. `MonthScheduleService.getMonth()`
    - 対象月、水曜・金曜、祝日、休み、公開案件を集める
@@ -79,7 +77,7 @@ flowchart LR
 4. `ScheduleCellView`
    - `available()`、`occupied()`、`dayOff()`が3種類のセルを表す
 
-`ScheduleController.month()`には表示前の副作用が2つある。`RecurringFixedRequestService`が固定予定の不足分を作成し、`DraftManagementService`が作業日を過ぎた下書きを削除してから有効な下書きを返す。
+`ScheduleController.month()`は表示データの取得だけを行い、DBを更新しない。固定予定作成と期限切れ下書き削除は`ScheduleMaintenance`が担当する。
 
 具体例は`MonthScheduleVerticalSliceTest`と`MonthScheduleServiceTest`で確認する。
 
@@ -149,14 +147,15 @@ PostgreSQL固有の同時登録は`PostgreSqlConcurrencyTest`、画面を含む�
 
 画面操作なしで動く処理は、通常のController経路と分けて読む。
 
-### 祝日同期
+### スケジュール保守
 
-1. `HolidayStartupSync`
+1. `ScheduleMaintenance`
 2. `HolidaySyncService`
 3. `CabinetOfficeHolidayClient`
-4. `CalendarHolidayRepository`
+4. `RecurringFixedRequestService`
+5. `DraftManagementService`
 
-外部CSVの取得に失敗した場合は、保存済みの祝日キャッシュを使用する。
+起動時と毎日3時（日本時間）に、祝日同期、固定予定作成、期限切れ下書き削除を順番に実行する。外部CSVの取得に失敗した場合は保存済みキャッシュを使用し、キャッシュもない場合は固定予定作成を見送る。
 
 ### 保存期限切れデータの削除
 

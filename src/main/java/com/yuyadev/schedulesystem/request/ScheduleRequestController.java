@@ -49,13 +49,14 @@ public class ScheduleRequestController {
 			throw new ResponseStatusException(
 					HttpStatus.BAD_REQUEST, "祝日・休みではない水曜日または金曜日を指定してください");
 		}
-		return renderForm(ScheduleRequestForm.newFor(date), List.of(), model);
+		return renderForm(ScheduleRequestForm.newFor(date), null, List.of(), model);
 	}
 
 	@GetMapping("/{id}")
 	public String existingRequest(@PathVariable Long id, Model model) {
 		ScheduleRequest request = deletionService.findPublished(id);
-		return renderForm(ScheduleRequestForm.from(request), List.of(), model);
+		return renderForm(
+				ScheduleRequestForm.from(request), request.getEntryState(), List.of(), model);
 	}
 
 	@GetMapping("/drafts/{id}")
@@ -64,7 +65,8 @@ public class ScheduleRequestController {
 		List<String> errors = request.missingRequiredFields().stream()
 				.map(field -> field + "が未入力です")
 				.toList();
-		return renderForm(ScheduleRequestForm.from(request), errors, model);
+		return renderForm(
+				ScheduleRequestForm.from(request), request.getEntryState(), errors, model);
 	}
 
 	@PostMapping("/drafts/{id}/delete")
@@ -116,7 +118,8 @@ public class ScheduleRequestController {
 			form.setVersion(result.version());
 		}
 		if (result.status() != AutosaveResult.Status.SAVED) {
-			return renderForm(form, List.of(result.message()), model, true);
+			return renderForm(
+					form, result.entryState(), List.of(result.message()), model, true);
 		}
 		return "redirect:" + scheduleUrl(form.getWorkDate());
 	}
@@ -128,16 +131,20 @@ public class ScheduleRequestController {
 	}
 
 	private String renderForm(
-			ScheduleRequestForm form, List<String> errors, Model model) {
-		return formPageBuilder.render(form, errors, model);
+			ScheduleRequestForm form,
+			EntryState entryState,
+			List<String> errors,
+			Model model) {
+		return formPageBuilder.render(form, entryState, errors, model);
 	}
 
 	private String renderForm(
 			ScheduleRequestForm form,
+			EntryState entryState,
 			List<String> errors,
 			Model model,
 			boolean returnOnly) {
-		return formPageBuilder.render(form, errors, model, returnOnly);
+		return formPageBuilder.render(form, entryState, errors, model, returnOnly);
 	}
 
 }

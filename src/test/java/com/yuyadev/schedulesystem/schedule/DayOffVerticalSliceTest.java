@@ -2,7 +2,7 @@ package com.yuyadev.schedulesystem.schedule;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static com.yuyadev.schedulesystem.testsupport.CsrfRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
@@ -98,6 +98,12 @@ class DayOffVerticalSliceTest extends ScheduleVerticalSliceTestSupport {
 				.andExpect(flash().attribute("notice", "休みを解除しました"));
 
 		assertThat(dayOffRepository.existsById(LocalDate.of(2026, 6, 24))).isFalse();
+		assertThat(repository.findAll()).anySatisfy(request -> {
+			assertThat(request.getWorkDate()).isEqualTo(LocalDate.of(2026, 6, 24));
+			assertThat(request.getStartTime()).isEqualTo(LocalTime.of(8, 30));
+			assertThat(request.getEndTime()).isEqualTo(LocalTime.of(10, 0));
+			assertThat(request.getWorkType()).isEqualTo(WorkType.RECEIVING);
+		});
 		mockMvc.perform(get("/schedule").param("month", "2026-06"))
 				.andExpect(status().isOk())
 				.andExpect(content().string(org.hamcrest.Matchers.containsString(

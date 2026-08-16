@@ -110,10 +110,14 @@ document.addEventListener("DOMContentLoaded", () => {
         status.textContent = "保存中...";
         status.className = "save-status saving";
         setStatusState("is-saving");
+        const headers = {"X-Requested-With": "XMLHttpRequest"};
+        if (form.dataset.csrfHeader && form.dataset.csrfToken) {
+            headers[form.dataset.csrfHeader] = form.dataset.csrfToken;
+        }
         const response = await fetch(form.dataset.autosaveUrl, {
             method: "POST",
             body: new FormData(form),
-            headers: {"X-Requested-With": "XMLHttpRequest"}
+            headers
         });
         if (!response.ok) throw new Error("保存に失敗しました");
         const result = await response.json();

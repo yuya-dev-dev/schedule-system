@@ -2,7 +2,6 @@ package com.yuyadev.schedulesystem.request;
 
 import com.yuyadev.schedulesystem.schedule.ScheduleDatePolicy;
 import jakarta.persistence.OptimisticLockException;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.CannotAcquireLockException;
@@ -15,9 +14,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class ScheduleRequestAutosaveService {
-
-	private static final String POSTGRES_EXCLUSION_VIOLATION = "23P01";
-	private static final String POSTGRES_DEADLOCK_DETECTED = "40P01";
 
 	private final ScheduleRequestRepository repository;
 	private final ScheduleDatePolicy datePolicy;
@@ -40,7 +36,7 @@ public class ScheduleRequestAutosaveService {
 					status -> saveInTransaction(id, expectedVersion, input));
 			return toAutosaveResult(saved);
 		} catch (DataIntegrityViolationException exception) {
-			if (!hasSqlState(exception, POSTGRES_EXCLUSION_VIOLATION)) {
+			if (!PostgreSqlConflictDetector.isPublishedTimeOverlap(exception)) {
 				throw exception;
 			}
 			SaveResult conflict = transactionTemplate.execute(
@@ -54,7 +50,10 @@ public class ScheduleRequestAutosaveService {
 					status -> saveRaceConflict(id, expectedVersion, input));
 			return toAutosaveResult(conflict);
 		} catch (IllegalArgumentException exception) {
-			return AutosaveResult.invalid(exception.getMessage());
+			ScheduleRequest current = id == null ? null : repository.findById(id).orElse(null);
+			return current == null
+					? AutosaveResult.invalid(exception.getMessage())
+					: AutosaveResult.invalid(current, exception.getMessage());
 		} catch (ObjectOptimisticLockingFailureException | OptimisticLockException exception) {
 			ScheduleRequest current = id == null ? null : repository.findById(id).orElse(null);
 			return current == null
@@ -158,20 +157,8 @@ public class ScheduleRequestAutosaveService {
 		return "既存案件 " + request.getStartTime() + "-" + request.getEndTime() + " と重複";
 	}
 
-	private static boolean hasSqlState(Throwable throwable, String expectedState) {
-		Throwable current = throwable;
-		while (current != null) {
-			if (current instanceof SQLException sqlException
-					&& expectedState.equals(sqlException.getSQLState())) {
-				return true;
-			}
-			current = current.getCause();
-		}
-		return false;
-	}
-
 	static boolean isPublishedTimeDeadlock(Throwable throwable) {
-		return hasSqlState(throwable, POSTGRES_DEADLOCK_DETECTED);
+		return PostgreSqlConflictDetector.isDeadlock(throwable);
 	}
 
 	private enum SaveStatus {

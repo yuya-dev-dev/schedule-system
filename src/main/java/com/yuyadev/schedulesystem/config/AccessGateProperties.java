@@ -7,7 +7,11 @@ public record AccessGateProperties(
 		boolean enabled,
 		String password) {
 
-	public void validateIfEnabled() {
+	public void validate(boolean cloudProfile) {
+		if (cloudProfile && !enabled) {
+			throw new IllegalStateException(
+					"Access gate must be enabled for the cloud profile.");
+		}
 		if (enabled && !hasText(password)) {
 			throw new IllegalStateException(
 					"Access gate is enabled, but password is missing.");

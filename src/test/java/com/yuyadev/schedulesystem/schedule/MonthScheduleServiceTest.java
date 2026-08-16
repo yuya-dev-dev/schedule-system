@@ -43,7 +43,7 @@ class MonthScheduleServiceTest {
 				holidayCalendarService,
 				dayOffCalendarService,
 				new ScheduleDatePolicy(clock, holidayCalendarService, dayOffCalendarService),
-				new ScheduleGridBuilder(clock),
+				new ScheduleGridBuilder(),
 				clock);
 		when(holidayCalendarService.holidayDatesBetween(any(), any())).thenReturn(Set.of());
 		when(dayOffCalendarService.dayOffDatesBetween(any(), any())).thenReturn(Set.of());

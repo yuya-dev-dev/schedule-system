@@ -2,7 +2,7 @@ package com.yuyadev.schedulesystem.schedule;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static com.yuyadev.schedulesystem.testsupport.CsrfRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -29,7 +29,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 class RequestWorkflowVerticalSliceTest extends ScheduleVerticalSliceTestSupport {
 
 	@Test
-	void listsResumesAndDeletesAnActiveDraftWhilePurgingPastDrafts() throws Exception {
+	void listsResumesAndDeletesAnActiveDraftWithoutWritingDuringGet() throws Exception {
 		ScheduleRequest active = repository.saveAndFlush(ScheduleRequest.draft(
 				LocalDate.of(2026, 6, 24), null, null, "社員A", null,
 				DraftReason.INCOMPLETE, "入力不足"));
@@ -43,7 +43,7 @@ class RequestWorkflowVerticalSliceTest extends ScheduleVerticalSliceTestSupport 
 				.andExpect(content().string(org.hamcrest.Matchers.containsString("2026年6月24日 社員A")))
 				.andExpect(content().string(org.hamcrest.Matchers.not(
 						org.hamcrest.Matchers.containsString("2026年6月19日 社員B"))));
-		assertThat(repository.existsById(expired.getId())).isFalse();
+		assertThat(repository.existsById(expired.getId())).isTrue();
 
 		mockMvc.perform(get("/requests/drafts/{id}", active.getId()))
 				.andExpect(status().isOk())

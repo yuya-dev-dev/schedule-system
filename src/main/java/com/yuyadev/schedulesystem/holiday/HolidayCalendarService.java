@@ -33,6 +33,10 @@ public class HolidayCalendarService {
 		return date != null && holidayRepository.existsById(date);
 	}
 
+	public boolean hasCachedHolidays() {
+		return holidayRepository.count() > 0;
+	}
+
 	public Set<LocalDate> holidayDatesBetween(LocalDate startDate, LocalDate endDate) {
 		return holidayRepository.findByHolidayDateBetween(startDate, endDate).stream()
 				.map(CalendarHoliday::getHolidayDate)

@@ -1,8 +1,8 @@
 package com.yuyadev.schedulesystem.config;
 
 import static org.hamcrest.Matchers.containsString;
+import static com.yuyadev.schedulesystem.testsupport.CsrfRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
@@ -52,6 +52,15 @@ class SecurityConfigurationAccessGateTest {
 						.param("accessPassword", "wrong-pass"))
 				.andExpect(status().is3xxRedirection())
 				.andExpect(redirectedUrl("/login?error"));
+	}
+
+	@Test
+	void rejectsLoginWithoutCsrfToken() throws Exception {
+		mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+					.post("/login")
+					.param("accessUser", SecurityConfiguration.SHARED_USERNAME)
+					.param("accessPassword", "test-pass"))
+				.andExpect(status().isForbidden());
 	}
 
 	@Test
