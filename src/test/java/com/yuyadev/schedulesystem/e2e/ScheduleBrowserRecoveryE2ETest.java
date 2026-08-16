@@ -4,10 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
-import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
-import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.Route;
 import com.yuyadev.schedulesystem.request.EntryState;
 import com.yuyadev.schedulesystem.request.ScheduleRequest;
@@ -43,15 +41,15 @@ class ScheduleBrowserRecoveryE2ETest {
 	@Autowired
 	private ScheduleRequestRepository repository;
 
-	private Playwright playwright;
+	private PlaywrightBrowserSession browserSession;
 	private Browser browser;
 	private BrowserContext context;
 	private Page page;
 
 	@BeforeAll
 	void launchBrowser() {
-		playwright = Playwright.create();
-		browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+		browserSession = PlaywrightBrowserSession.launch();
+		browser = browserSession.browser();
 	}
 
 	@BeforeEach
@@ -70,8 +68,7 @@ class ScheduleBrowserRecoveryE2ETest {
 
 	@AfterAll
 	void closeBrowser() {
-		browser.close();
-		playwright.close();
+		browserSession.close();
 	}
 
 	@Test

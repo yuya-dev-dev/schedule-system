@@ -8,12 +8,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuyadev.schedulesystem.holiday.CalendarHolidayRepository;
 import com.yuyadev.schedulesystem.request.ScheduleRequest;
 import com.yuyadev.schedulesystem.request.ScheduleRequestRepository;
+import com.yuyadev.schedulesystem.request.WorkType;
+import com.yuyadev.schedulesystem.testsupport.SavedScheduleRequestFactory;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -37,6 +40,13 @@ abstract class ScheduleVerticalSliceTestSupport {
 
 	@Autowired
 	protected MonthScheduleService monthScheduleService;
+
+	private SavedScheduleRequestFactory savedRequests;
+
+	@BeforeEach
+	void prepareRequestFactory() {
+		savedRequests = new SavedScheduleRequestFactory(repository);
+	}
 
 	@AfterEach
 	void cleanUp() {
@@ -99,6 +109,16 @@ abstract class ScheduleVerticalSliceTestSupport {
 				.count();
 	}
 
+	protected ScheduleRequest savePublished(
+			LocalDate workDate,
+			LocalTime startTime,
+			LocalTime endTime,
+			String requesterName,
+			WorkType workType) {
+		return savedRequests.published(
+				workDate, startTime, endTime, requesterName, workType);
+	}
+
 	protected ScheduleCellView cellAt(
 			MonthScheduleView view, int dateIndex, LocalTime startTime) {
 		return view.timeRows().stream()
@@ -120,4 +140,3 @@ abstract class ScheduleVerticalSliceTestSupport {
 		}
 	}
 }
-

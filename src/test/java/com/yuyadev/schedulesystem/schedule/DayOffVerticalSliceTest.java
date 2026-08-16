@@ -5,35 +5,18 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.yuyadev.schedulesystem.holiday.CalendarHoliday;
-import com.yuyadev.schedulesystem.holiday.CalendarHolidayRepository;
-import com.yuyadev.schedulesystem.request.EntryState;
 import com.yuyadev.schedulesystem.request.DraftReason;
 import com.yuyadev.schedulesystem.request.ScheduleRequest;
-import com.yuyadev.schedulesystem.request.ScheduleRequestRepository;
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import com.yuyadev.schedulesystem.request.WorkType;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 
 @SpringBootTest
@@ -121,4 +104,3 @@ class DayOffVerticalSliceTest extends ScheduleVerticalSliceTestSupport {
 						"/requests/new?date=2026-06-24")));
 	}
 }
-

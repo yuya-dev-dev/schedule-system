@@ -5,35 +5,18 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.yuyadev.schedulesystem.holiday.CalendarHoliday;
-import com.yuyadev.schedulesystem.holiday.CalendarHolidayRepository;
-import com.yuyadev.schedulesystem.request.EntryState;
-import com.yuyadev.schedulesystem.request.DraftReason;
 import com.yuyadev.schedulesystem.request.ScheduleRequest;
-import com.yuyadev.schedulesystem.request.ScheduleRequestRepository;
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import com.yuyadev.schedulesystem.request.WorkType;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 
 @SpringBootTest
@@ -52,10 +35,10 @@ class MonthScheduleVerticalSliceTest extends ScheduleVerticalSliceTestSupport {
 	@Test
 	void mapsThirtyMinuteRequestsToCellsWithColorsAndContinuationArrows() {
 		LocalDate workDate = LocalDate.of(2026, 6, 24);
-		repository.saveAndFlush(ScheduleRequest.published(
-				workDate, LocalTime.of(10, 0), LocalTime.of(11, 0), "社員A", WorkType.INSTALL));
-		repository.saveAndFlush(ScheduleRequest.published(
-				workDate, LocalTime.of(14, 0), LocalTime.of(15, 0), "社員B", WorkType.DELIVERY));
+		savePublished(
+				workDate, LocalTime.of(10, 0), LocalTime.of(11, 0), "社員A", WorkType.INSTALL);
+		savePublished(
+				workDate, LocalTime.of(14, 0), LocalTime.of(15, 0), "社員B", WorkType.DELIVERY);
 
 		MonthScheduleView view = monthScheduleService.getMonth("2026-06");
 		int dateIndex = java.util.stream.IntStream.range(0, view.workDates().size())
@@ -78,8 +61,8 @@ class MonthScheduleVerticalSliceTest extends ScheduleVerticalSliceTestSupport {
 		LocalDate workDate = LocalDate.of(2026, 6, 24);
 		for (int index = 0; index < 6; index++) {
 			LocalTime start = LocalTime.of(8, 30).plusMinutes(index * 30L);
-			repository.saveAndFlush(ScheduleRequest.published(
-					workDate, start, start.plusMinutes(30), "社員" + index, WorkType.DELIVERY));
+			savePublished(
+					workDate, start, start.plusMinutes(30), "社員" + index, WorkType.DELIVERY);
 		}
 
 		MonthScheduleView view = monthScheduleService.getMonth("2026-06");
@@ -97,12 +80,12 @@ class MonthScheduleVerticalSliceTest extends ScheduleVerticalSliceTestSupport {
 	@Test
 	void givesInternalWorkTypesDedicatedColorWithoutAdvancingNormalColorRotation() {
 		LocalDate workDate = LocalDate.of(2026, 6, 24);
-		repository.saveAndFlush(ScheduleRequest.published(
+		savePublished(
 				workDate, LocalTime.of(13, 0), LocalTime.of(13, 30),
-				null, WorkType.RECEIVING));
-		repository.saveAndFlush(ScheduleRequest.published(
+				null, WorkType.RECEIVING);
+		savePublished(
 				workDate, LocalTime.of(14, 0), LocalTime.of(14, 30),
-				"社員A", WorkType.INSTALL));
+				"社員A", WorkType.INSTALL);
 
 		MonthScheduleView view = monthScheduleService.getMonth("2026-06");
 		int dateIndex = java.util.stream.IntStream.range(0, view.workDates().size())
@@ -117,15 +100,15 @@ class MonthScheduleVerticalSliceTest extends ScheduleVerticalSliceTestSupport {
 	@Test
 	void recalculatesColorsAfterAnEarlierRequestIsDeleted() {
 		LocalDate workDate = LocalDate.of(2026, 6, 24);
-		ScheduleRequest first = repository.saveAndFlush(ScheduleRequest.published(
+		ScheduleRequest first = savePublished(
 				workDate, LocalTime.of(9, 0), LocalTime.of(9, 30),
-				"社員A", WorkType.INSTALL));
-		ScheduleRequest second = repository.saveAndFlush(ScheduleRequest.published(
+				"社員A", WorkType.INSTALL);
+		ScheduleRequest second = savePublished(
 				workDate, LocalTime.of(10, 0), LocalTime.of(10, 30),
-				"社員B", WorkType.DELIVERY));
-		repository.saveAndFlush(ScheduleRequest.published(
+				"社員B", WorkType.DELIVERY);
+		savePublished(
 				workDate, LocalTime.of(11, 0), LocalTime.of(11, 30),
-				"社員C", WorkType.COLLECT));
+				"社員C", WorkType.COLLECT);
 
 		repository.deleteById(first.getId());
 		repository.flush();
@@ -181,4 +164,3 @@ class MonthScheduleVerticalSliceTest extends ScheduleVerticalSliceTestSupport {
 						"2026年6月 スケジュール")));
 	}
 }
-

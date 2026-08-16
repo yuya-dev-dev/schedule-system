@@ -2,6 +2,7 @@ package com.yuyadev.schedulesystem.request;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static com.yuyadev.schedulesystem.testsupport.ScheduleRequestInputTestBuilder.requestInput;
 
 import com.yuyadev.schedulesystem.TestClockConfiguration;
 import java.time.Duration;
@@ -164,10 +165,13 @@ class PostgreSqlConcurrencyTest {
 				0,
 				input(LocalTime.of(9, 0), LocalTime.of(10, 0), "社員A", WorkType.INSTALL));
 		ScheduleRequest existing = repository.findById(existingResult.requestId()).orElseThrow();
-		ScheduleRequestInput edit = new ScheduleRequestInput(
-				WORK_DATE, LocalTime.of(9, 0), LocalTime.of(10, 0), WorkType.INSTALL,
-				"社員A", "更新後の作業内容", "愛知県名古屋市架空町", "午前中",
-				false, null, null, null, DispatchStatus.UNANSWERED, null);
+		ScheduleRequestInput edit = requestInput()
+				.workDate(WORK_DATE)
+				.requesterName("社員A")
+				.requestDetail("更新後の作業内容")
+				.address("愛知県名古屋市架空町")
+				.desiredArrivalTime("午前中")
+				.build();
 		ScheduleRequestInput newcomer = input(
 				LocalTime.of(9, 30), LocalTime.of(10, 30), "社員B", WorkType.DELIVERY);
 		CountDownLatch ready = new CountDownLatch(2);
@@ -242,20 +246,12 @@ class PostgreSqlConcurrencyTest {
 			LocalTime end,
 			String requester,
 			WorkType workType) {
-		return new ScheduleRequestInput(
-				WORK_DATE,
-				start,
-				end,
-				workType,
-				requester,
-				"架空の作業内容",
-				"愛知県名古屋市中区架空町1-1",
-				"午後",
-				false,
-				null,
-				null,
-				null,
-				DispatchStatus.UNANSWERED,
-				null);
+		return requestInput()
+				.workDate(WORK_DATE)
+				.startTime(start)
+				.endTime(end)
+				.workType(workType)
+				.requesterName(requester)
+				.build();
 	}
 }

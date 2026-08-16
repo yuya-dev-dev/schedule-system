@@ -6,10 +6,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
-import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
-import com.microsoft.playwright.Playwright;
 import com.yuyadev.schedulesystem.request.DraftReason;
 import com.yuyadev.schedulesystem.request.EntryState;
 import com.yuyadev.schedulesystem.request.ScheduleRequest;
@@ -62,15 +60,15 @@ class Phase4PerformanceTest {
 	private final HttpClient httpClient = HttpClient.newBuilder()
 			.connectTimeout(Duration.ofSeconds(5))
 			.build();
-	private Playwright playwright;
+	private PlaywrightBrowserSession browserSession;
 	private Browser browser;
 	private BrowserContext context;
 	private Page page;
 
 	@BeforeAll
 	void launchBrowser() {
-		playwright = Playwright.create();
-		browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+		browserSession = PlaywrightBrowserSession.launch();
+		browser = browserSession.browser();
 	}
 
 	@BeforeEach
@@ -88,8 +86,7 @@ class Phase4PerformanceTest {
 
 	@AfterAll
 	void closeBrowser() {
-		browser.close();
-		playwright.close();
+		browserSession.close();
 	}
 
 	@Test

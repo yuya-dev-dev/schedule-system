@@ -1,6 +1,7 @@
 package com.yuyadev.schedulesystem.request;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static com.yuyadev.schedulesystem.testsupport.ScheduleRequestInputTestBuilder.requestInput;
 
 import com.yuyadev.schedulesystem.TestClockConfiguration;
 import java.time.LocalDate;
@@ -88,20 +89,11 @@ class ScheduleRequestWorkflowTest {
 
 	private ScheduleRequestInput input(
 			int startHour, int startMinute, int endHour, int endMinute, String requesterName) {
-		return new ScheduleRequestInput(
-				WORK_DATE,
-				LocalTime.of(startHour, startMinute),
-				LocalTime.of(endHour, endMinute),
-				WorkType.INSTALL,
-				requesterName,
-				"架空の作業内容",
-				"愛知県名古屋市中区架空町1-1",
-				"午後",
-				false,
-				null,
-				null,
-				null,
-				DispatchStatus.UNANSWERED,
-				null);
+		return requestInput()
+				.workDate(WORK_DATE)
+				.startTime(LocalTime.of(startHour, startMinute))
+				.endTime(LocalTime.of(endHour, endMinute))
+				.requesterName(requesterName)
+				.build();
 	}
 }
