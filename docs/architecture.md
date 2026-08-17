@@ -6,6 +6,7 @@
 flowchart LR
     PC["社員PCのブラウザ"]
     IPHONE["担当者のiPhone Safari"]
+    SECURITY["Spring Security\n共通パスワード・CSRF"]
     WEB["Spring Boot Webアプリ"]
     VIEW["Thymeleaf / JavaScript"]
     SERVICE["業務サービス"]
@@ -13,8 +14,9 @@ flowchart LR
     H2[("H2\nローカル・デモ")]
     PG[("PostgreSQL\nクラウド試験・競合試験")]
 
-    PC --> WEB
-    IPHONE --> WEB
+    PC --> SECURITY
+    IPHONE --> SECURITY
+    SECURITY --> WEB
     WEB --> VIEW
     WEB --> SERVICE
     SERVICE --> JPA
@@ -38,6 +40,7 @@ flowchart TD
     DRAFT["DraftManagementService\n下書き一覧・期限切れ削除"]
     RECURRING["RecurringFixedRequestService\n固定予定"]
     MAINTENANCE["ScheduleMaintenance\n祝日同期・固定予定・下書き整理"]
+    HOLIDAY["HolidaySyncService\n祝日CSV・キャッシュ"]
     MONTH["MonthScheduleService\n対象月・日付列"]
     GRID["ScheduleGridBuilder\nセル・色・矢印"]
     REPOSITORY["Spring Data Repository"]
@@ -60,6 +63,8 @@ flowchart TD
     RECURRING --> REPOSITORY
     MAINTENANCE --> RECURRING
     MAINTENANCE --> DRAFT
+    MAINTENANCE --> HOLIDAY
+    HOLIDAY --> REPOSITORY
     MONTH --> REPOSITORY
     MONTH --> GRID
     GRID --> TIME_SLOTS
@@ -83,6 +88,8 @@ flowchart TD
 
 `ScheduleMaintenance`は起動時と、アプリ稼働中の毎日3時（日本時間）に、祝日同期、今月・翌月の固定予定作成、期限切れ下書き削除を順番に実行する。停止中に3時を過ぎた場合は、次回起動時に実行する。祝日同期が失敗し、既存キャッシュもない場合は固定予定を作らない。月間一覧のGETは表示データの取得だけを行う。休み解除時は、現在月または翌月の対象日だけ固定予定を即時補充する。
 
+固定予定は水曜日8:30-10:00の入庫と金曜日8:30-10:00の商品管理で、通常案件と同じ `schedule_requests` に保存する。個別削除した日は `recurring_fixed_request_skips` で再作成を抑止し、表示時は通常案件と異なる専用色を割り当てる。
+
 ## 環境の使い分け
 
 | 環境 | DB | 用途 |
@@ -92,3 +99,5 @@ flowchart TD
 | 自動テスト | H2メモリ | 単体、結合、ブラウザE2E、性能・容量確認 |
 | DB競合試験 | PostgreSQL Testcontainers | 排他制約、同時登録、トランザクション確認 |
 | 5人限定運用 | Render Free Web Service + Neon Free PostgreSQL | 共通パスワードゲート、PostgreSQL保存、日次バックアップ。速度改善要望が出た場合だけ有料化を検討 |
+
+デモと自動テストでは `ScheduleMaintenance` を無効にし、デモデータ投入やテスト結果を起動順序と外部祝日CSVから切り離す。cloud profileでは共通パスワードゲートを必須とし、無効設定では起動を失敗させる。

@@ -45,7 +45,7 @@ JavaScriptが使えない場合の通常送信は`ScheduleRequestController.save
 | `request` | 案件入力、自動保存、コピー、削除、固定予定 | `ScheduleRequestController` |
 | `holiday` | 祝日CSV取得と祝日キャッシュ | `HolidaySyncService` |
 | `retention` | 保存期限を過ぎたデータの削除 | `ScheduleDataRetentionConfiguration` |
-| `config` | 時刻、デモデータ、共通パスワードゲート | `TimeConfiguration` |
+| `config` | 時刻、デモデータ、共通パスワードゲート、CSRF | `SecurityConfiguration` |
 
 `record`で終わるViewやResultは、処理そのものではなく、層の間で渡すデータを表す。最初はControllerとServiceを先に読み、必要になった時点で対応するrecordを確認する。
 
@@ -155,7 +155,7 @@ PostgreSQL固有の同時登録は`PostgreSqlConcurrencyTest`、画面を含む�
 4. `RecurringFixedRequestService`
 5. `DraftManagementService`
 
-起動時と毎日3時（日本時間）に、祝日同期、固定予定作成、期限切れ下書き削除を順番に実行する。外部CSVの取得に失敗した場合は保存済みキャッシュを使用し、キャッシュもない場合は固定予定作成を見送る。
+起動時と、アプリ稼働中の毎日3時（日本時間）に、祝日同期、固定予定作成、期限切れ下書き削除を順番に実行する。外部CSVの取得に失敗した場合は保存済みキャッシュを使用し、キャッシュもない場合は固定予定作成を見送る。停止中に3時を過ぎた場合は、次回起動時に同じ処理を行う。
 
 ### 保存期限切れデータの削除
 
@@ -219,7 +219,9 @@ Repositoryの長いメソッド名には実装クラスがない。Spring Data J
 5. `ScheduleRequestAutosaveServiceTest`: 保存状態の細かい分岐
 6. `ScheduleRequestTest`: Entityの入力正規化と必須判定
 7. `PostgreSqlConcurrencyTest`: PostgreSQLの同時登録と排他制約
-8. `ScheduleBrowserE2ETest`と`ScheduleBrowserRecoveryE2ETest`: JavaScriptを含む利用者操作
+8. `ScheduleMaintenanceTest`: 祝日同期、固定予定、期限切れ下書きの実行順序
+9. `SecurityConfigurationTest`と`SecurityConfigurationAccessGateTest`: CSRFと共通パスワードゲート
+10. `ScheduleBrowserE2ETest`と`ScheduleBrowserRecoveryE2ETest`: JavaScriptを含む利用者操作
 
 テスト本文は、準備、操作、期待結果の空行で区切られている。まずテスト名と期待結果を読み、必要な場合だけ準備処理へ戻る。
 
