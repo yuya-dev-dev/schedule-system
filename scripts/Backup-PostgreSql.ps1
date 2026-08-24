@@ -120,6 +120,16 @@ try {
     $backupFilePath = Join-Path $outputDirectory $backupFileName
     $backupMount = "type=bind,source=$outputDirectory,target=/backup"
     $dockerArguments = @("run", "--rm", "--interactive")
+    $isWindows = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+        [System.Runtime.InteropServices.OSPlatform]::Windows)
+    if (-not $isWindows) {
+        $hostUserId = (& id -u | Out-String).Trim()
+        $hostGroupId = (& id -g | Out-String).Trim()
+        if ($LASTEXITCODE -ne 0 -or -not $hostUserId -or -not $hostGroupId) {
+            throw "Dockerコンテナへ渡すホストのUID/GIDを取得できません。"
+        }
+        $dockerArguments += @("--user", ("{0}:{1}" -f $hostUserId, $hostGroupId))
+    }
     if (-not [string]::IsNullOrWhiteSpace($ClientNetwork)) {
         $dockerArguments += @("--network", $ClientNetwork)
     }
