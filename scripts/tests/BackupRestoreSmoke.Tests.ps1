@@ -71,6 +71,7 @@ try {
     Invoke-Docker @(
         "run", "--detach", "--name", $applicationContainer,
         "--network", $networkName,
+        "--publish", "127.0.0.1::8080",
         "--env", "SPRING_PROFILES_ACTIVE=cloud",
         "--env", "SPRING_DATASOURCE_URL=jdbc:postgresql://${databaseContainer}:5432/$databaseName",
         "--env", "SPRING_DATASOURCE_USERNAME=$databaseUser",
@@ -98,6 +99,28 @@ try {
     }
     if (-not $applicationReady) {
         throw "CI用アプリケーションの起動がタイムアウトしました。"
+    }
+
+    $portBinding = (& docker port $applicationContainer 8080/tcp | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0 -or $portBinding -notmatch '^127\.0\.0\.1:(\d+)$') {
+        throw "CI用アプリケーションの公開ポートを取得できません。binding=$portBinding"
+    }
+    $applicationUrl = "http://127.0.0.1:$($Matches[1])/login"
+    $httpReady = $false
+    for ($attempt = 0; $attempt -lt 10; $attempt++) {
+        try {
+            $response = Invoke-WebRequest -Uri $applicationUrl -TimeoutSec 5 -MaximumRedirection 0
+            if ($response.StatusCode -eq 200) {
+                $httpReady = $true
+                break
+            }
+        }
+        catch {
+            Start-Sleep -Seconds 1
+        }
+    }
+    if (-not $httpReady) {
+        throw "CI用アプリケーションのログイン画面がHTTP 200を返しません。"
     }
 
     Invoke-Docker @("rm", "--force", $applicationContainer) "CI用アプリケーションを停止できません。"

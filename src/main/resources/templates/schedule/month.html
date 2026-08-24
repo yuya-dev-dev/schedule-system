@@ -14,23 +14,28 @@
         <p class="page-kicker">配送・設置案件</p>
         <h1 th:text="${schedule.title + ' スケジュール'}">2026年6月 スケジュール</h1>
     </div>
-    <form class="month-picker" method="get" th:action="@{/schedule}" aria-label="年月を選択">
-        <label class="month-picker-field" for="month-picker-year">
-            <span>年</span>
-            <input id="month-picker-year" name="year" type="number" min="1" required
-                   inputmode="numeric" th:value="${schedule.selectedYear}">
-        </label>
-        <label class="month-picker-field" for="month-picker-month">
-            <span>月</span>
-            <select id="month-picker-month" name="monthNumber" required>
-                <option th:each="number : ${#numbers.sequence(1, 12)}"
-                        th:value="${number}"
-                        th:text="${number + '月'}"
-                        th:selected="${number == schedule.selectedMonthNumber}">1月</option>
-            </select>
-        </label>
-        <button type="submit">表示</button>
-    </form>
+    <div class="schedule-header-actions">
+        <form class="month-picker" method="get" th:action="@{/schedule}" aria-label="年月を選択">
+            <label class="month-picker-field" for="month-picker-year">
+                <span>年</span>
+                <input id="month-picker-year" name="year" type="number" min="1" required
+                       inputmode="numeric" th:value="${schedule.selectedYear}">
+            </label>
+            <label class="month-picker-field" for="month-picker-month">
+                <span>月</span>
+                <select id="month-picker-month" name="monthNumber" required>
+                    <option th:each="number : ${#numbers.sequence(1, 12)}"
+                            th:value="${number}"
+                            th:text="${number + '月'}"
+                            th:selected="${number == schedule.selectedMonthNumber}">1月</option>
+                </select>
+            </label>
+            <button type="submit">表示</button>
+        </form>
+        <form th:if="${accessGateEnabled}" class="logout-form" method="post" th:action="@{/logout}">
+            <button type="submit">ログアウト</button>
+        </form>
+    </div>
     <p th:if="${monthSelectionError}" class="month-picker-error" role="alert"
        th:text="${monthSelectionError}">正しい年と月を入力してください</p>
 </header>

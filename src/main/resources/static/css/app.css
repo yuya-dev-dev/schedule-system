@@ -205,6 +205,35 @@ main[tabindex="-1"]:focus {
     letter-spacing: 0.04em;
 }
 
+.schedule-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.logout-form button {
+    min-height: 40px;
+    border: 1px solid var(--schedule-line);
+    border-radius: 4px;
+    background: var(--schedule-card);
+    padding: 7px 10px;
+    color: var(--schedule-ink);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.access-message {
+    border-left: 4px solid var(--accent);
+    background: #eef7f4;
+    padding: 10px 12px;
+    color: var(--ink);
+}
+
+.access-message p {
+    margin: 0;
+}
+
 .schedule-page .month-picker {
     flex-wrap: nowrap;
     align-items: center;
@@ -1668,6 +1697,16 @@ textarea:focus {
         justify-self: start;
         max-width: 100%;
         overflow-x: auto;
+    }
+
+    .schedule-header-actions {
+        align-items: stretch;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .logout-form button {
+        width: 100%;
     }
 
     .copy-source-summary {
