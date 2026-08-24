@@ -72,3 +72,5 @@ finally {
         Remove-Item -LiteralPath $testFullPath -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
+
+exit 0
