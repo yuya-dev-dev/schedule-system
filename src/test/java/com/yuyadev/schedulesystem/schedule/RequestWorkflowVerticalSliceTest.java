@@ -302,6 +302,36 @@ class RequestWorkflowVerticalSliceTest extends ScheduleVerticalSliceTestSupport 
 	}
 
 	@Test
+	void rejectsOversizedTextFromNormalSaveWithoutPersisting() throws Exception {
+		mockMvc.perform(post("/requests/save")
+					.param("workDate", "2026-06-24")
+					.param("startTime", "10:00")
+					.param("endTime", "11:00")
+					.param("requesterName", "a".repeat(101)))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"依頼者名は100文字以内で入力してください")));
+
+		assertThat(repository.count()).isZero();
+	}
+
+	@Test
+	void rejectsOversizedTextFromAutosaveWithoutPersisting() throws Exception {
+		mockMvc.perform(post("/requests/autosave")
+					.param("workDate", "2026-06-24")
+					.param("startTime", "10:00")
+					.param("endTime", "11:00")
+					.param("requesterName", "社員A")
+					.param("note", "a".repeat(4001)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("INVALID"))
+				.andExpect(jsonPath("$.message").value(
+						"その他・作業メモは4000文字以内で入力してください"));
+
+		assertThat(repository.count()).isZero();
+	}
+
+	@Test
 	void selectsArbitraryMonthAndRegistersFutureWorkDate() throws Exception {
 		MvcResult selectedMonthResult = mockMvc.perform(get("/schedule")
 					.param("year", "2027")

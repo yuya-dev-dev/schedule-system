@@ -26,14 +26,39 @@ Excelに近い30分単位の一覧性を残しつつ、各セルから詳細画�
 - **運用まで含めた設計:** Flyway Migration、Render + Neon構成、custom formatの日次バックアップ、SHA-256検証、ネットワークを切った隔離コンテナへの復元確認を用意する
 - **クラウド向け入口保護:** 共通パスワードゲートとCSRF防御を有効にし、秘密値は環境変数で管理する
 
+## システム構成
+
+```mermaid
+flowchart LR
+    Browser[PC / iPhone Safari] --> Security[Spring Security<br>共通パスワード + CSRF]
+    Security --> App[Spring Boot<br>Thymeleaf / Spring Data JPA]
+    App --> PostgreSQL[(PostgreSQL<br>共有環境)]
+    App --> H2[(H2<br>ローカル開発)]
+    App --> Holidays[内閣府<br>祝日CSV]
+    Backup[PowerShell<br>backup / restore] --> PostgreSQL
+    CI[GitHub Actions] --> Tests[JUnit / Testcontainers<br>Playwright]
+```
+
 ## 画面
+
+### PC表示
+
+#### 月間スケジュール
+
+<img src="docs/images/desktop-schedule.png" alt="PCで表示した配送・設置案件の月間スケジュール" width="100%">
+
+#### 案件入力フォーム
+
+<img src="docs/images/desktop-request-form.png" alt="PCで表示した配送・設置案件の入力フォーム" width="100%">
+
+### スマートフォン表示（iPhone Safari）
 
 <p>
   <img src="docs/images/iphone-schedule.jpg" alt="iPhone Safariで表示した月間スケジュール" width="280">
   <img src="docs/images/iphone-request-detail.jpg" alt="iPhone Safariで表示した案件詳細" width="280">
 </p>
 
-月間一覧では、案件の先頭セルに依頼者名と作業種別、後続セルに矢印を表示する。PCでの入力を主対象とし、iPhoneでは同じ画面を縦横スクロール、拡大して閲覧できる。
+月間一覧では、案件の先頭セルに依頼者名と作業種別、後続セルに矢印を表示する。PCでの入力を主対象とし、スマートフォンでは同じ画面を縦横スクロール、拡大して閲覧できる。
 
 ## 技術スタック
 
@@ -56,9 +81,9 @@ Excelに近い30分単位の一覧性を残しつつ、各セルから詳細画�
 
 ## 現在の状況
 
-初期MVPと初回導入機能、UI改善、クラウド対応まで完了し、5人規模の限定運用が許可されています。Java 21、H2、PostgreSQL Testcontainers、Playwright Chromiumを含む全153件の自動テストが成功しています。
+初期MVPと初回導入機能、UI改善、クラウド対応まで完了し、5人規模の限定運用が許可されています。H2、PostgreSQL Testcontainers、Playwright Chromiumを含む自動テストをGitHub Actionsで実行しています。
 
-日次PostgreSQLバックアップ、SHA-256検証、隔離復元、障害時手順は架空データで確認済みです。実在データを対象とする初回バックアップは、会社承認済み保管先の確定後に実施します。
+日次PostgreSQLバックアップ、SHA-256検証、隔離復元、障害時手順は架空データで確認済みです。会社承認済みの保管先、日次担当者、初回本番バックアップと隔離復元の運用記録は未確定であり、バックアップ運用は開始待ちです。
 
 ## Dockerで起動する
 
