@@ -5,6 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static com.yuyadev.schedulesystem.testsupport.ScheduleRequestInputTestBuilder.requestInput;
 
 import com.yuyadev.schedulesystem.TestClockConfiguration;
+import com.yuyadev.schedulesystem.schedule.DayOffService;
+import com.yuyadev.schedulesystem.schedule.ScheduleDateTransactionLock;
+import com.yuyadev.schedulesystem.schedule.ScheduleDayOff;
+import com.yuyadev.schedulesystem.schedule.ScheduleDayOffRepository;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -14,6 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +28,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -53,9 +60,94 @@ class PostgreSqlConcurrencyTest {
 	@Autowired
 	private ScheduleRequestRepository repository;
 
+	@Autowired
+	private ScheduleDayOffRepository dayOffRepository;
+
+	@Autowired
+	private DayOffService dayOffService;
+
+	@Autowired
+	private ScheduleDateTransactionLock dateTransactionLock;
+
+	@Autowired
+	private PlatformTransactionManager transactionManager;
+
 	@AfterEach
 	void deleteRequests() {
 		repository.deleteAll();
+		dayOffRepository.deleteAll();
+	}
+
+	@Test
+	void autosaveWaitsForDayOffAndThenRejectsTheRequest() throws Exception {
+		CountDownLatch locked = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+		CountDownLatch autosaveStarted = new CountDownLatch(1);
+
+		try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+			Future<?> dayOffTransaction = executor.submit(() -> inTransaction(() -> {
+				dateTransactionLock.lock(WORK_DATE);
+				dayOffRepository.saveAndFlush(new ScheduleDayOff(WORK_DATE));
+				locked.countDown();
+				await(release);
+			}));
+			assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
+
+			Future<AutosaveResult> autosave = executor.submit(() -> {
+				autosaveStarted.countDown();
+				return autosaveService.save(
+						null, 0,
+						input(LocalTime.of(10, 0), LocalTime.of(11, 0), "社員A", WorkType.INSTALL));
+			});
+			assertThat(autosaveStarted.await(10, TimeUnit.SECONDS)).isTrue();
+			assertThatThrownBy(() -> autosave.get(250, TimeUnit.MILLISECONDS))
+					.isInstanceOf(TimeoutException.class);
+
+			release.countDown();
+			dayOffTransaction.get(10, TimeUnit.SECONDS);
+			AutosaveResult result = autosave.get(10, TimeUnit.SECONDS);
+
+			assertThat(result.status()).isEqualTo(AutosaveResult.Status.INVALID);
+		}
+
+		assertThat(dayOffRepository.existsById(WORK_DATE)).isTrue();
+		assertThat(repository.count()).isZero();
+	}
+
+	@Test
+	void dayOffWaitsForAutosaveAndThenDeletesTheRequest() throws Exception {
+		CountDownLatch locked = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+		CountDownLatch dayOffStarted = new CountDownLatch(1);
+
+		try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+			Future<?> requestTransaction = executor.submit(() -> inTransaction(() -> {
+				dateTransactionLock.lock(WORK_DATE);
+				repository.saveAndFlush(ScheduleRequest.published(
+						WORK_DATE, LocalTime.of(10, 0), LocalTime.of(11, 0),
+						"社員A", WorkType.INSTALL));
+				locked.countDown();
+				await(release);
+			}));
+			assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
+
+			Future<DayOffService.DayOffResult> dayOff = executor.submit(() -> {
+				dayOffStarted.countDown();
+				return dayOffService.setDayOff(WORK_DATE);
+			});
+			assertThat(dayOffStarted.await(10, TimeUnit.SECONDS)).isTrue();
+			assertThatThrownBy(() -> dayOff.get(250, TimeUnit.MILLISECONDS))
+					.isInstanceOf(TimeoutException.class);
+
+			release.countDown();
+			requestTransaction.get(10, TimeUnit.SECONDS);
+			DayOffService.DayOffResult result = dayOff.get(10, TimeUnit.SECONDS);
+
+			assertThat(result.deletedCount()).isOne();
+		}
+
+		assertThat(dayOffRepository.existsById(WORK_DATE)).isTrue();
+		assertThat(repository.count()).isZero();
 	}
 
 	@Test
@@ -241,6 +333,21 @@ class PostgreSqlConcurrencyTest {
 			throw new IllegalStateException("Concurrent autosave did not start in time");
 		}
 		return autosaveService.save(null, 0, input);
+	}
+
+	private void inTransaction(Runnable action) {
+		new TransactionTemplate(transactionManager).executeWithoutResult(status -> action.run());
+	}
+
+	private void await(CountDownLatch latch) {
+		try {
+			if (!latch.await(10, TimeUnit.SECONDS)) {
+				throw new IllegalStateException("Concurrent transaction was not released in time");
+			}
+		} catch (InterruptedException exception) {
+			Thread.currentThread().interrupt();
+			throw new IllegalStateException("Concurrent transaction was interrupted", exception);
+		}
 	}
 
 	private ScheduleRequestInput input(

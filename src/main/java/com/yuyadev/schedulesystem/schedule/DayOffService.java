@@ -18,6 +18,7 @@ public class DayOffService {
 	private final ScheduleRequestRepository requestRepository;
 	private final HolidayCalendarService holidayCalendarService;
 	private final ScheduleDatePolicy datePolicy;
+	private final ScheduleDateTransactionLock dateTransactionLock;
 	private final Clock clock;
 
 	public DayOffService(
@@ -25,11 +26,13 @@ public class DayOffService {
 			ScheduleRequestRepository requestRepository,
 			HolidayCalendarService holidayCalendarService,
 			ScheduleDatePolicy datePolicy,
+			ScheduleDateTransactionLock dateTransactionLock,
 			Clock clock) {
 		this.dayOffRepository = dayOffRepository;
 		this.requestRepository = requestRepository;
 		this.holidayCalendarService = holidayCalendarService;
 		this.datePolicy = datePolicy;
+		this.dateTransactionLock = dateTransactionLock;
 		this.clock = clock;
 	}
 
@@ -45,6 +48,7 @@ public class DayOffService {
 
 	@Transactional
 	public DayOffResult setDayOff(LocalDate date) {
+		dateTransactionLock.lock(date);
 		requireChangeableWorkday(date);
 		long deletedCount = requestRepository.deleteByWorkDate(date);
 		if (!dayOffRepository.existsById(date)) {
@@ -55,6 +59,7 @@ public class DayOffService {
 
 	@Transactional
 	public void unsetDayOff(LocalDate date) {
+		dateTransactionLock.lock(date);
 		requireFutureDate(date);
 		dayOffRepository.deleteById(date);
 	}

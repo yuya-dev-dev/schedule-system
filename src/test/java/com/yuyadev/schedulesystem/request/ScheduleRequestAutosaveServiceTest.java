@@ -160,6 +160,27 @@ class ScheduleRequestAutosaveServiceTest {
 	}
 
 	@Test
+	void rejectsChangingAnExistingRequestToAnotherRegistrableDate() {
+		AutosaveResult created = service.save(
+				null, 0, input("社員A", WorkType.INSTALL, "9:00", "10:00"));
+		ScheduleRequestInput changedDate = requestInput()
+				.workDate(LocalDate.of(2026, 6, 26))
+				.startTime(LocalTime.of(9, 0))
+				.endTime(LocalTime.of(10, 0))
+				.workType(WorkType.INSTALL)
+				.requesterName("社員A")
+				.build();
+
+		AutosaveResult rejected = service.save(
+				created.requestId(), created.version(), changedDate);
+
+		assertThat(rejected.status()).isEqualTo(AutosaveResult.Status.INVALID);
+		assertThat(rejected.message()).isEqualTo("作業日は変更できません");
+		assertThat(repository.findById(created.requestId()).orElseThrow().getWorkDate())
+				.isEqualTo(WORK_DATE);
+	}
+
+	@Test
 	void savesDetailChangesWithoutReleasingPublishedSlot() {
 		AutosaveResult created = service.save(
 				null, 0, input("社員A", WorkType.INSTALL, "15:00", "16:00"));

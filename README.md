@@ -19,11 +19,11 @@ Excelに近い30分単位の一覧性を残しつつ、各セルから詳細画�
 
 ## 技術的な見どころ
 
-- **アプリとDBによる二重の重複防止:** 保存前に既存予定との重複を検査し、同時送信の競争状態はPostgreSQLのGiST exclusion constraintで最終的に防ぐ
+- **アプリとDBによる多層の競合防止:** 日付単位のPostgreSQLトランザクションロック、保存前の重複検査、GiST exclusion constraintを組み合わせ、休み設定と案件保存を含む競争状態を防ぐ
 - **競合時も入力を保持:** 排他制約違反`23P01`と関連するデッドロック`40P01`を識別し、後続入力を理由付きの`DRAFT`として別トランザクションで保存する
 - **同時編集の検知:** JPAの`@Version`による楽観ロックで、古い画面からの上書きを拒否する
 - **本番相当DBとブラウザの自動テスト:** H2の単体・結合テストに加え、Testcontainers PostgreSQLの競合テストとPlaywright ChromiumのE2EをGitHub Actionsで実行する
-- **運用まで含めた設計:** Flyway Migration、Render + Neon構成、custom formatの日次バックアップ、SHA-256検証、ネットワークを切った隔離コンテナへの復元確認を用意する
+- **運用まで含めた設計:** Flyway Migration、Render + Neon構成、custom formatの日次バックアップ、SHA-256検証、ネットワークを切った隔離復元を用意し、Dockerビルドから復元成功までをCIで検証する
 - **クラウド向け入口保護:** 共通パスワードゲートとCSRF防御を有効にし、秘密値は環境変数で管理する
 
 ## システム構成
@@ -81,9 +81,9 @@ flowchart LR
 
 ## 現在の状況
 
-初期MVPと初回導入機能、UI改善、クラウド対応まで完了し、5人規模の限定運用が許可されています。H2、PostgreSQL Testcontainers、Playwright Chromiumを含む自動テストをGitHub Actionsで実行しています。
+初期MVPと初回導入機能、UI改善、クラウド対応まで完了し、5人規模の限定利用が許可されています。H2、PostgreSQL Testcontainers、Playwright Chromiumを含む自動テストをGitHub Actionsで実行しています。
 
-日次PostgreSQLバックアップ、SHA-256検証、隔離復元、障害時手順は架空データで確認済みです。会社承認済みの保管先、日次担当者、初回本番バックアップと隔離復元の運用記録は未確定であり、バックアップ運用は開始待ちです。
+日次PostgreSQLバックアップ、SHA-256検証、隔離復元、障害時手順は架空データで確認済みです。会社承認済みの保管先、日次担当者、初回本番バックアップと隔離復元の運用記録は未確定であり、バックアップ運用は開始待ちです。このため、現在の5人利用は許可範囲を限定した試験段階であり、実在データを扱う正式運用とは区別しています。
 
 ## Dockerで起動する
 
@@ -152,7 +152,7 @@ H2は単独でのローカル開発とデモに限定する。H2にはPostgreSQL
 | `SCHEDULE_HOLIDAYS_SYNC_ENABLED` | 任意。祝日同期を有効にするか。未指定時はtrue |
 | `SCHEDULE_RETENTION_ENABLED` | 任意。作業日から1か月を過ぎたスケジュールデータの起動時削除を有効にするか。cloud profileでは未指定時true |
 
-秘密値はGit管理ファイルへ書かず、Renderなどのクラウドサービス側の環境変数に設定する。共通パスワードの管理と変更作業はユーザーとCodexで行うが、秘密値そのものはドキュメント、Git、会話へ記録しない。クラウドprofileでは、ローカルH2ではなくPostgreSQLへ接続し、FlywayのPostgreSQL用Migrationも読み込む。
+秘密値はGit管理ファイルへ書かず、Renderなどのクラウドサービス側の環境変数に設定する。共通パスワードは管理担当者だけが変更し、秘密値そのものはドキュメント、Git、会話へ記録しない。クラウドprofileでは、ローカルH2ではなくPostgreSQLへ接続し、FlywayのPostgreSQL用Migrationも読み込む。
 
 cloud profileでは、起動時に日本時間の現在日を基準として、`作業日 < 今日の1か月前` の公開済み案件、下書き、休み設定を物理削除する。例えば2026年7月1日に起動した場合、2026年5月31日以前を削除し、2026年6月1日以降は保持する。祝日キャッシュは削除対象外で、ログには削除件数だけを出力する。
 
@@ -230,7 +230,6 @@ cloud profileでは、起動時に日本時間の現在日を基準として、`
 - [フェーズ4 性能・容量試験結果](docs/phase4-performance-results.md)
 - [フェーズ4 手動端末試験結果](docs/phase4-manual-device-results.md)
 - [フェーズ5F UIリニューアル抜き出し計画](docs/phase5f-ui-refresh-plan.md)
-- [Codex 開発チーム運用ルール](docs/codex-agent-team.md)
 - [Java可読性リファクタリング計画](docs/java-readability-refactoring-plan.md)
 - [Javaコード読解ガイド](docs/java-code-reading-guide.md)
 
@@ -277,10 +276,7 @@ cloud profileでは、起動時に日本時間の現在日を基準として、`
 
 - コード、DB、認証、クラウド設定、デプロイ挙動へ影響する変更は作業ブランチとPull Requestを使い、mainへ直接反映しない
 - ドキュメントだけの変更は、ユーザーの明示判断がある場合に限りmainへ直接commit・pushしてよい
-- Codexは原則としてブランチ作成、実装、差分確認、ローカル状態確認までを担当し、commit、push、PR作成、マージはユーザーが行う
-- CodexがGit操作を代理実行するのは、ユーザーが明示的に依頼した範囲だけとする
 - 作業開始前に `AGENTS.md`、`README.md`、`docs/development-roadmap.md` を確認する
-- 必要な場合だけ、Codexサブエージェントをレビュー補助として使う。サブエージェントには実装、commit、push、PR作成、マージを任せない
 - ドキュメント単独の変更をPRにする場合は機能変更と混在させず、機能実装と対応する単体・結合テストは原則として同じPRに含める
 - 未テストの機能実装だけをmainへ取り込まない
 - 実在する会社名、人名、住所、電話番号、車両番号、顧客名などは使わない

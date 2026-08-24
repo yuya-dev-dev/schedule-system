@@ -1,6 +1,7 @@
 package com.yuyadev.schedulesystem.request;
 
 import com.yuyadev.schedulesystem.schedule.ScheduleDatePolicy;
+import com.yuyadev.schedulesystem.schedule.ScheduleDateTransactionLock;
 import com.yuyadev.schedulesystem.schedule.ScheduleTimeSlots;
 import java.time.Clock;
 import java.time.DayOfWeek;
@@ -21,6 +22,7 @@ public class RecurringFixedRequestService {
 	private final ScheduleRequestRepository requestRepository;
 	private final RecurringFixedRequestSkipRepository skipRepository;
 	private final ScheduleDatePolicy datePolicy;
+	private final ScheduleDateTransactionLock dateTransactionLock;
 	private final Clock clock;
 	private final TransactionTemplate transactionTemplate;
 
@@ -28,11 +30,13 @@ public class RecurringFixedRequestService {
 			ScheduleRequestRepository requestRepository,
 			RecurringFixedRequestSkipRepository skipRepository,
 			ScheduleDatePolicy datePolicy,
+			ScheduleDateTransactionLock dateTransactionLock,
 			Clock clock,
 			PlatformTransactionManager transactionManager) {
 		this.requestRepository = requestRepository;
 		this.skipRepository = skipRepository;
 		this.datePolicy = datePolicy;
+		this.dateTransactionLock = dateTransactionLock;
 		this.clock = clock;
 		this.transactionTemplate = new TransactionTemplate(transactionManager);
 		this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -76,6 +80,7 @@ public class RecurringFixedRequestService {
 	}
 
 	private void ensureDateInTransaction(LocalDate date) {
+		dateTransactionLock.lock(date);
 		if (!datePolicy.isRegistrable(date) || skipRepository.existsById(date)) {
 			return;
 		}

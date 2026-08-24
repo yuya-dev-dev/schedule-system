@@ -509,6 +509,27 @@ class RequestWorkflowVerticalSliceTest extends ScheduleVerticalSliceTestSupport 
 	}
 
 	@Test
+	void autosaveRejectsAChangedWorkDateFromAForgedRequest() throws Exception {
+		ScheduleRequest saved = createDetailedRequest(
+				LocalDate.of(2026, 6, 24), "13:00", "14:00", "社員A");
+
+		mockMvc.perform(post("/requests/autosave")
+					.param("id", saved.getId().toString())
+					.param("version", Long.toString(saved.getVersion()))
+					.param("workDate", "2026-06-26")
+					.param("startTime", "13:00")
+					.param("endTime", "14:00")
+					.param("workType", "INSTALL")
+					.param("requesterName", "社員A"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("INVALID"))
+				.andExpect(jsonPath("$.message").value("作業日は変更できません"));
+
+		assertThat(repository.findById(saved.getId()).orElseThrow().getWorkDate())
+				.isEqualTo(LocalDate.of(2026, 6, 24));
+	}
+
+	@Test
 	void rendersOptionalVehicleAndDispatchChoicesAndPersistsFreeArrivalText() throws Exception {
 		MvcResult formResult = mockMvc.perform(get("/requests/new").param("date", "2026-06-24"))
 				.andExpect(status().isOk())

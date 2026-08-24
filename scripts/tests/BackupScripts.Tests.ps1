@@ -13,6 +13,13 @@ $powerShellExecutable = (Get-Process -Id $PID).Path
 $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("schedule-system-backup-tests-" + [Guid]::NewGuid().ToString("N"))
 $backupScript = Join-Path $repositoryRoot "scripts/Backup-PostgreSql.ps1"
 $restoreScript = Join-Path $repositoryRoot "scripts/Test-PostgreSqlBackup.ps1"
+. (Join-Path $repositoryRoot "scripts/PostgreSqlBackup.Common.ps1")
+
+function Assert-Equal([string]$Expected, [string]$Actual, [string]$Label) {
+    if ($Expected -cne $Actual) {
+        throw "$Label が一致しません。expected=$Expected actual=$Actual"
+    }
+}
 
 function Invoke-ScriptExpectingFailure(
     [string]$ScriptPath,
@@ -41,6 +48,10 @@ function Write-BackupConfiguration([string]$Path, [string]$JdbcUrl) {
 
 try {
     New-Item -ItemType Directory -Path $testRoot | Out-Null
+
+    Assert-Equal 'fictional\\password\:with-colon' `
+        (ConvertTo-PgPassValue 'fictional\password:with-colon') `
+        '.pgpassパスワードのエスケープ結果'
 
     $pooledConfiguration = Join-Path $testRoot "pooled.clixml"
     Write-BackupConfiguration $pooledConfiguration "jdbc:postgresql://fictional-pooler.example.invalid/schedule?sslmode=require"

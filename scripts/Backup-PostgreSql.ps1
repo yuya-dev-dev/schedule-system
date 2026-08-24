@@ -3,11 +3,22 @@ param(
     [Parameter(Mandatory)]
     [string]$ConfigurationPath,
 
-    [switch]$AllowInsecureLocalTest
+    [switch]$AllowInsecureLocalTest,
+
+    [string]$LocalTestHost,
+
+    [string]$ClientNetwork
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "PostgreSqlBackup.Common.ps1")
+
+if ((-not [string]::IsNullOrWhiteSpace($LocalTestHost) -or
+        -not [string]::IsNullOrWhiteSpace($ClientNetwork)) -and
+        -not $AllowInsecureLocalTest) {
+    throw "ローカルテスト用の接続指定には AllowInsecureLocalTest が必要です。"
+}
 
 function Get-FullPath([string]$Path) {
     return [System.IO.Path]::GetFullPath($Path)
@@ -54,7 +65,10 @@ function Convert-JdbcUrl([string]$JdbcUrl) {
     }
     if ($sslMode -notin "require", "verify-ca", "verify-full") {
         $localHosts = "localhost", "127.0.0.1", "::1", "host.docker.internal"
-        if (-not $AllowInsecureLocalTest -or $uri.Host -notin $localHosts) {
+        $matchesExplicitTestHost = -not [string]::IsNullOrWhiteSpace($LocalTestHost) -and
+            $uri.Host.Equals($LocalTestHost, [System.StringComparison]::OrdinalIgnoreCase)
+        if (-not $AllowInsecureLocalTest -or
+                ($uri.Host -notin $localHosts -and -not $matchesExplicitTestHost)) {
             throw "バックアップ接続には sslmode=require 以上を指定してください。"
         }
     }
@@ -97,7 +111,7 @@ $backupFilePath = $null
 $backupHashPath = $null
 try {
     $plainPassword = [System.Net.NetworkCredential]::new("", $backupConfiguration.Password).Password
-    $escapedPassword = $plainPassword.Replace("\\", "\\\\").Replace(":", "\\:")
+    $escapedPassword = ConvertTo-PgPassValue $plainPassword
     $pgPassLine = "{0}:{1}:{2}:{3}:{4}" -f $connection.Host, $connection.Port, $connection.Database, $backupConfiguration.Username, $escapedPassword
 
     $timestamp = [DateTimeOffset]::Now.ToString("yyyyMMdd-HHmmsszzz").Replace(":", "")
@@ -105,8 +119,11 @@ try {
     $backupFileName = "schedule-system-$timestamp-$executionId.dump"
     $backupFilePath = Join-Path $outputDirectory $backupFileName
     $backupMount = "type=bind,source=$outputDirectory,target=/backup"
-    $dockerArguments = @(
-        "run", "--rm", "--interactive",
+    $dockerArguments = @("run", "--rm", "--interactive")
+    if (-not [string]::IsNullOrWhiteSpace($ClientNetwork)) {
+        $dockerArguments += @("--network", $ClientNetwork)
+    }
+    $dockerArguments += @(
         "--mount", $backupMount,
         "--env", "PGHOST=$($connection.Host)",
         "--env", "PGPORT=$($connection.Port)",

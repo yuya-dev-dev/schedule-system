@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.yuyadev.schedulesystem.schedule.ScheduleDatePolicy;
+import com.yuyadev.schedulesystem.schedule.ScheduleDateTransactionLock;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -17,6 +18,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 @ExtendWith(MockitoExtension.class)
 class RequestCopyServiceTest {
@@ -30,11 +33,19 @@ class RequestCopyServiceTest {
 	@Mock
 	private ScheduleDatePolicy datePolicy;
 
+	@Mock
+	private ScheduleDateTransactionLock dateTransactionLock;
+
+	@Mock
+	private PlatformTransactionManager transactionManager;
+
 	private RequestCopyService service;
 
 	@BeforeEach
 	void setUp() {
-		service = new RequestCopyService(repository, datePolicy);
+		when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
+		service = new RequestCopyService(
+				repository, datePolicy, dateTransactionLock, transactionManager);
 		ScheduleRequest source = ScheduleRequest.published(
 				LocalDate.of(2026, 6, 24),
 				LocalTime.of(10, 0),

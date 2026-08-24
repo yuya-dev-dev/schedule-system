@@ -245,6 +245,22 @@ class ScheduleRequestTest {
 		assertThat(request.getNote()).isNull();
 	}
 
+	@Test
+	void rejectsChangingTheWorkDateOfAnExistingRequest() {
+		ScheduleRequest request = ScheduleRequest.draft(input(
+				WorkType.INSTALL, "社員A", "設置作業", "愛知県名古屋市", "午後",
+				false, null, null));
+		ScheduleRequestInput changedDate = new ScheduleRequestInput(
+				WORK_DATE.plusDays(2), LocalTime.of(9, 0), LocalTime.of(10, 0),
+				WorkType.INSTALL, "社員A", "設置作業", "愛知県名古屋市", "午後",
+				false, null, null, null, DispatchStatus.UNANSWERED, null);
+
+		assertThatThrownBy(() -> request.applyInput(changedDate))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessage("作業日は変更できません");
+		assertThat(request.getWorkDate()).isEqualTo(WORK_DATE);
+	}
+
 	private ScheduleRequestInput input(
 			WorkType workType,
 			String requester,
