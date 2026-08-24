@@ -1,22 +1,31 @@
 package com.yuyadev.schedulesystem.request;
 
 import com.yuyadev.schedulesystem.schedule.ScheduleDatePolicy;
+import com.yuyadev.schedulesystem.schedule.ScheduleDateTransactionLock;
 import java.time.LocalDate;
 import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class RequestCopyService {
 
 	private final ScheduleRequestRepository repository;
 	private final ScheduleDatePolicy datePolicy;
+	private final ScheduleDateTransactionLock dateTransactionLock;
+	private final TransactionTemplate transactionTemplate;
 
 	public RequestCopyService(
 			ScheduleRequestRepository repository,
-			ScheduleDatePolicy datePolicy) {
+			ScheduleDatePolicy datePolicy,
+			ScheduleDateTransactionLock dateTransactionLock,
+			PlatformTransactionManager transactionManager) {
 		this.repository = repository;
 		this.datePolicy = datePolicy;
+		this.dateTransactionLock = dateTransactionLock;
+		this.transactionTemplate = new TransactionTemplate(transactionManager);
 	}
 
 	public ScheduleRequest copyableSource(Long sourceId) {
@@ -40,6 +49,19 @@ public class RequestCopyService {
 			return RequestCopyResult.invalid("コピー元と同じ日は選択できません");
 		}
 		try {
+			return transactionTemplate.execute(status -> copyInTransaction(source, targetDate));
+		} catch (DataIntegrityViolationException exception) {
+			if (!PostgreSqlConflictDetector.isPublishedTimeOverlap(exception)) {
+				throw exception;
+			}
+			return RequestCopyResult.timeConflict(
+					copiedForm(source, targetDate), "その時間はすでに埋まっています");
+		}
+	}
+
+	private RequestCopyResult copyInTransaction(ScheduleRequest source, LocalDate targetDate) {
+		dateTransactionLock.lock(targetDate);
+		try {
 			datePolicy.requireRegistrable(targetDate);
 		} catch (IllegalArgumentException exception) {
 			return RequestCopyResult.invalid(exception.getMessage());
@@ -52,18 +74,10 @@ public class RequestCopyService {
 					copiedForm(source, targetDate), "その時間はすでに埋まっています");
 		}
 
-		try {
-			ScheduleRequest copied = ScheduleRequest.draft(input);
-			copied.publish();
-			ScheduleRequest saved = repository.saveAndFlush(copied);
-			return RequestCopyResult.copied(saved.getId());
-		} catch (DataIntegrityViolationException exception) {
-			if (!PostgreSqlConflictDetector.isPublishedTimeOverlap(exception)) {
-				throw exception;
-			}
-			return RequestCopyResult.timeConflict(
-					copiedForm(source, targetDate), "その時間はすでに埋まっています");
-		}
+		ScheduleRequest copied = ScheduleRequest.draft(input);
+		copied.publish();
+		ScheduleRequest saved = repository.saveAndFlush(copied);
+		return RequestCopyResult.copied(saved.getId());
 	}
 
 	private Optional<ScheduleRequest> findConflict(ScheduleRequestInput input) {

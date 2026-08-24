@@ -277,6 +277,9 @@ public class ScheduleRequest {
 	public void applyInput(ScheduleRequestInput input) {
 		Objects.requireNonNull(input);
 		Objects.requireNonNull(input.workDate());
+		if (!workDate.equals(input.workDate())) {
+			throw new IllegalArgumentException("作業日は変更できません");
+		}
 		validateDraftTime(input.startTime(), input.endTime());
 		applyScheduleFields(input);
 		if (isInternalWork(input.workType())) {
@@ -288,7 +291,6 @@ public class ScheduleRequest {
 	}
 
 	private void applyScheduleFields(ScheduleRequestInput input) {
-		this.workDate = input.workDate();
 		this.startTime = input.startTime();
 		this.endTime = input.endTime();
 		this.workType = input.workType();

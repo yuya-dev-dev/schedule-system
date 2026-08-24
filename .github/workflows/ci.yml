@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
       - name: Check out repository
@@ -36,3 +36,10 @@ jobs:
 
       - name: Run tests
         run: ./mvnw --batch-mode test
+
+      - name: Build Docker image
+        run: docker build --tag schedule-system:ci .
+
+      - name: Test backup and isolated restore
+        shell: pwsh
+        run: ./scripts/tests/BackupRestoreSmoke.Tests.ps1

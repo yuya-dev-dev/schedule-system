@@ -1,6 +1,7 @@
 package com.yuyadev.schedulesystem.request;
 
 import com.yuyadev.schedulesystem.schedule.ScheduleDatePolicy;
+import com.yuyadev.schedulesystem.schedule.ScheduleDateTransactionLock;
 import jakarta.persistence.OptimisticLockException;
 import java.util.List;
 import java.util.Optional;
@@ -17,21 +18,23 @@ public class ScheduleRequestAutosaveService {
 
 	private final ScheduleRequestRepository repository;
 	private final ScheduleDatePolicy datePolicy;
+	private final ScheduleDateTransactionLock dateTransactionLock;
 	private final TransactionTemplate transactionTemplate;
 
 	public ScheduleRequestAutosaveService(
 			ScheduleRequestRepository repository,
 			ScheduleDatePolicy datePolicy,
+			ScheduleDateTransactionLock dateTransactionLock,
 			PlatformTransactionManager transactionManager) {
 		this.repository = repository;
 		this.datePolicy = datePolicy;
+		this.dateTransactionLock = dateTransactionLock;
 		this.transactionTemplate = new TransactionTemplate(transactionManager);
 		this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 	}
 
 	public AutosaveResult save(Long id, long expectedVersion, ScheduleRequestInput input) {
 		try {
-			datePolicy.requireRegistrable(input.workDate());
 			SaveResult saved = transactionTemplate.execute(
 					status -> saveInTransaction(id, expectedVersion, input));
 			return toAutosaveResult(saved);
@@ -66,9 +69,14 @@ public class ScheduleRequestAutosaveService {
 			Long id, long expectedVersion, ScheduleRequestInput input) {
 		ScheduleRequest request;
 		if (id == null) {
+			dateTransactionLock.lock(input.workDate());
+			datePolicy.requireRegistrable(input.workDate());
 			request = ScheduleRequest.draft(input);
 		} else {
 			request = find(id);
+			requireSameWorkDate(request, input);
+			dateTransactionLock.lock(request.getWorkDate());
+			datePolicy.requireRegistrable(request.getWorkDate());
 			if (request.getVersion() != expectedVersion) {
 				return SaveResult.stale(request.getId());
 			}
@@ -104,9 +112,14 @@ public class ScheduleRequestAutosaveService {
 			Long id, long expectedVersion, ScheduleRequestInput input) {
 		ScheduleRequest request;
 		if (id == null) {
+			dateTransactionLock.lock(input.workDate());
+			datePolicy.requireRegistrable(input.workDate());
 			request = ScheduleRequest.draft(input);
 		} else {
 			request = find(id);
+			requireSameWorkDate(request, input);
+			dateTransactionLock.lock(request.getWorkDate());
+			datePolicy.requireRegistrable(request.getWorkDate());
 			if (request.getVersion() != expectedVersion) {
 				return SaveResult.stale(request.getId());
 			}
@@ -127,6 +140,12 @@ public class ScheduleRequestAutosaveService {
 		}
 		return repository.findOtherPublishedOverlaps(
 				id, input.workDate(), input.startTime(), input.endTime()).stream().findFirst();
+	}
+
+	private void requireSameWorkDate(ScheduleRequest request, ScheduleRequestInput input) {
+		if (!request.getWorkDate().equals(input.workDate())) {
+			throw new IllegalArgumentException("作業日は変更できません");
+		}
 	}
 
 	private boolean canAppearOnSchedule(ScheduleRequestInput input) {

@@ -52,7 +52,7 @@ $containerName = "schedule-system-restore-" + [Guid]::NewGuid().ToString("N")
 $temporaryPassword = [Guid]::NewGuid().ToString("N")
 $containerStarted = $false
 try {
-    & docker run --detach --rm --name $containerName --network none --tmpfs "/var/lib/postgresql/data:rw,noexec,nosuid,size=512m" --env "POSTGRES_PASSWORD=$temporaryPassword" --env "POSTGRES_DB=schedule_restore" $ClientImage | Out-Null
+    & docker run --detach --rm --name $containerName --network none --tmpfs "/var/lib/postgresql:rw,noexec,nosuid,size=512m" --env "POSTGRES_PASSWORD=$temporaryPassword" --env "POSTGRES_DB=schedule_restore" $ClientImage | Out-Null
     if ($LASTEXITCODE -ne 0) {
         throw "隔離復元用PostgreSQLを起動できません。"
     }
@@ -115,6 +115,6 @@ try {
 finally {
     $temporaryPassword = $null
     if ($containerStarted) {
-        & docker rm --force $containerName | Out-Null
+        & docker rm --force --volumes $containerName | Out-Null
     }
 }
