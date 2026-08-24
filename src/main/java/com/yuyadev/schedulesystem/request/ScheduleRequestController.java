@@ -4,12 +4,15 @@ import static com.yuyadev.schedulesystem.schedule.SchedulePageSupport.dateTitle;
 import static com.yuyadev.schedulesystem.schedule.SchedulePageSupport.scheduleUrl;
 
 import com.yuyadev.schedulesystem.schedule.ScheduleDatePolicy;
+import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -111,7 +114,15 @@ public class ScheduleRequestController {
 	}
 
 	@PostMapping("/save")
-	public String save(@ModelAttribute("form") ScheduleRequestForm form, Model model) {
+	public String save(
+			@Valid @ModelAttribute("form") ScheduleRequestForm form,
+			BindingResult bindingResult,
+			Model model) {
+		if (bindingResult.hasErrors()) {
+			requireWorkDate(form);
+			return renderForm(
+					form, null, validationMessages(bindingResult), model, true);
+		}
 		AutosaveResult result = autosaveService.save(form.getId(), form.getVersion(), form.toInput());
 		if (result.requestId() != null) {
 			form.setId(result.requestId());
@@ -126,8 +137,26 @@ public class ScheduleRequestController {
 
 	@PostMapping(value = "/autosave", produces = MediaType.APPLICATION_JSON_VALUE)
 	@ResponseBody
-	public AutosaveResult autosave(@ModelAttribute ScheduleRequestForm form) {
+	public AutosaveResult autosave(
+			@Valid @ModelAttribute ScheduleRequestForm form,
+			BindingResult bindingResult) {
+		if (bindingResult.hasErrors()) {
+			return AutosaveResult.invalid(validationMessages(bindingResult).getFirst());
+		}
 		return autosaveService.save(form.getId(), form.getVersion(), form.toInput());
+	}
+
+	private List<String> validationMessages(BindingResult bindingResult) {
+		return bindingResult.getAllErrors().stream()
+				.map(ObjectError::getDefaultMessage)
+				.distinct()
+				.toList();
+	}
+
+	private void requireWorkDate(ScheduleRequestForm form) {
+		if (form.getWorkDate() == null) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "作業日が不正です");
+		}
 	}
 
 	private String renderForm(

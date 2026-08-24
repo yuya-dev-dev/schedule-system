@@ -1,5 +1,6 @@
 package com.yuyadev.schedulesystem.request;
 
+import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -19,16 +20,31 @@ public class ScheduleRequestForm {
 	private LocalTime endTime;
 
 	private WorkType workType;
+
+	@Size(max = 100, message = "依頼者名は100文字以内で入力してください")
 	private String requesterName;
+
+	@Size(max = 4000, message = "依頼内容は4000文字以内で入力してください")
 	private String requestDetail;
+
+	@Size(max = 500, message = "現場住所もしくは会社名は500文字以内で入力してください")
 	private String address;
+
+	@Size(max = 100, message = "顧客先到着希望時間は100文字以内で入力してください")
 	private String desiredArrivalTime;
 	private boolean companionRequired;
+
+	@Size(max = 300, message = "集合場所は300文字以内で入力してください")
 	private String meetingPlace;
+
 	@DateTimeFormat(pattern = "HH:mm")
 	private LocalTime departureTime;
+
+	@Size(max = 100, message = "使用車両は100文字以内で入力してください")
 	private String vehicleName;
 	private DispatchStatus dispatchStatus = DispatchStatus.UNANSWERED;
+
+	@Size(max = 4000, message = "その他・作業メモは4000文字以内で入力してください")
 	private String note;
 
 	public static ScheduleRequestForm newFor(LocalDate workDate) {
