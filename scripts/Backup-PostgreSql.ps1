@@ -120,9 +120,9 @@ try {
     $backupFilePath = Join-Path $outputDirectory $backupFileName
     $backupMount = "type=bind,source=$outputDirectory,target=/backup"
     $dockerArguments = @("run", "--rm", "--interactive")
-    $isWindows = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+    $runningOnWindows = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
         [System.Runtime.InteropServices.OSPlatform]::Windows)
-    if (-not $isWindows) {
+    if (-not $runningOnWindows) {
         $hostUserId = (& id -u | Out-String).Trim()
         $hostGroupId = (& id -g | Out-String).Trim()
         if ($LASTEXITCODE -ne 0 -or -not $hostUserId -or -not $hostGroupId) {
