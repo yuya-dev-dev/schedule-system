@@ -163,4 +163,16 @@ class MonthScheduleVerticalSliceTest extends ScheduleVerticalSliceTestSupport {
 				.andExpect(content().string(org.hamcrest.Matchers.containsString(
 						"2026年6月 スケジュール")));
 	}
+
+	@Test
+	void rejectsMaximumMonthWithoutReturningServerError() throws Exception {
+		mockMvc.perform(get("/schedule")
+					.param("year", "999999999")
+					.param("monthNumber", "12"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"正しい年と月を入力してください")))
+				.andExpect(content().string(org.hamcrest.Matchers.containsString(
+						"2026年6月 スケジュール")));
+	}
 }

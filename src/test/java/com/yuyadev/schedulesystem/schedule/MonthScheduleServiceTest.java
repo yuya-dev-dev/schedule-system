@@ -138,6 +138,14 @@ class MonthScheduleServiceTest {
 	}
 
 	@Test
+	void fallsBackToCurrentMonthWhenRequestedMonthCannotBeExpanded() {
+		MonthScheduleView view = service.getMonth("+999999999-12");
+
+		assertThat(view.selectedMonth()).isEqualTo("2026-06");
+		assertThat(view.title()).isEqualTo("2026年6月");
+	}
+
+	@Test
 	void doesNotSelectAnInitialFocusDateForAnotherMonth() {
 		MonthScheduleView view = service.getMonth("2026-07");
 

@@ -2,6 +2,7 @@ package com.yuyadev.schedulesystem.schedule;
 
 import java.time.DateTimeException;
 import java.time.LocalDate;
+import java.time.Year;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
@@ -12,6 +13,7 @@ public final class SchedulePageSupport {
 	private static final DateTimeFormatter DATE_TITLE =
 			DateTimeFormatter.ofPattern("yyyy年M月d日（E）", Locale.JAPANESE);
 	private static final String MONTH_SELECTION_ERROR = "正しい年と月を入力してください";
+	private static final YearMonth MAXIMUM_MONTH = YearMonth.of(Year.MAX_VALUE, 12);
 
 	private SchedulePageSupport() {}
 
@@ -43,13 +45,18 @@ public final class SchedulePageSupport {
 		try {
 			int selectedYear = Integer.parseInt(year);
 			int selectedMonth = Integer.parseInt(monthNumber);
-			if (selectedYear < 1) {
-				throw new DateTimeException("Year must be positive");
+			YearMonth selected = YearMonth.of(selectedYear, selectedMonth);
+			if (!isSupportedMonth(selected)) {
+				throw new DateTimeException("Month is outside the supported range");
 			}
-			return MonthSelection.valid(YearMonth.of(selectedYear, selectedMonth).toString());
+			return MonthSelection.valid(selected.toString());
 		} catch (DateTimeException | NumberFormatException exception) {
 			return MonthSelection.invalid(month == null ? fallbackMonth : month);
 		}
+	}
+
+	static boolean isSupportedMonth(YearMonth month) {
+		return month != null && month.getYear() >= 1 && month.isBefore(MAXIMUM_MONTH);
 	}
 
 	public record MonthSelection(String requestedMonth, String error) {

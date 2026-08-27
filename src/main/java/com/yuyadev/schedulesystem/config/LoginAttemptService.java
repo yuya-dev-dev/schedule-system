@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -16,6 +17,7 @@ class LoginAttemptService {
 
 	private final Clock clock;
 	private final ConcurrentHashMap<String, AttemptState> attempts = new ConcurrentHashMap<>();
+	private final AtomicReference<Instant> overflowBlockedUntil = new AtomicReference<>();
 
 	LoginAttemptService(Clock clock) {
 		this.clock = clock;
@@ -25,7 +27,7 @@ class LoginAttemptService {
 		String key = normalize(clientAddress);
 		AttemptState state = attempts.get(key);
 		if (state == null) {
-			return false;
+			return isOverflowBlocked(clock.instant());
 		}
 
 		Instant now = clock.instant();
@@ -38,12 +40,13 @@ class LoginAttemptService {
 		return false;
 	}
 
-	void recordFailure(String clientAddress) {
+	synchronized void recordFailure(String clientAddress) {
 		String key = normalize(clientAddress);
 		Instant now = clock.instant();
 		if (!attempts.containsKey(key) && attempts.size() >= MAX_TRACKED_CLIENTS) {
 			purgeExpired(now);
 			if (attempts.size() >= MAX_TRACKED_CLIENTS) {
+				overflowBlockedUntil.set(now.plus(BLOCK_DURATION));
 				return;
 			}
 		}
@@ -73,6 +76,15 @@ class LoginAttemptService {
 				!now.isBefore(entry.getValue().windowStarted().plus(ATTEMPT_WINDOW))
 						&& (entry.getValue().blockedUntil() == null
 								|| !now.isBefore(entry.getValue().blockedUntil())));
+	}
+
+	private boolean isOverflowBlocked(Instant now) {
+		Instant blockedUntil = overflowBlockedUntil.get();
+		if (blockedUntil == null || !now.isBefore(blockedUntil)) {
+			overflowBlockedUntil.compareAndSet(blockedUntil, null);
+			return false;
+		}
+		return true;
 	}
 
 	private String normalize(String clientAddress) {
