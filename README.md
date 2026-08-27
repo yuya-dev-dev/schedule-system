@@ -29,7 +29,7 @@ Excelに近い30分単位の一覧性を残しつつ、各セルから詳細画�
 
 | 月間スケジュール | 案件詳細 |
 | --- | --- |
-| <img src="docs/images/iphone-schedule.jpg" alt="iPhone Safariで表示した月間スケジュール" width="280"> | <img src="docs/images/iphone-request-detail.jpg" alt="iPhone Safariで表示した案件詳細" width="280"> |
+| <img src="docs/images/iphone-schedule.jpg" alt="iPhone Safariで表示した月間スケジュール" width="190"> | <img src="docs/images/iphone-request-detail.jpg" alt="iPhone Safariで表示した案件詳細" width="190"> |
 
 月間一覧では、案件の先頭セルに依頼者名と作業種別、後続セルに矢印を表示する。スマートフォンでも同じ画面を縦横スクロール、拡大しながら、案件の確認と入力を行える。
 
