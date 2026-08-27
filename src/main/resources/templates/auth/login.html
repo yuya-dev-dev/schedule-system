@@ -18,6 +18,12 @@
             <div th:if="${loginError}" class="error-summary" role="alert">
                 <p>パスワードが違います。</p>
             </div>
+            <div th:if="${loginBlocked}" class="error-summary" role="alert">
+                <p>試行回数が上限に達しました。15分後にもう一度お試しください。</p>
+            </div>
+            <div th:if="${loggedOut}" class="access-message" role="status">
+                <p>ログアウトしました。</p>
+            </div>
             <label class="form-field" for="access-password">
                 <span>パスワード</span>
                 <input id="access-password" name="accessPassword" type="password"

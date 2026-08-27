@@ -13,6 +13,7 @@ import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableConfigurationProperties(AccessGateProperties.class)
@@ -23,16 +24,19 @@ public class SecurityConfiguration {
 	@Bean
 	SecurityFilterChain securityFilterChain(
 			HttpSecurity http,
-			AccessGateProperties accessGateProperties) throws Exception {
+			AccessGateProperties accessGateProperties,
+			LoginAttemptService loginAttemptService) throws Exception {
 		if (accessGateProperties.enabled()) {
-			configurePasswordAccessGate(http);
+			configurePasswordAccessGate(http, loginAttemptService);
 		} else {
 			configureOpenAccess(http);
 		}
 		return http.build();
 	}
 
-	private void configurePasswordAccessGate(HttpSecurity http) throws Exception {
+	private void configurePasswordAccessGate(
+			HttpSecurity http,
+			LoginAttemptService loginAttemptService) throws Exception {
 		http.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/login", "/css/**", "/js/**", "/error", "/favicon.ico").permitAll()
 						.anyRequest().authenticated())
@@ -41,10 +45,26 @@ public class SecurityConfiguration {
 						.loginProcessingUrl("/login")
 						.usernameParameter("accessUser")
 						.passwordParameter("accessPassword")
-						.defaultSuccessUrl("/schedule", true)
-						.failureUrl("/login?error"))
+						.successHandler((request, response, authentication) -> {
+							loginAttemptService.clear(request.getRemoteAddr());
+							response.sendRedirect(request.getContextPath() + "/schedule");
+						})
+						.failureHandler((request, response, exception) -> {
+							loginAttemptService.recordFailure(request.getRemoteAddr());
+							response.sendRedirect(request.getContextPath() + "/login?error=true");
+						}))
 				.httpBasic(AbstractHttpConfigurer::disable)
-				.logout(AbstractHttpConfigurer::disable);
+				.sessionManagement(session -> session
+						.sessionFixation(fixation -> fixation.migrateSession()))
+				.logout(logout -> logout
+						.logoutUrl("/logout")
+						.logoutSuccessUrl("/login?logout=true")
+						.invalidateHttpSession(true)
+						.clearAuthentication(true)
+						.deleteCookies("JSESSIONID"))
+				.addFilterBefore(
+						new LoginRateLimitFilter(loginAttemptService),
+						UsernamePasswordAuthenticationFilter.class);
 	}
 
 	private void configureOpenAccess(HttpSecurity http) throws Exception {

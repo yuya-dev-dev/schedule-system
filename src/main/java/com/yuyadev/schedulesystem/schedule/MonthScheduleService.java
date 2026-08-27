@@ -5,10 +5,10 @@ import com.yuyadev.schedulesystem.request.EntryState;
 import com.yuyadev.schedulesystem.request.ScheduleRequest;
 import com.yuyadev.schedulesystem.request.ScheduleRequestRepository;
 import java.time.Clock;
+import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Set;
 import org.springframework.stereotype.Service;
@@ -77,13 +77,12 @@ public class MonthScheduleService {
 		if (requestedMonth == null || requestedMonth.isBlank()) {
 			return currentMonth;
 		}
-		YearMonth parsed;
 		try {
-			parsed = YearMonth.parse(requestedMonth);
-		} catch (DateTimeParseException exception) {
+			YearMonth parsed = YearMonth.parse(requestedMonth);
+			return SchedulePageSupport.isSupportedMonth(parsed) ? parsed : currentMonth;
+		} catch (DateTimeException exception) {
 			return currentMonth;
 		}
-		return parsed;
 	}
 
 	private List<MonthTabView> monthTabs(YearMonth currentMonth, YearMonth selectedMonth) {

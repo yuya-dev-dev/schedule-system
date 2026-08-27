@@ -14,7 +14,7 @@ function Get-FullPath([string]$Path) {
 }
 
 function Invoke-ContainerSql([string]$ContainerName, [string]$Sql) {
-    $result = & docker exec $ContainerName psql --no-psqlrc --tuples-only --no-align --set ON_ERROR_STOP=1 --username postgres --dbname schedule_restore --command $Sql
+    $result = & docker exec $ContainerName psql --host 127.0.0.1 --no-psqlrc --tuples-only --no-align --set ON_ERROR_STOP=1 --username postgres --dbname schedule_restore --command $Sql
     if ($LASTEXITCODE -ne 0) {
         throw "復元後の検証SQLに失敗しました。"
     }
@@ -60,7 +60,7 @@ try {
 
     $ready = $false
     for ($attempt = 0; $attempt -lt 30; $attempt++) {
-        & docker exec $containerName pg_isready --username postgres --dbname schedule_restore | Out-Null
+        & docker exec $containerName pg_isready --host 127.0.0.1 --username postgres --dbname schedule_restore | Out-Null
         if ($LASTEXITCODE -eq 0) {
             $ready = $true
             break
@@ -76,7 +76,7 @@ try {
         throw "バックアップを隔離コンテナへコピーできません。"
     }
 
-    & docker exec $containerName pg_restore --exit-on-error --single-transaction --no-owner --no-acl --username postgres --dbname schedule_restore /tmp/backup.dump
+    & docker exec $containerName pg_restore --host 127.0.0.1 --exit-on-error --single-transaction --no-owner --no-acl --username postgres --dbname schedule_restore /tmp/backup.dump
     if ($LASTEXITCODE -ne 0) {
         throw "隔離環境への復元に失敗しました。"
     }

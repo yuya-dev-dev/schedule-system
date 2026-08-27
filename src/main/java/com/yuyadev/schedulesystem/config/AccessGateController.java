@@ -15,11 +15,17 @@ public class AccessGateController {
 	}
 
 	@GetMapping("/login")
-	String login(@RequestParam(required = false) String error, Model model) {
+	String login(
+			@RequestParam(required = false) String error,
+			@RequestParam(required = false) String blocked,
+			@RequestParam(required = false) String logout,
+			Model model) {
 		if (!accessGateProperties.enabled()) {
 			return "redirect:/schedule";
 		}
 		model.addAttribute("loginError", error != null);
+		model.addAttribute("loginBlocked", blocked != null);
+		model.addAttribute("loggedOut", logout != null);
 		model.addAttribute("accessUsername", SecurityConfiguration.SHARED_USERNAME);
 		return "auth/login";
 	}

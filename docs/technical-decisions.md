@@ -20,7 +20,7 @@
 | クラウド試験環境 | Render Free Web Service + Neon Free PostgreSQL | URL共有、共通パスワードゲート、PostgreSQL保存、無料枠制約を低コストで確認できる |
 | 本番相当テスト | Testcontainers PostgreSQL | 実際のPostgreSQLを一時起動し、H2との差異と競合処理を自動検証できる |
 | 自動テスト | JUnit 5、AssertJ、Spring Boot Test | 単体・結合テストをSpring Boot標準の範囲で構成できる |
-| CI | GitHub Actions | Pull Requestとmainへの反映時にJava 21の全テスト、Dockerビルド、バックアップと隔離復元を再実行できる |
+| CI | GitHub Actions | Pull Requestとmainへの反映時にJava 21の全テスト、非root Dockerイメージの起動とHTTP応答、バックアップと隔離復元を再実行できる |
 
 ## DBの使い分け
 
@@ -50,6 +50,8 @@ Render + Neonは、社員確認済みの5人規模限定運用環境として扱
 - 共通パスワードはRenderの `SCHEDULE_ACCESS_PASSWORD` から読み込み、起動時にエンコードしてメモリ上の認証情報へ設定する。平文値をGitや文書へ保存しない。
 - cloud profileでアクセスゲートが無効、または有効なのにパスワードが未設定の場合は起動を失敗させる。
 - Spring SecurityのCSRF防御を有効にし、Thymeleafフォームはhidden token、自動保存FetchはCSRFヘッダーを送信する。
+- 同一送信元の認証失敗をメモリ内で数え、15分以内に5回失敗した場合は15分間ログインを拒否する。記録件数には上限を設け、再起動時にはリセットする。
+- 認証成功時はセッションIDを更新し、30分の無操作で失効させる。cloudのCookieはSecure、HttpOnly、SameSite=Laxとし、月間画面からPOSTでログアウトできる。
 - 共通パスワードは利用者識別や操作履歴の代替ではなく、URL漏洩に対する最低限の入口制限として扱う。
 
 ## 祝日同期と定期保守

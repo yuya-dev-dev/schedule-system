@@ -1,5 +1,6 @@
 package com.yuyadev.schedulesystem.schedule;
 
+import com.yuyadev.schedulesystem.config.AccessGateProperties;
 import com.yuyadev.schedulesystem.request.DraftManagementService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -11,12 +12,15 @@ public class ScheduleController {
 
 	private final MonthScheduleService monthScheduleService;
 	private final DraftManagementService draftManagementService;
+	private final AccessGateProperties accessGateProperties;
 
 	public ScheduleController(
 			MonthScheduleService monthScheduleService,
-			DraftManagementService draftManagementService) {
+			DraftManagementService draftManagementService,
+			AccessGateProperties accessGateProperties) {
 		this.monthScheduleService = monthScheduleService;
 		this.draftManagementService = draftManagementService;
+		this.accessGateProperties = accessGateProperties;
 	}
 
 	@GetMapping("/")
@@ -38,6 +42,7 @@ public class ScheduleController {
 		model.addAttribute("schedule", monthScheduleService.getMonth(selection.requestedMonth()));
 		model.addAttribute(
 				"drafts", draftManagementService.findActiveDrafts());
+		model.addAttribute("accessGateEnabled", accessGateProperties.enabled());
 		return "schedule/month";
 	}
 }

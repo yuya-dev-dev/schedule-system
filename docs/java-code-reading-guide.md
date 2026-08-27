@@ -2,7 +2,7 @@
 
 ## 1. このガイドの目的
 
-このガイドは、JavaとSpring Bootを学び始めた開発者が、画面操作を起点にしてController、Service、Entity、Repository、DBまで処理を追うための案内図である。
+このガイドは、画面操作を起点にしてController、Service、Entity、Repository、DBまで処理を追うための案内図である。
 
 最初から全クラスを読む必要はない。まず1つの画面操作について、次の順で役割を確認する。
 
@@ -33,7 +33,7 @@
 6. `ScheduleRequestAutosaveServiceTest`
    - 下書き、公開、競合、古いversionの具体例を確認できる
 
-この経路を理解すると、Controller、Service、Entity、Repositoryという基本的な役割分担を一度に確認できる。
+この経路には、Controller、Service、Entity、Repositoryの主要な役割分担が含まれている。
 
 JavaScriptが使えない場合の通常送信は`ScheduleRequestController.save()`から始まる。入口と戻り値は異なるが、保存処理は同じ`ScheduleRequestAutosaveService.save()`へ合流する。
 

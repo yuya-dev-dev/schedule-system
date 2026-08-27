@@ -49,9 +49,13 @@ class SecurityConfigurationAccessGateTest {
 	void rejectsWrongPassword() throws Exception {
 		mockMvc.perform(post("/login")
 						.param("accessUser", SecurityConfiguration.SHARED_USERNAME)
-						.param("accessPassword", "wrong-pass"))
+						.param("accessPassword", "wrong-pass")
+						.with(request -> {
+							request.setRemoteAddr("192.0.2.10");
+							return request;
+						}))
 				.andExpect(status().is3xxRedirection())
-				.andExpect(redirectedUrl("/login?error"));
+				.andExpect(redirectedUrl("/login?error=true"));
 	}
 
 	@Test
@@ -74,6 +78,58 @@ class SecurityConfigurationAccessGateTest {
 		HttpSession session = result.getRequest().getSession(false);
 
 		mockMvc.perform(get("/schedule").session((org.springframework.mock.web.MockHttpSession) session))
-				.andExpect(status().isOk());
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("ログアウト")));
+	}
+
+	@Test
+	void blocksLoginAfterFiveFailuresFromSameAddress() throws Exception {
+		for (int attempt = 0; attempt < 5; attempt++) {
+			mockMvc.perform(post("/login")
+							.param("accessUser", SecurityConfiguration.SHARED_USERNAME)
+							.param("accessPassword", "wrong-pass")
+							.with(request -> {
+								request.setRemoteAddr("192.0.2.20");
+								return request;
+							}))
+					.andExpect(status().is3xxRedirection())
+					.andExpect(redirectedUrl("/login?error=true"));
+		}
+
+		mockMvc.perform(post("/login")
+						.param("accessUser", SecurityConfiguration.SHARED_USERNAME)
+						.param("accessPassword", "test-pass")
+						.with(request -> {
+							request.setRemoteAddr("192.0.2.20");
+							return request;
+						}))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/login?blocked=true"));
+
+		mockMvc.perform(get("/login?blocked=true"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("15分後にもう一度お試しください")));
+	}
+
+	@Test
+	void invalidatesSessionOnLogout() throws Exception {
+		MvcResult result = mockMvc.perform(post("/login")
+						.param("accessUser", SecurityConfiguration.SHARED_USERNAME)
+						.param("accessPassword", "test-pass")
+						.with(request -> {
+							request.setRemoteAddr("192.0.2.30");
+							return request;
+						}))
+				.andReturn();
+		org.springframework.mock.web.MockHttpSession session =
+				(org.springframework.mock.web.MockHttpSession) result.getRequest().getSession(false);
+
+		mockMvc.perform(post("/logout").session(session))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/login?logout=true"));
+
+		mockMvc.perform(get("/schedule").session(session))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrlPattern("**/login"));
 	}
 }
