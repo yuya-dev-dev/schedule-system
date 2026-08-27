@@ -43,11 +43,11 @@ Excelに近い30分単位の一覧性を残しつつ、各セルから詳細画�
 
 初期MVPと初回導入機能、UI改善、クラウド対応まで完了しています。H2、PostgreSQL Testcontainers、Playwright Chromiumを含む自動テストをGitHub Actionsで実行しています。
 
-- 社員が架空データで主要操作を確認し、重大な問題は検出されなかった。現在は5人規模の限定利用が許可されている
+- 社員が架空データで主要操作を確認し、重大な問題が検出されなかったため、現在は5人規模で正式運用している
 - 配送・設置担当者である開発者本人が、社員から依頼された案件の詳細を画面上で確認できるようになり、毎朝社員へ口頭やメールで個別確認する手間が減った。案件情報の伝達漏れによるトラブルも少なくなった
 - Excelでは難しかったスマートフォンからの案件入力にも対応し、PCとiPhone Safariのどちらからでも端末に左右されずスムーズに案件を登録・確認できるようになった
 
-日次PostgreSQLバックアップ、SHA-256検証、隔離復元、障害時手順は架空データで確認済みです。会社承認済みの保管先、日次担当者、初回本番バックアップと隔離復元の運用記録は未確定であり、バックアップ運用は開始待ちです。このため、現在の5人利用は許可範囲を限定した試験段階であり、実在データを扱う正式運用とは区別しています。
+Render Free Web ServiceとNeon Free PostgreSQL上で実在案件の入力を開始しています。日次PostgreSQLバックアップ、SHA-256検証、隔離復元、障害時手順は架空データで検証済みであり、正式運用中の実施記録は[運用ランブック](docs/operations-runbook.md)に従って管理します。
 
 ## 技術的な見どころ
 
@@ -197,7 +197,7 @@ cloud profileでは、起動時に日本時間の現在日を基準として、`
 - [システム構成](docs/architecture.md)
 - [技術選定・検証記録](docs/technical-decisions.md)
 - [テスト方針](docs/test-policy.md)
-- [限定運用ランブック](docs/operations-runbook.md)
+- [正式運用ランブック](docs/operations-runbook.md)
 
 <details>
 <summary>主な操作</summary>
@@ -238,7 +238,7 @@ cloud profileでは、起動時に日本時間の現在日を基準として、`
 - [システム構成](docs/architecture.md)
 - [開発ロードマップ](docs/development-roadmap.md)
 - [テスト方針](docs/test-policy.md)
-- [限定運用ランブック](docs/operations-runbook.md)
+- [正式運用ランブック](docs/operations-runbook.md)
 - [フェーズ4 テスト設計](docs/phase4-test-design.md)
 - [フェーズ4 性能・容量試験結果](docs/phase4-performance-results.md)
 - [フェーズ4 手動端末試験結果](docs/phase4-manual-device-results.md)

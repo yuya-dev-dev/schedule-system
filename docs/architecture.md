@@ -98,6 +98,6 @@ flowchart TD
 | デモ | 専用H2ファイル | 架空案件6件を使った画面・操作確認 |
 | 自動テスト | H2メモリ | 単体、結合、ブラウザE2E、性能・容量確認 |
 | DB競合試験 | PostgreSQL Testcontainers | 排他制約、同時登録、トランザクション確認 |
-| 5人限定運用 | Render Free Web Service + Neon Free PostgreSQL | 共通パスワードゲート、PostgreSQL保存、日次バックアップ。速度改善要望が出た場合だけ有料化を検討 |
+| 5人正式運用 | Render Free Web Service + Neon Free PostgreSQL | 実在案件、共通パスワードゲート、PostgreSQL保存、日次バックアップ。速度改善要望が出た場合だけ有料化を検討 |
 
 デモと自動テストでは `ScheduleMaintenance` を無効にし、デモデータ投入やテスト結果を起動順序と外部祝日CSVから切り離す。cloud profileでは共通パスワードゲートを必須とし、無効設定では起動を失敗させる。

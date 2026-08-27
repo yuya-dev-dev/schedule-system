@@ -33,7 +33,7 @@ FlywayのSQLは次の場所へ分ける。
 
 ## クラウド試験環境
 
-2026年7月時点では、無料枠での試験環境としてRender Free Web ServiceとNeon Free PostgreSQLを採用している。
+2026年8月時点では、正式運用環境としてRender Free Web ServiceとNeon Free PostgreSQLを採用している。
 
 - Render URL: `https://schedule-system-hekm.onrender.com`
 - Render側では `SPRING_PROFILES_ACTIVE=cloud` を指定する
@@ -42,7 +42,7 @@ FlywayのSQLは次の場所へ分ける。
 - URL共有に加えて、共通パスワードゲートで最低限の入口制限をかける
 - Render無料枠はスリープするため、初回アクセスやスリープ復帰時に待ち時間が発生する
 
-Render + Neonは、社員確認済みの5人規模限定運用環境として扱う。当面は無料枠を継続し、ロード時間への改善要望が出た場合だけ有料構成を検討する。実在案件の入力前には、会社承認済み保管先への初回バックアップ取得と隔離復元を記録する。バックアップ・復元・障害時対応は `docs/operations-runbook.md` に従う。
+Render + Neonは、社員確認済みの5人規模正式運用環境として扱い、実在案件を入力している。当面は無料枠を継続し、ロード時間への改善要望が出た場合だけ有料構成を検討する。バックアップ・復元・障害時対応は `docs/operations-runbook.md` に従い、実施結果は社内の運用記録で管理する。
 
 ## アクセス制御とCSRF
 
