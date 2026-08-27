@@ -58,7 +58,7 @@ Excelに近い30分単位の一覧性を残しつつ、各セルから詳細画�
 
 Render Free Web ServiceとNeon Free PostgreSQL上で実在案件の入力を開始しています。日次PostgreSQLバックアップ、SHA-256検証、隔離復元、障害時手順は架空データで検証済みであり、正式運用中の実施記録は[運用ランブック](docs/operations-runbook.md)に従って管理します。
 
-## 技術的な見どころ
+## 設計・実装における技術的工夫
 
 - **同じ時間への二重登録を防ぐ:** 保存前の重複検査、日付単位のPostgreSQLトランザクションロック、DBのGiST exclusion constraintを組み合わせる
 - **競合しても入力内容を失わない:** DB競合をSQLSTATE `23P01`と`40P01`で識別し、後続入力を理由付きの`DRAFT`として別トランザクションで保存する
