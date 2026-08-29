@@ -3,8 +3,9 @@ package com.yuyadev.schedulesystem.config;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Comparator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -17,7 +18,6 @@ class LoginAttemptService {
 
 	private final Clock clock;
 	private final ConcurrentHashMap<String, AttemptState> attempts = new ConcurrentHashMap<>();
-	private final AtomicReference<Instant> overflowBlockedUntil = new AtomicReference<>();
 
 	LoginAttemptService(Clock clock) {
 		this.clock = clock;
@@ -27,7 +27,7 @@ class LoginAttemptService {
 		String key = normalize(clientAddress);
 		AttemptState state = attempts.get(key);
 		if (state == null) {
-			return isOverflowBlocked(clock.instant());
+			return false;
 		}
 
 		Instant now = clock.instant();
@@ -46,8 +46,7 @@ class LoginAttemptService {
 		if (!attempts.containsKey(key) && attempts.size() >= MAX_TRACKED_CLIENTS) {
 			purgeExpired(now);
 			if (attempts.size() >= MAX_TRACKED_CLIENTS) {
-				overflowBlockedUntil.set(now.plus(BLOCK_DURATION));
-				return;
+				evictOldestAttempt();
 			}
 		}
 
@@ -56,6 +55,10 @@ class LoginAttemptService {
 
 	void clear(String clientAddress) {
 		attempts.remove(normalize(clientAddress));
+	}
+
+	int trackedClientCount() {
+		return attempts.size();
 	}
 
 	private AttemptState nextFailureState(AttemptState current, Instant now) {
@@ -78,13 +81,13 @@ class LoginAttemptService {
 								|| !now.isBefore(entry.getValue().blockedUntil())));
 	}
 
-	private boolean isOverflowBlocked(Instant now) {
-		Instant blockedUntil = overflowBlockedUntil.get();
-		if (blockedUntil == null || !now.isBefore(blockedUntil)) {
-			overflowBlockedUntil.compareAndSet(blockedUntil, null);
-			return false;
-		}
-		return true;
+	private void evictOldestAttempt() {
+		attempts.entrySet().stream()
+				.min(Comparator
+						.comparing((Map.Entry<String, AttemptState> entry) ->
+								entry.getValue().blockedUntil() != null)
+						.thenComparing(entry -> entry.getValue().windowStarted()))
+				.ifPresent(entry -> attempts.remove(entry.getKey(), entry.getValue()));
 	}
 
 	private String normalize(String clientAddress) {

@@ -11,6 +11,7 @@ if ($LASTEXITCODE -ne 0) {
 
 $powerShellExecutable = (Get-Process -Id $PID).Path
 $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("schedule-system-backup-tests-" + [Guid]::NewGuid().ToString("N"))
+$initializeScript = Join-Path $repositoryRoot "scripts/Initialize-PostgreSqlBackup.ps1"
 $backupScript = Join-Path $repositoryRoot "scripts/Backup-PostgreSql.ps1"
 $restoreScript = Join-Path $repositoryRoot "scripts/Test-PostgreSqlBackup.ps1"
 . (Join-Path $repositoryRoot "scripts/PostgreSqlBackup.Common.ps1")
@@ -35,14 +36,21 @@ function Invoke-ScriptExpectingFailure(
     }
 }
 
-function Write-BackupConfiguration([string]$Path, [string]$JdbcUrl) {
+function Write-BackupConfiguration(
+    [string]$Path,
+    [string]$JdbcUrl,
+    [string]$ClientImage = ""
+) {
+    if ([string]::IsNullOrWhiteSpace($ClientImage)) {
+        $ClientImage = Get-ApprovedPostgreSqlClientImage
+    }
     [pscustomobject]@{
         JdbcUrl = $JdbcUrl
         Username = "backup_test_user"
         Password = ConvertTo-SecureString "fictional-password" -AsPlainText -Force
         OutputDirectory = Join-Path $testRoot "archives"
         RetentionDays = 14
-        ClientImage = "postgres:18-alpine"
+        ClientImage = $ClientImage
     } | Export-Clixml -LiteralPath $Path
 }
 
@@ -52,6 +60,25 @@ try {
     Assert-Equal 'fictional\\password\:with-colon' `
         (ConvertTo-PgPassValue 'fictional\password:with-colon') `
         '.pgpassパスワードのエスケープ結果'
+
+    $unapprovedImageConfiguration = Join-Path $testRoot "unapproved-image.clixml"
+    Write-BackupConfiguration `
+        $unapprovedImageConfiguration `
+        "jdbc:postgresql://fictional.example.invalid/schedule?sslmode=require" `
+        "postgres:18-alpine"
+    Invoke-ScriptExpectingFailure `
+        $backupScript `
+        @("-ConfigurationPath", $unapprovedImageConfiguration) `
+        "検証済みの固定イメージだけを使用できます"
+    Invoke-ScriptExpectingFailure `
+        $initializeScript `
+        @(
+            "-ConfigurationPath", (Join-Path $testRoot "new-config.clixml"),
+            "-OutputDirectory", (Join-Path $testRoot "new-archives"),
+            "-ClientImage", "postgres:18-alpine",
+            "-ApprovedStorage"
+        ) `
+        "検証済みの固定イメージだけを使用できます"
 
     $pooledConfiguration = Join-Path $testRoot "pooled.clixml"
     Write-BackupConfiguration $pooledConfiguration "jdbc:postgresql://fictional-pooler.example.invalid/schedule?sslmode=require"
@@ -68,6 +95,11 @@ try {
 
     [System.IO.File]::WriteAllText("$backupFile.sha256", "invalid checksum metadata")
     Invoke-ScriptExpectingFailure $restoreScript @("-BackupFile", $backupFile) "SHA-256ファイルの形式または対象ファイル名が不正です"
+
+    Invoke-ScriptExpectingFailure `
+        $restoreScript `
+        @("-BackupFile", $backupFile, "-ClientImage", "postgres:18-alpine") `
+        "検証済みの固定イメージだけを使用できます"
 
     Write-Host "バックアップスクリプトの回帰テストに成功しました。"
 }

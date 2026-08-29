@@ -19,16 +19,19 @@ public class ScheduleRequestAutosaveService {
 	private final ScheduleRequestRepository repository;
 	private final ScheduleDatePolicy datePolicy;
 	private final ScheduleDateTransactionLock dateTransactionLock;
+	private final DraftCapacityTransactionLock draftCapacityTransactionLock;
 	private final TransactionTemplate transactionTemplate;
 
 	public ScheduleRequestAutosaveService(
 			ScheduleRequestRepository repository,
 			ScheduleDatePolicy datePolicy,
 			ScheduleDateTransactionLock dateTransactionLock,
+			DraftCapacityTransactionLock draftCapacityTransactionLock,
 			PlatformTransactionManager transactionManager) {
 		this.repository = repository;
 		this.datePolicy = datePolicy;
 		this.dateTransactionLock = dateTransactionLock;
+		this.draftCapacityTransactionLock = draftCapacityTransactionLock;
 		this.transactionTemplate = new TransactionTemplate(transactionManager);
 		this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 	}
@@ -98,12 +101,14 @@ public class ScheduleRequestAutosaveService {
 			Optional<ScheduleRequest> conflict = findConflict(id, input);
 			if (conflict.isPresent()) {
 				request.markTimeConflict(conflictDetail(conflict.get()));
+				requireDraftCapacity(id, request);
 				ScheduleRequest saved = repository.saveAndFlush(request);
 				return SaveResult.conflict(saved.getId());
 			}
 			request.publish();
 		}
 
+		requireDraftCapacity(id, request);
 		ScheduleRequest saved = repository.saveAndFlush(request);
 		return SaveResult.saved(saved.getId());
 	}
@@ -129,6 +134,7 @@ public class ScheduleRequestAutosaveService {
 			request.applyInput(input);
 		}
 		request.markTimeConflict("既存案件と時間が重複しています");
+		requireDraftCapacity(id, request);
 		ScheduleRequest saved = repository.saveAndFlush(request);
 		return SaveResult.conflict(saved.getId());
 	}
@@ -154,6 +160,19 @@ public class ScheduleRequestAutosaveService {
 		}
 		return ScheduleRequest.isInternalWork(input.workType())
 				|| (input.requesterName() != null && !input.requesterName().isBlank());
+	}
+
+	private void requireDraftCapacity(Long id, ScheduleRequest request) {
+		if (id == null && request.getEntryState() == EntryState.DRAFT) {
+			draftCapacityTransactionLock.lock();
+		}
+		if (id == null
+				&& request.getEntryState() == EntryState.DRAFT
+				&& repository.countByEntryState(EntryState.DRAFT)
+						>= DraftManagementService.MAX_ACTIVE_DRAFTS) {
+			throw new IllegalArgumentException(
+					"下書きが上限に達しています。一覧から不要な下書きを削除してください");
+		}
 	}
 
 	private AutosaveResult toAutosaveResult(SaveResult result) {

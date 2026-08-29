@@ -51,6 +51,26 @@ class ScheduleRequestAutosaveServiceTest {
 	}
 
 	@Test
+	void rejectsANewDraftAtTheLimitButStillAllowsAPublishedRequest() {
+		for (int index = 0; index < DraftManagementService.MAX_ACTIVE_DRAFTS; index++) {
+			repository.save(ScheduleRequest.draft(
+					WORK_DATE, null, null, "社員" + index, null,
+					DraftReason.INCOMPLETE, "入力不足"));
+		}
+		repository.flush();
+
+		AutosaveResult rejected = service.save(null, 0, input(null, null, null, null));
+		AutosaveResult published = service.save(
+				null, 0, input("社員A", WorkType.INSTALL, "9:00", "10:00"));
+
+		assertThat(rejected.status()).isEqualTo(AutosaveResult.Status.INVALID);
+		assertThat(rejected.message()).contains("下書きが上限");
+		assertThat(repository.countByEntryState(EntryState.DRAFT))
+				.isEqualTo(DraftManagementService.MAX_ACTIVE_DRAFTS);
+		assertThat(published.entryState()).isEqualTo(EntryState.PUBLISHED);
+	}
+
+	@Test
 	void keepsConflictingInputInTheSameDraftAcrossRetries() {
 		AutosaveResult existing = service.save(null, 0, input("社員A", WorkType.INSTALL, "9:00", "10:00"));
 		AutosaveResult conflict = service.save(null, 0, input("社員B", WorkType.DELIVERY, "9:30", "10:30"));

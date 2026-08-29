@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$ApplicationImage = "schedule-system:ci",
-    [string]$PostgreSqlImage = "postgres:18-alpine"
+    [string]$PostgreSqlImage
 )
 
 Set-StrictMode -Version Latest
@@ -11,6 +11,8 @@ $repositoryRoot = (& git rev-parse --show-toplevel).Trim()
 if ($LASTEXITCODE -ne 0) {
     throw "Gitリポジトリのルートを取得できません。"
 }
+. (Join-Path $repositoryRoot "scripts/PostgreSqlBackup.Common.ps1")
+$PostgreSqlImage = Resolve-ApprovedPostgreSqlClientImage $PostgreSqlImage
 
 $executionId = [Guid]::NewGuid().ToString("N")
 $networkName = "schedule-system-ci-$executionId"

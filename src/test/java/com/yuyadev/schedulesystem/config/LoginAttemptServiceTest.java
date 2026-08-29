@@ -12,7 +12,19 @@ import org.junit.jupiter.api.Test;
 class LoginAttemptServiceTest {
 
 	@Test
-	void blocksUntrackedClientsWhenTheTrackingLimitIsReached() {
+	void blocksTheSameClientAfterFiveFailures() {
+		LoginAttemptService service = new LoginAttemptService(Clock.fixed(
+				Instant.parse("2026-08-27T00:00:00Z"), ZoneOffset.UTC));
+
+		for (int attempt = 0; attempt < 5; attempt++) {
+			service.recordFailure("client");
+		}
+
+		assertThat(service.isBlocked("client")).isTrue();
+	}
+
+	@Test
+	void evictsAnOldEntryInsteadOfBlockingUnrelatedClientsAtTheTrackingLimit() {
 		LoginAttemptService service = new LoginAttemptService(Clock.fixed(
 				Instant.parse("2026-08-27T00:00:00Z"), ZoneOffset.UTC));
 		for (int index = 0; index < 1_000; index++) {
@@ -23,8 +35,26 @@ class LoginAttemptServiceTest {
 
 		service.recordFailure("overflow-client");
 
-		assertThat(service.isBlocked("overflow-client")).isTrue();
-		assertThat(service.isBlocked("another-untracked-client")).isTrue();
+		assertThat(service.isBlocked("overflow-client")).isFalse();
+		assertThat(service.isBlocked("another-untracked-client")).isFalse();
+		assertThat(service.trackedClientCount()).isEqualTo(1_000);
+	}
+
+	@Test
+	void keepsAnExistingClientBlockWhenTheTrackingLimitIsReached() {
+		LoginAttemptService service = new LoginAttemptService(Clock.fixed(
+				Instant.parse("2026-08-27T00:00:00Z"), ZoneOffset.UTC));
+		for (int attempt = 0; attempt < 5; attempt++) {
+			service.recordFailure("blocked-client");
+		}
+		for (int index = 0; index < 999; index++) {
+			service.recordFailure("client-" + index);
+		}
+
+		service.recordFailure("overflow-client");
+
+		assertThat(service.isBlocked("blocked-client")).isTrue();
+		assertThat(service.trackedClientCount()).isEqualTo(1_000);
 	}
 
 	@Test

@@ -222,6 +222,49 @@ class PostgreSqlConcurrencyTest {
 	}
 
 	@Test
+	void concurrentDraftsOnDifferentDatesDoNotExceedTheGlobalLimit() throws Exception {
+		for (int index = 0; index < DraftManagementService.MAX_ACTIVE_DRAFTS - 1; index++) {
+			repository.save(ScheduleRequest.draft(
+					WORK_DATE, null, null, "社員" + index, null,
+					DraftReason.INCOMPLETE, "入力不足"));
+		}
+		repository.flush();
+		ScheduleRequestInput firstInput = requestInput()
+				.workDate(WORK_DATE)
+				.startTime(null)
+				.endTime(null)
+				.workType(null)
+				.requesterName("社員A")
+				.build();
+		ScheduleRequestInput secondInput = requestInput()
+				.workDate(WORK_DATE.plusDays(1))
+				.startTime(null)
+				.endTime(null)
+				.workType(null)
+				.requesterName("社員B")
+				.build();
+		CountDownLatch ready = new CountDownLatch(2);
+		CountDownLatch start = new CountDownLatch(1);
+
+		try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+			Future<AutosaveResult> first =
+					executor.submit(() -> autosaveAfterSignal(firstInput, ready, start));
+			Future<AutosaveResult> second =
+					executor.submit(() -> autosaveAfterSignal(secondInput, ready, start));
+
+			assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+			start.countDown();
+
+			assertThat(List.of(first.get().status(), second.get().status()))
+					.containsExactlyInAnyOrder(
+							AutosaveResult.Status.SAVED, AutosaveResult.Status.INVALID);
+		}
+
+		assertThat(repository.countByEntryState(EntryState.DRAFT))
+				.isEqualTo(DraftManagementService.MAX_ACTIVE_DRAFTS);
+	}
+
+	@Test
 	void allowsARequestToStartWhenThePreviousRequestEnds() {
 		AutosaveResult first = autosaveService.save(
 				null, 0, input(LocalTime.of(12, 0), LocalTime.of(14, 0), "社員A", WorkType.INSTALL));
