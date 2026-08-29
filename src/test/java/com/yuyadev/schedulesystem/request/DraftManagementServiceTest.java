@@ -58,6 +58,17 @@ class DraftManagementServiceTest {
 		assertThat(repository.existsById(yesterday.getId())).isFalse();
 	}
 
+	@Test
+	void limitsTheActiveDraftList() {
+		for (int index = 0; index <= DraftManagementService.MAX_ACTIVE_DRAFTS; index++) {
+			saveDraft(LocalDate.of(2026, 6, 24), "社員" + index);
+		}
+
+		List<DraftListItem> drafts = service.findActiveDrafts();
+
+		assertThat(drafts).hasSize(DraftManagementService.MAX_ACTIVE_DRAFTS);
+	}
+
 	private ScheduleRequest saveDraft(LocalDate date, String requester) {
 		return repository.saveAndFlush(ScheduleRequest.draft(
 				date, null, null, requester, null, DraftReason.INCOMPLETE, "入力不足"));

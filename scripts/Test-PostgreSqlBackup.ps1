@@ -3,11 +3,14 @@ param(
     [Parameter(Mandatory)]
     [string]$BackupFile,
 
-    [string]$ClientImage = "postgres:18-alpine"
+    [string]$ClientImage
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "PostgreSqlBackup.Common.ps1")
+
+$ClientImage = Resolve-ApprovedPostgreSqlClientImage $ClientImage
 
 function Get-FullPath([string]$Path) {
     return [System.IO.Path]::GetFullPath($Path)

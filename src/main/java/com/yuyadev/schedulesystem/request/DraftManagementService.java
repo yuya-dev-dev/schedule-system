@@ -4,11 +4,14 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class DraftManagementService {
+
+	static final int MAX_ACTIVE_DRAFTS = 100;
 
 	private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy年M月d日");
 	private static final DateTimeFormatter UPDATED_AT_FORMAT = DateTimeFormatter.ofPattern("M月d日 H:mm");
@@ -32,7 +35,7 @@ public class DraftManagementService {
 		LocalDate today = LocalDate.now(clock);
 		return repository
 				.findByEntryStateAndWorkDateGreaterThanEqualOrderByUpdatedAtDesc(
-						EntryState.DRAFT, today)
+						EntryState.DRAFT, today, PageRequest.of(0, MAX_ACTIVE_DRAFTS))
 				.stream()
 				.map(this::toListItem)
 				.toList();

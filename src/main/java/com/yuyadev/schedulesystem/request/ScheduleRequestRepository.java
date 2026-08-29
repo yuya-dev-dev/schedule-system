@@ -3,6 +3,7 @@ package com.yuyadev.schedulesystem.request;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -46,7 +47,7 @@ public interface ScheduleRequestRepository extends JpaRepository<ScheduleRequest
 			LocalDate startDate, LocalDate endDate, EntryState entryState);
 
 	List<ScheduleRequest> findByEntryStateAndWorkDateGreaterThanEqualOrderByUpdatedAtDesc(
-			EntryState entryState, LocalDate workDate);
+			EntryState entryState, LocalDate workDate, Pageable pageable);
 
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("delete from ScheduleRequest r where r.entryState = :entryState and r.workDate < :workDate")

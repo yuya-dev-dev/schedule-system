@@ -100,6 +100,7 @@ if ($backupConfiguration.Password -isnot [System.Security.SecureString]) {
 if ([int]$backupConfiguration.RetentionDays -ne 14) {
     throw "バックアップ保持期間は14日固定です。"
 }
+$clientImage = Resolve-ApprovedPostgreSqlClientImage $backupConfiguration.ClientImage
 
 $connection = Convert-JdbcUrl $backupConfiguration.JdbcUrl
 $outputDirectory = Get-FullPath $backupConfiguration.OutputDirectory
@@ -140,7 +141,7 @@ try {
         "--env", "PGUSER=$($backupConfiguration.Username)",
         "--env", "PGDATABASE=$($connection.Database)",
         "--env", "PGSSLMODE=$($connection.SslMode)",
-        $backupConfiguration.ClientImage,
+        $clientImage,
         "sh", "-c",
         "umask 077 && cat > /tmp/.pgpass && chmod 600 /tmp/.pgpass && PGPASSFILE=/tmp/.pgpass exec pg_dump --format=custom --no-owner --no-acl --file /backup/$backupFileName"
     )
@@ -153,7 +154,7 @@ try {
         throw "pg_dumpは成功しましたが、バックアップファイルが見つかりません。"
     }
 
-    & docker run --rm --mount $backupMount $backupConfiguration.ClientImage pg_restore --list "/backup/$backupFileName" | Out-Null
+    & docker run --rm --mount $backupMount $clientImage pg_restore --list "/backup/$backupFileName" | Out-Null
     if ($LASTEXITCODE -ne 0) {
         throw "作成したバックアップをpg_restoreで読み取れません。"
     }
