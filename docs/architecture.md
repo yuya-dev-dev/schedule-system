@@ -24,7 +24,7 @@ flowchart LR
     JPA --> PG
 ```
 
-利用者はインストールせず、同じURLをブラウザで開く。個人別ログインや権限差は設けない。社員5人程度による受入テストを経て、正式運用では10人弱が1つのスケジュールを共同利用する。クラウド配置時だけ、URL漏洩時の最低限の入口制限として共通パスワードゲートを使う。
+利用者はアプリをインストールせず、同じURLをブラウザで開く。個人別ログインや権限差は設けない。社員5人程度による受入テストを経て、正式運用では10人弱が1つのスケジュールを共同利用する。クラウド配置時だけ、URL漏洩時の最低限の入口制限として共通パスワードゲートを使う。
 
 ## アプリケーション内の責務
 
@@ -71,7 +71,7 @@ flowchart TD
     REPOSITORY --> DB
 ```
 
-主要なDBテーブルは、案件と下書きの`schedule_requests`、祝日の`calendar_holidays`、休みの`schedule_day_offs`、削除した固定予定を再作成しないための`recurring_fixed_request_skips`である。
+主要なDBテーブルは、案件と下書きを保存する`schedule_requests`、祝日の`calendar_holidays`、休みの`schedule_day_offs`、削除した固定予定の再作成を防ぐ`recurring_fixed_request_skips`である。
 
 ## 保存と競合制御
 
@@ -82,7 +82,7 @@ flowchart TD
 5. PostgreSQLでは排他制約で重複を最終的に防ぎ、同時登録でも先着案件だけを公開する
 6. 編集時は楽観ロック、キャンセル時は確認時のバージョンとの照合で、ほかの利用者による更新を保護する
 
-状態変更POSTはSpring SecurityのCSRF防御を通す。通常フォームにはThymeleafがトークンを追加し、自動保存JavaScriptは同じトークンをHTTPヘッダーへ設定する。PostgreSQLの時間重複はSQLSTATE `23P01`だけを競合として扱い、ほかのDB整合性エラーは障害として伝播させる。
+状態変更POSTはSpring SecurityのCSRF防御を通す。通常フォームにはThymeleafがトークンを追加し、自動保存JavaScriptは同じトークンをHTTPヘッダーへ設定する。自動保存では、PostgreSQLの排他制約違反 `23P01` と、ロック取得例外に含まれるデッドロック `40P01` を競合回復の対象とする。ほかのDB整合性エラーは障害として伝播させる。
 
 ## 定期保守
 
