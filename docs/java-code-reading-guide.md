@@ -1,5 +1,7 @@
 # Javaコード読解ガイド
 
+[資料案内](README.md) | [システム構成](architecture.md) | [テスト方針](test-policy.md)
+
 ## 1. このガイドの目的
 
 このガイドでは、画面操作からController、Service、Entity、Repository、DBへと処理を追う順番を示す。

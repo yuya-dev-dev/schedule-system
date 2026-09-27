@@ -1,8 +1,10 @@
 # 技術選定・検証記録
 
+[資料案内](README.md) | [システム構成](architecture.md) | [DB設計](database-design.md)
+
 ## 目的
 
-フェーズ1で決めた技術構成と、時間重複・同時操作の検証結果を記録する。実装中に前提が変わった場合は、理由と影響範囲をこの文書に追記する。
+採用した技術構成、判断理由、時間重複・同時操作の検証結果を記録する。前提が変わった場合は、理由と影響範囲をこの文書に追記する。
 
 ## 採用構成
 
@@ -16,8 +18,8 @@
 | ORM | Spring Data JPA / Hibernate | Entity、Repository、楽観ロックをSpring標準構成で扱える |
 | DBマイグレーション | Flyway | DB変更をSQLファイルとして履歴管理し、H2とPostgreSQLへ同じ順序で適用できる |
 | ローカルDB | H2ファイルDB | 画面開発と通常起動を軽くし、追加サービスなしで動かせる |
-| 本番想定DB | PostgreSQL | 時間範囲の排他制約をDBレベルで表現でき、同時登録を確実に防げる |
-| クラウド試験環境 | Render Free Web Service + Neon Free PostgreSQL | URL共有、共通パスワードゲート、PostgreSQL保存、無料枠制約を低コストで確認できる |
+| 正式運用DB | PostgreSQL | 時間範囲の排他制約をDBレベルで表現でき、同時登録を確実に防げる |
+| クラウド運用環境 | Render Free Web Service + Neon Free PostgreSQL | URL共有、共通パスワードゲート、PostgreSQL保存、無料枠制約を低コストで確認できる |
 | 本番相当テスト | Testcontainers PostgreSQL | 実際のPostgreSQLを一時起動し、H2との差異と競合処理を自動検証できる |
 | 自動テスト | JUnit 5、AssertJ、Spring Boot Test | 単体・結合テストをSpring Boot標準の範囲で構成できる |
 | CI | GitHub Actions | Pull Requestとmainへの反映時にJava 21の全テスト、非root Dockerイメージの起動とHTTP応答、バックアップと隔離復元を再実行できる |
@@ -31,7 +33,7 @@ FlywayのSQLは次の場所へ分ける。
 - `db/migration/common`: H2とPostgreSQLで共通のテーブル、チェック制約、索引
 - `db/migration/postgresql`: PostgreSQL固有の時間範囲排他制約
 
-## クラウド試験環境
+## クラウド運用環境
 
 2026年8月時点では、正式運用環境としてRender Free Web ServiceとNeon Free PostgreSQLを採用している。
 
