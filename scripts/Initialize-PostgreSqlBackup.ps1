@@ -48,9 +48,7 @@ New-Item -ItemType Directory -Force -Path (Split-Path -Parent $configurationFull
 New-Item -ItemType Directory -Force -Path $outputFullPath | Out-Null
 
 $jdbcUrl = Read-Host "Neonの直接接続用JDBC URLを入力してください"
-if ($jdbcUrl -notmatch "^jdbc:postgresql://") {
-    throw "JDBC URLは jdbc:postgresql:// で始まる必要があります。"
-}
+$null = ConvertFrom-BackupJdbcUrl $jdbcUrl
 
 $credential = Get-Credential -Message "NeonのDBユーザー名とパスワードを入力してください"
 if ([string]::IsNullOrWhiteSpace($credential.UserName)) {

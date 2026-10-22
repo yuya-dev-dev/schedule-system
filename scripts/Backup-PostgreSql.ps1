@@ -7,7 +7,9 @@ param(
 
     [string]$LocalTestHost,
 
-    [string]$ClientNetwork
+    [string]$ClientNetwork,
+
+    [string]$RootCertificatePath
 )
 
 Set-StrictMode -Version Latest
@@ -38,49 +40,6 @@ function Assert-OutsideRepository([string]$Path) {
     }
 }
 
-function Convert-JdbcUrl([string]$JdbcUrl) {
-    if ($JdbcUrl -notmatch "^jdbc:postgresql://") {
-        throw "JDBC URLは jdbc:postgresql:// で始まる必要があります。"
-    }
-
-    $uri = [System.Uri]($JdbcUrl.Substring(5))
-    if (-not [string]::IsNullOrWhiteSpace($uri.UserInfo)) {
-        throw "JDBC URLに認証情報を含めないでください。"
-    }
-    if ($uri.Host -match "pooler") {
-        throw "バックアップにはNeonの直接接続用ホストを指定してください。プーラー接続は使用できません。"
-    }
-
-    $database = $uri.AbsolutePath.Trim("/")
-    if ([string]::IsNullOrWhiteSpace($database)) {
-        throw "JDBC URLにデータベース名がありません。"
-    }
-
-    $sslMode = "require"
-    if ($uri.Query -match "(?:^|[?&])sslmode=([^&]+)") {
-        $sslMode = [System.Uri]::UnescapeDataString($Matches[1])
-    }
-    if ($sslMode -notin "disable", "allow", "prefer", "require", "verify-ca", "verify-full") {
-        throw "JDBC URLのsslmodeが不正です。"
-    }
-    if ($sslMode -notin "require", "verify-ca", "verify-full") {
-        $localHosts = "localhost", "127.0.0.1", "::1", "host.docker.internal"
-        $matchesExplicitTestHost = -not [string]::IsNullOrWhiteSpace($LocalTestHost) -and
-            $uri.Host.Equals($LocalTestHost, [System.StringComparison]::OrdinalIgnoreCase)
-        if (-not $AllowInsecureLocalTest -or
-                ($uri.Host -notin $localHosts -and -not $matchesExplicitTestHost)) {
-            throw "バックアップ接続には sslmode=require 以上を指定してください。"
-        }
-    }
-
-    return [pscustomobject]@{
-        Host = $uri.Host
-        Port = if ($uri.Port -gt 0) { $uri.Port } else { 5432 }
-        Database = $database
-        SslMode = $sslMode
-    }
-}
-
 $configurationFullPath = Get-FullPath $ConfigurationPath
 Assert-OutsideRepository $configurationFullPath
 if (-not (Test-Path -LiteralPath $configurationFullPath -PathType Leaf)) {
@@ -102,7 +61,18 @@ if ([int]$backupConfiguration.RetentionDays -ne 14) {
 }
 $clientImage = Resolve-ApprovedPostgreSqlClientImage $backupConfiguration.ClientImage
 
-$connection = Convert-JdbcUrl $backupConfiguration.JdbcUrl
+$connection = ConvertFrom-BackupJdbcUrl $backupConfiguration.JdbcUrl `
+    -AllowInsecureLocalTest:$AllowInsecureLocalTest -LocalTestHost $LocalTestHost
+$rootCertificate = $null
+if (-not [string]::IsNullOrWhiteSpace($RootCertificatePath)) {
+    if ($connection.SslMode -ne 'verify-full') {
+        throw "RootCertificatePathはsslmode=verify-fullの場合だけ指定できます。"
+    }
+    $rootCertificate = Get-FullPath $RootCertificatePath
+    if (-not (Test-Path -LiteralPath $rootCertificate -PathType Leaf) -or $rootCertificate.Contains(',')) {
+        throw "RootCertificatePathには存在するCAファイルを指定してください。パスにカンマは使用できません。"
+    }
+}
 $outputDirectory = Get-FullPath $backupConfiguration.OutputDirectory
 Assert-OutsideRepository $outputDirectory
 New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null
@@ -133,6 +103,14 @@ try {
     }
     if (-not [string]::IsNullOrWhiteSpace($ClientNetwork)) {
         $dockerArguments += @("--network", $ClientNetwork)
+    }
+    if ($connection.SslMode -eq 'verify-full') {
+        $rootCertificateInContainer = 'system'
+        if ($rootCertificate) {
+            $dockerArguments += @('--mount', "type=bind,source=$rootCertificate,target=/run/backup-root.crt,readonly")
+            $rootCertificateInContainer = '/run/backup-root.crt'
+        }
+        $dockerArguments += @('--env', "PGSSLROOTCERT=$rootCertificateInContainer")
     }
     $dockerArguments += @(
         "--mount", $backupMount,
