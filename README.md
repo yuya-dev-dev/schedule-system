@@ -62,27 +62,26 @@
 
 Render Free Web ServiceとNeon Free PostgreSQL上で実在案件の入力を開始している。日次バックアップは管理用Windows PCのタスクスケジューラで自動実行する。バックアップ、SHA-256検証、隔離復元、障害時手順は架空データで検証済み。[運用ランブック](docs/operations-runbook.md)では方式の概要を説明し、本番の取得記録やログはリポジトリに含めない。
 
-## 設計・実装における技術的工夫
-
-- **同じ時間への二重登録を防ぐ:** 保存前の重複検査、日付単位のPostgreSQLトランザクションロック、DBのGiST exclusion constraintを組み合わせる
-- **競合時の入力と元の予定を保護する:** DB競合はSQLSTATE `23P01`と`40P01`で識別する。新規・既存下書きの入力は理由付きの`DRAFT`として別トランザクションで保存し、公開済み案件の編集では変更を保存せず元の予定を維持する
-- **古い画面からの上書きを防ぐ:** JPAの`@Version`による楽観ロックで、ほかの利用者が更新した後に古い画面から上書きされることを防ぐ
-- **実際のDBとブラウザで品質を確認する:** H2の単体・結合テストに加え、Testcontainers PostgreSQLの競合テストとPlaywright ChromiumのE2EをGitHub Actionsで実行する
-- **障害時に復旧できるようにする:** Flyway Migration、custom formatの日次バックアップ、SHA-256検証、ネットワークを切った隔離復元を用意する。Dockerビルドから復元成功までをCIで検証する
-- **業務用URLへの入口を保護する:** 共通パスワードゲート、CSRF防御、試行制限、セッション失効、ログアウトを有効にする。秘密値は環境変数で管理する
-
-### システム構成
+## 本番のシステム構成
 
 ```mermaid
-flowchart LR
-    Browser[PC / iPhone Safari] --> Security[Spring Security<br>共通パスワード + CSRF]
-    Security --> App[Spring Boot<br>Thymeleaf / Spring Data JPA]
-    App --> PostgreSQL[(PostgreSQL<br>共有環境)]
-    App --> H2[(H2<br>ローカル開発)]
-    App --> Holidays[内閣府<br>祝日CSV]
-    Backup[PowerShell<br>backup / restore] --> PostgreSQL
-    CI[GitHub Actions] --> Tests[JUnit / Testcontainers<br>Playwright]
+flowchart TB
+    Browser[利用者<br>PC / iPhone] -->|登録・確認| App[Webアプリ<br>Render]
+    App <-->|保存・読込| DB[(案件データ<br>Neon)]
+    DB -. 日次取得 .-> Backup[バックアップ保存先<br>管理用PC]
+    Changes[コードの変更] --> CI[自動テスト・ビルド<br>GitHub Actions]
 ```
+
+利用者はRender上のアプリを通じてNeonへ案件を保存する。点線はNeonから管理用PCへのバックアップ経路を示す。GitHub ActionsのテストとDockerビルドは、本番とは別の一時DB・コンテナで実行する。H2はローカル開発・デモ用で、本番では使用しない。祝日CSVとの連携や検証ツールの詳細は図では省略し、設計資料と技術スタックに記載している。
+
+## 設計・実装における技術的工夫
+
+- **同じ時間への二重登録を防ぐ:** 複数人が同時に登録しても予定が重ならないよう、保存前の重複検査と日付単位のPostgreSQLトランザクションロックを使う。アプリ側の検査をすり抜けた重複も、DBのGiST exclusion constraintで拒否する
+- **競合時の入力と元の予定を保護する:** DB競合はSQLSTATE `23P01`と`40P01`で識別する。新規・既存下書きの入力は理由付きの`DRAFT`として別トランザクションで保存し、公開済み案件の編集では変更を保存せず元の予定を維持する
+- **古い画面からの上書きを防ぐ:** JPAの`@Version`による楽観ロックで、ほかの利用者が更新した後に古い画面から上書きされることを防ぐ
+- **実際のDBとブラウザで品質を確認する:** 変更による機能退行やDB固有の競合を検出するため、H2の単体・結合テストに加え、Testcontainers PostgreSQLの競合テストとPlaywright ChromiumのE2EをGitHub Actionsで実行する
+- **障害時に復旧できるようにする:** Flyway Migrationとcustom formatの日次バックアップを使う。SHA-256でバックアップファイルの破損を検知し、ネットワークを切った隔離環境で復元できることを確認する。Dockerビルドから復元成功までを架空データでCI検証する
+- **業務用URLへの入口を保護する:** 共通パスワードゲート、CSRF防御、試行制限、セッション失効、ログアウトを有効にする。秘密値は環境変数で管理する
 
 ## 技術スタック
 
@@ -100,6 +99,15 @@ flowchart LR
 正式運用では、Render Free Web Serviceでアプリを実行し、Neon Free PostgreSQLへ案件を保存している。10人弱の利用者に業務用URLをメールで共有し、共通パスワードを入力して利用してもらっている。
 
 業務用URLでは実在案件を扱うため、ポートフォリオ閲覧者向けの公開デモには使用しない。READMEでは、本番DBや秘密情報を使わず、架空データで安全に動作を確認できるDockerまたはローカルH2での起動手順を案内している。
+
+### 運用上の制約
+
+- 共通パスワード方式では、利用者ごとの権限分離、個別のアクセス失効、操作主体の識別はできない。共有先を限定し、漏えい時は直ちに変更する。利用規模や運用要件が変わった場合に方式を再検討する
+- Renderの無料枠では、初回アクセスやスリープ復帰時に待ち時間が生じる。利用者から改善要望が出た場合に有料構成を検討する
+- 日次バックアップは管理用PCのログイン、ネットワーク接続、Dockerの起動成功に依存する。タスクの実行有無だけでなく、最終取得の成功記録を確認する
+- RPO（目標復旧時点）は、日次取得の成功を前提に最大1営業日を目標とし、保証値とはしない。RTO（目標復旧時間）は未計測で、復旧手順全体を実測してから目標を決める
+
+制約への対応と復旧手順は、[運用ランブック](docs/operations-runbook.md)に記載している。
 
 ## 起動方法
 
