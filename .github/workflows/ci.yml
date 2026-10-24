@@ -22,6 +22,10 @@ jobs:
         shell: pwsh
         run: ./scripts/tests/BackupScripts.Tests.ps1
 
+      - name: Test daily backup automation without external connections
+        shell: pwsh
+        run: ./scripts/tests/BackupAutomation.Tests.ps1
+
       - name: Test backup TLS verification in isolation
         shell: pwsh
         run: ./scripts/tests/BackupTls.Tests.ps1
