@@ -119,13 +119,16 @@ try {
     if (-not $ready) { throw 'TLSテスト用PostgreSQLが起動しませんでした。' }
 
     $configuration = Write-TestConfiguration (Join-Path $testRoot 'trusted') $serverName
-    & $backupScript -ConfigurationPath $configuration -RootCertificatePath $caPath `
-        -AllowInsecureLocalTest -LocalTestHost $serverName -ClientNetwork $networkName
+    $backupResult = & $backupScript -ConfigurationPath $configuration -RootCertificatePath $caPath `
+        -AllowInsecureLocalTest -LocalTestHost $serverName -ClientNetwork $networkName -PassThru
     if ($LASTEXITCODE -ne 0) { throw '信頼済みCAと正しいホスト名でバックアップが失敗しました。' }
     $trustedArchives = Join-Path $testRoot 'trusted/archives'
     if (@(Get-ChildItem -LiteralPath $trustedArchives -Filter '*.dump').Count -ne 1 -or
             @(Get-ChildItem -LiteralPath $trustedArchives -Filter '*.sha256').Count -ne 1) {
         throw '信頼済み接続でdumpとSHA-256を作成できませんでした。'
+    }
+    if ((Get-FileHash -LiteralPath $backupResult.BackupFile -Algorithm SHA256).Hash -cne $backupResult.Sha256) {
+        throw 'PassThruの返却値が作成されたバックアップと一致しません。'
     }
     Write-Host 'TLS成功を確認: 信頼済みCAと正しいホスト名'
 

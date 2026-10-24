@@ -9,7 +9,9 @@ param(
 
     [string]$ClientNetwork,
 
-    [string]$RootCertificatePath
+    [string]$RootCertificatePath,
+
+    [switch]$PassThru
 )
 
 Set-StrictMode -Version Latest
@@ -153,6 +155,9 @@ try {
         }
 
     Write-Host "バックアップを作成しました: $backupFileName"
+    if ($PassThru) {
+        [pscustomobject]@{ BackupFile = $backupFilePath; Sha256 = $hash }
+    }
 }
 catch {
     if ($backupHashPath -and (Test-Path -LiteralPath $backupHashPath -PathType Leaf)) {
