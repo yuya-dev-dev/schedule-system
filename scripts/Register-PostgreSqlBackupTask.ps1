@@ -22,15 +22,23 @@ if ($Enable) {
 }
 $taskName = 'ScheduleSystem-DailyBackup'
 $description = 'schedule-system local daily backup automation'
-$scriptPath = Join-Path $PSScriptRoot 'Invoke-DailyPostgreSqlBackup.ps1'
+$launcherPath = Join-Path $PSScriptRoot 'Run-PostgreSqlBackupHidden.js'
 $workingDirectory = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $userId = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-$powerShell = (Get-Command pwsh.exe -CommandType Application).Source
-$arguments = "-NoProfile -NonInteractive -WindowStyle Hidden -File `"$scriptPath`" -ConfigurationPath `"$configurationFullPath`" -StartDockerDesktop"
-$action = New-ScheduledTaskAction -Execute $powerShell -Argument $arguments -WorkingDirectory $workingDirectory
+$powerShell = (Get-Command pwsh.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+$scriptHost = Join-Path $env:WINDIR 'System32/wscript.exe'
+if (-not (Test-Path -LiteralPath $scriptHost -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $launcherPath -PathType Leaf)) {
+    throw '非表示起動用のWindows Script Hostまたはランチャーが見つかりません。'
+}
+foreach ($path in @($launcherPath, $powerShell, $configurationFullPath)) {
+    if ($path -match '["%\r\n]') { throw '起動用パスに使用できない文字が含まれています。' }
+}
+$arguments = "//B //NoLogo `"$launcherPath`" `"$powerShell`" `"$configurationFullPath`""
+$action = New-ScheduledTaskAction -Execute $scriptHost -Argument $arguments -WorkingDirectory $workingDirectory
 $triggers = @(
     (New-ScheduledTaskTrigger -AtLogOn -User $userId),
-    (New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5))
+    (New-ScheduledTaskTrigger -Once -At (Get-Date).AddHours(3) -RepetitionInterval (New-TimeSpan -Hours 3))
 )
 $eventClass = Get-CimClass -Namespace 'Root/Microsoft/Windows/TaskScheduler' -ClassName 'MSFT_TaskEventTrigger'
 $networkTrigger = New-CimInstance -ClientOnly -CimClass $eventClass -Property @{
@@ -56,6 +64,9 @@ if ($existing -and ($existing.Description -cne $description -or
     throw '同名の別タスクが存在するため上書きしません。'
 }
 if ($PSCmdlet.ShouldProcess($taskName, $(if ($Enable) { '自動バックアップを有効化' } else { '無効状態で登録' }))) {
+    if (-not (Test-BackupAutomationScriptHost $scriptHost $launcherPath $powerShell)) {
+        throw 'Windows Script Hostの非表示ランチャーを実行できないため、既存タスクを変更しません。'
+    }
     Register-ScheduledTask -TaskName $taskName -Description $description -Action $action -Trigger $triggers `
         -Settings $settings -Principal $principal -Force | Out-Null
     Write-Host "登録しました: $taskName / Enabled=$([bool]$Enable)"
